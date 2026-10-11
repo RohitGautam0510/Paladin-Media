@@ -1,0 +1,462 @@
+{
+  "experiment_id": "E04_HR_AUDIT",
+  "timestamp": "2026-10-11T18:24:44Z",
+  "dataset_audit": {
+    "dataset_path": "dataset/DIV2K/DIV2K_train_HR/DIV2K_train_HR",
+    "total_images": 800,
+    "max_width": 2040,
+    "max_height": 2040,
+    "max_overall_dimension": 2040,
+    "exact_2040x2040_count": 7,
+    "exact_2040x2040_samples": [
+      "0044.png",
+      "0155.png",
+      "0217.png",
+      "0450.png",
+      "0500.png",
+      "0513.png",
+      "0716.png"
+    ],
+    "images_supporting_1024_native_crop": 785,
+    "images_supporting_2048_native_crop": 0,
+    "statement": "The DIV2K HR dataset includes 7 images with exact 2040x2040 dimensions (e.g., ['0044.png', '0155.png', '0217.png']). However, no dimension in the entire dataset reaches 2048 pixels (max dimension is 2040 px). Consequently, native 2048x2048 square crops cannot be formed from any image without upscaling. Per architectural constraints, 2048x2048 and larger carriers are strictly marked as UNAVAILABLE."
+  },
+  "high_load_trace": {
+    "step_1_secret_plaintext": {
+      "media_type": "RAW_BYTES (0x00)",
+      "length_bytes": 20000
+    },
+    "step_2_serialization": {
+      "raw_metadata_dict": {
+        "note": "High-Load 1024x1024 test",
+        "size": 20000
+      },
+      "metadata_json_bytes": "{\"note\":\"High-Load 1024x1024 test\",\"size\":20000}",
+      "metadata_length_bytes": 48,
+      "wire_prefix_header_bytes": 10,
+      "wire_payload_length_field_bytes": 4,
+      "wire_payload_data_bytes": 20000,
+      "wire_crc32_checksum_bytes": 4,
+      "total_serialized_bytes": 20066,
+      "formula": "10 (Prefix) + 48 (Metadata) + 4 (Len) + 20000 (Data) + 4 (CRC32) = 20066 B"
+    },
+    "step_3_encryption_aes_256_gcm": {
+      "iv_nonce_bytes": 12,
+      "ciphertext_bytes": 20066,
+      "ghash_tag_bytes": 16,
+      "total_aes_overhead_bytes": 28,
+      "total_encrypted_bytes": 20094,
+      "formula": "20066 (Serialized) + 28 (AES-GCM overhead) = 20094 B"
+    },
+    "step_4_ecc_reedsolomon": {
+      "rs_primitive": "GF(2^8), n=255, k=223, 2t=32 parity symbols",
+      "input_ciphertext_length": 20094,
+      "rs_length_prefix_bytes": 4,
+      "unpacked_prefix_value": 20094,
+      "num_full_blocks_223": 90,
+      "full_blocks_encoded_bytes": 22950,
+      "last_partial_chunk_bytes": 24,
+      "shortened_block_encoded_bytes": 56,
+      "total_rs_blocks": 91,
+      "total_protected_payload_bytes": 23010,
+      "formula": "4 (Prefix) + 90 * 255 (Full Blocks: 22950 B) + 1 * (24 + 32) (Shortened Block: 56 B) = 23010 B"
+    },
+    "step_5_carrier_embedding_allocation": {
+      "carrier_dimensions": "1024x1024",
+      "subband_dimensions": "512x512",
+      "carrier_channel": "Red HH",
+      "carrier_header_bytes": 16,
+      "carrier_header_bits": 128,
+      "payload_bits": 184080,
+      "total_embedded_bits": 184208,
+      "total_embedded_bytes": 23026,
+      "carrier_raw_capacity_bytes": 32768,
+      "capacity_utilization_percent": 70.27,
+      "remaining_capacity_bytes": 9742
+    }
+  },
+  "high_load_empirical": {
+    "cover_image": "0001.png",
+    "crop_dimensions": [
+      1024,
+      1024,
+      3
+    ],
+    "crop_coords": {
+      "left": 508,
+      "top": 190,
+      "width": 1024,
+      "height": 1024
+    },
+    "plaintext_bytes": 20000,
+    "protected_bytes": 23010,
+    "psnr_db": 63.4576,
+    "ssim": 0.999994,
+    "mae": 0.029331,
+    "max_absolute_error": 1,
+    "carrier_ber": 0.0,
+    "exact_match": true,
+    "embed_time_ms": 426.75,
+    "extract_time_ms": 463.04
+  },
+  "capacity_reconciliation": {
+    "512x512": {
+      "raw_positions": 65536,
+      "raw_capacity_bytes": 8192,
+      "carrier_header_bytes": 16,
+      "max_embeddable_protected_bytes": 8176,
+      "rs_length_prefix_bytes": 4,
+      "avail_for_blocks": 8172,
+      "full_rs_blocks": 32,
+      "rs_remainder_bytes": 12,
+      "shortened_block_data_bytes": 0,
+      "max_encrypted_bytes": 7136,
+      "aes_overhead_bytes": 28,
+      "max_serialized_bytes": 7108,
+      "serializer_base_framing_bytes": 18,
+      "plaintext_capacity_zero_meta": 7090,
+      "plaintext_capacity_ref_meta_2b": 7088,
+      "plaintext_capacity_explicit_meta_7b": 7083,
+      "plaintext_capacity_explicit_meta_48b": 7042
+    },
+    "1024x1024": {
+      "raw_positions": 262144,
+      "raw_capacity_bytes": 32768,
+      "carrier_header_bytes": 16,
+      "max_embeddable_protected_bytes": 32752,
+      "rs_length_prefix_bytes": 4,
+      "avail_for_blocks": 32748,
+      "full_rs_blocks": 128,
+      "rs_remainder_bytes": 108,
+      "shortened_block_data_bytes": 76,
+      "full_block_floor": {
+        "max_encrypted_bytes": 28544,
+        "max_serialized_bytes": 28516,
+        "plaintext_capacity_zero_meta": 28498,
+        "plaintext_capacity_ref_meta_2b": 28496,
+        "plaintext_capacity_explicit_meta_48b": 28450
+      },
+      "actual_shortened_rs_capability": {
+        "max_encrypted_bytes": 28620,
+        "max_serialized_bytes": 28592,
+        "plaintext_capacity_zero_meta": 28574,
+        "plaintext_capacity_ref_meta_2b": 28572,
+        "plaintext_capacity_explicit_meta_48b": 28526
+      }
+    }
+  },
+  "e04_a_reference_runs_512": [
+    {
+      "image_id": "0001.png",
+      "original_dimensions": [
+        2040,
+        1404
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coords": {
+        "left": 764,
+        "top": 446,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.958,
+      "ssim": 1.0,
+      "mae": 0.001649,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 31.75,
+      "io_time_ms": 28.33,
+      "extract_time_ms": 6.03,
+      "total_roundtrip_ms": 66.11,
+      "theoretical_working_memory_mb": 6.75,
+      "measured_peak_process_memory_mb": 266.95,
+      "rss_delta_mb": 14.02
+    },
+    {
+      "image_id": "0002.png",
+      "original_dimensions": [
+        2040,
+        1848
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coords": {
+        "left": 764,
+        "top": 668,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.752,
+      "ssim": 1.0,
+      "mae": 0.001729,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 32.75,
+      "io_time_ms": 25.56,
+      "extract_time_ms": 6.27,
+      "total_roundtrip_ms": 64.58,
+      "theoretical_working_memory_mb": 6.75,
+      "measured_peak_process_memory_mb": 266.95,
+      "rss_delta_mb": -1.14
+    },
+    {
+      "image_id": "0003.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coords": {
+        "left": 764,
+        "top": 422,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.7809,
+      "ssim": 1.0,
+      "mae": 0.001718,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 34.36,
+      "io_time_ms": 28.4,
+      "extract_time_ms": 6.12,
+      "total_roundtrip_ms": 68.88,
+      "theoretical_working_memory_mb": 6.75,
+      "measured_peak_process_memory_mb": 266.95,
+      "rss_delta_mb": 0.02
+    },
+    {
+      "image_id": "0004.png",
+      "original_dimensions": [
+        2040,
+        1344
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coords": {
+        "left": 764,
+        "top": 416,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.651,
+      "ssim": 1.0,
+      "mae": 0.00177,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 31.94,
+      "io_time_ms": 31.37,
+      "extract_time_ms": 6.26,
+      "total_roundtrip_ms": 69.58,
+      "theoretical_working_memory_mb": 6.75,
+      "measured_peak_process_memory_mb": 266.95,
+      "rss_delta_mb": 0.02
+    },
+    {
+      "image_id": "0005.png",
+      "original_dimensions": [
+        1608,
+        2040
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coords": {
+        "left": 548,
+        "top": 764,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.7393,
+      "ssim": 1.0,
+      "mae": 0.001734,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 33.73,
+      "io_time_ms": 24.24,
+      "extract_time_ms": 6.17,
+      "total_roundtrip_ms": 64.13,
+      "theoretical_working_memory_mb": 6.75,
+      "measured_peak_process_memory_mb": 266.95,
+      "rss_delta_mb": 0.02
+    }
+  ],
+  "e04_b_hr_runs_1024": [
+    {
+      "image_id": "0001.png",
+      "original_dimensions": [
+        2040,
+        1404
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coords": {
+        "left": 508,
+        "top": 190,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.779,
+      "ssim": 1.0,
+      "mae": 0.000432,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 137.07,
+      "io_time_ms": 109.25,
+      "extract_time_ms": 9.9,
+      "total_roundtrip_ms": 256.22,
+      "theoretical_working_memory_mb": 27.0,
+      "measured_peak_process_memory_mb": 288.36,
+      "rss_delta_mb": 41.8
+    },
+    {
+      "image_id": "0002.png",
+      "original_dimensions": [
+        2040,
+        1848
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coords": {
+        "left": 508,
+        "top": 412,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.7662,
+      "ssim": 1.0,
+      "mae": 0.000433,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 131.26,
+      "io_time_ms": 103.7,
+      "extract_time_ms": 9.4,
+      "total_roundtrip_ms": 244.37,
+      "theoretical_working_memory_mb": 27.0,
+      "measured_peak_process_memory_mb": 355.1,
+      "rss_delta_mb": -0.01
+    },
+    {
+      "image_id": "0003.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coords": {
+        "left": 508,
+        "top": 166,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.6592,
+      "ssim": 1.0,
+      "mae": 0.000444,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 132.16,
+      "io_time_ms": 111.9,
+      "extract_time_ms": 9.36,
+      "total_roundtrip_ms": 253.42,
+      "theoretical_working_memory_mb": 27.0,
+      "measured_peak_process_memory_mb": 368.41,
+      "rss_delta_mb": -0.52
+    },
+    {
+      "image_id": "0004.png",
+      "original_dimensions": [
+        2040,
+        1344
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coords": {
+        "left": 508,
+        "top": 160,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.7854,
+      "ssim": 1.0,
+      "mae": 0.000431,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 131.73,
+      "io_time_ms": 115.38,
+      "extract_time_ms": 9.77,
+      "total_roundtrip_ms": 256.87,
+      "theoretical_working_memory_mb": 27.0,
+      "measured_peak_process_memory_mb": 368.41,
+      "rss_delta_mb": -0.53
+    },
+    {
+      "image_id": "0005.png",
+      "original_dimensions": [
+        1608,
+        2040
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coords": {
+        "left": 292,
+        "top": 508,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.6592,
+      "ssim": 1.0,
+      "mae": 0.000444,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 129.83,
+      "io_time_ms": 97.08,
+      "extract_time_ms": 9.5,
+      "total_roundtrip_ms": 236.4,
+      "theoretical_working_memory_mb": 27.0,
+      "measured_peak_process_memory_mb": 368.41,
+      "rss_delta_mb": -0.59
+    }
+  ]
+}

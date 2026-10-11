@@ -1,0 +1,41 @@
+"""Test fixtures and vector exports for PaladinMedia."""
+
+from tests.fixtures.vectors import (
+    AESGCMVector,
+    NIST_AES_256_GCM_VECTORS,
+    PAYLOAD_EMPTY,
+    PAYLOAD_SINGLE_BYTE,
+    PAYLOAD_TEXT,
+    PAYLOAD_JSON,
+    PAYLOAD_IMAGE_SNIPPET,
+    PAYLOAD_CAPACITY,
+    PAYLOAD_MULTI_BLOCK,
+    flip_bit,
+    flip_random_bit,
+    corrupt_byte,
+    inject_symbol_errors,
+    inject_burst_error,
+    truncate_data,
+    append_garbage,
+    generate_capacity_payload,
+)
+
+__all__ = [
+    "AESGCMVector",
+    "NIST_AES_256_GCM_VECTORS",
+    "PAYLOAD_EMPTY",
+    "PAYLOAD_SINGLE_BYTE",
+    "PAYLOAD_TEXT",
+    "PAYLOAD_JSON",
+    "PAYLOAD_IMAGE_SNIPPET",
+    "PAYLOAD_CAPACITY",
+    "PAYLOAD_MULTI_BLOCK",
+    "flip_bit",
+    "flip_random_bit",
+    "corrupt_byte",
+    "inject_symbol_errors",
+    "inject_burst_error",
+    "truncate_data",
+    "append_garbage",
+    "generate_capacity_payload",
+]

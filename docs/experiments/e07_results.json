@@ -1,0 +1,95 @@
+[
+  {
+    "configuration": "HH only (Baseline)",
+    "subbands_used": [
+      "HH"
+    ],
+    "raw_capacity_bytes": 8192,
+    "max_protected_bytes": 8176,
+    "usable_secret_capacity_bytes": 7090,
+    "psnr_db": 75.8916,
+    "ssim": 1.0,
+    "mae": 0.001675,
+    "max_pixel_error": 1,
+    "ber": 0.0,
+    "exact_match": true
+  },
+  {
+    "configuration": "HL only",
+    "subbands_used": [
+      "HL"
+    ],
+    "raw_capacity_bytes": 8192,
+    "max_protected_bytes": 8176,
+    "usable_secret_capacity_bytes": 7090,
+    "psnr_db": 75.8916,
+    "ssim": 1.0,
+    "mae": 0.001675,
+    "max_pixel_error": 1,
+    "ber": 0.0,
+    "exact_match": true
+  },
+  {
+    "configuration": "LH only",
+    "subbands_used": [
+      "LH"
+    ],
+    "raw_capacity_bytes": 8192,
+    "max_protected_bytes": 8176,
+    "usable_secret_capacity_bytes": 7090,
+    "psnr_db": 75.8916,
+    "ssim": 1.0,
+    "mae": 0.001675,
+    "max_pixel_error": 1,
+    "ber": 0.0,
+    "exact_match": true
+  },
+  {
+    "configuration": "HH + HL",
+    "subbands_used": [
+      "HH",
+      "HL"
+    ],
+    "raw_capacity_bytes": 16384,
+    "max_protected_bytes": 16368,
+    "usable_secret_capacity_bytes": 14226,
+    "psnr_db": 75.8916,
+    "ssim": 1.0,
+    "mae": 0.001675,
+    "max_pixel_error": 1,
+    "ber": 0.0,
+    "exact_match": true
+  },
+  {
+    "configuration": "HH + HL + LH (All Details)",
+    "subbands_used": [
+      "HH",
+      "HL",
+      "LH"
+    ],
+    "raw_capacity_bytes": 24576,
+    "max_protected_bytes": 24560,
+    "usable_secret_capacity_bytes": 21362,
+    "psnr_db": 75.8916,
+    "ssim": 1.0,
+    "mae": 0.001675,
+    "max_pixel_error": 1,
+    "ber": 0.0,
+    "exact_match": true
+  },
+  {
+    "configuration": "LL only (Low-Freq Control)",
+    "subbands_used": [
+      "LL"
+    ],
+    "raw_capacity_bytes": 8192,
+    "max_protected_bytes": 8176,
+    "usable_secret_capacity_bytes": 7090,
+    "psnr_db": 75.8916,
+    "ssim": 1.0,
+    "mae": 0.001675,
+    "max_pixel_error": 1,
+    "ber": 0.0,
+    "exact_match": true
+  }
+]
