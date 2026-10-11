@@ -57,6 +57,7 @@ Every experiment was conducted using programmatic execution harnesses on actual 
 | **E04-HR** | HR Spatial Scaling | DIV2K HR Dataset & Crops | DIV2K HR (`0001`–`0800`) | Native 1024 crops validated; 7 native $2040\times2040$; zero $\ge 2048$ | **Exact Byte Match** | `docs/experiments/E04_hr_audit_remediation.md` |
 | **E12** | Continuous Payload Sweep | Operating Density (7% to 100%) | DIV2K HR `0001.png` | Logarithmic decay ($73.3 \to 61.9\text{ dB}$); 99.85% & 100.0% boundary; fail-closed | **Exact Byte Match** | `docs/experiments/E12_payload_distortion_sweep.md` |
 | **E13** | Multi-Carrier Repeatability | 5 Images × 2 Sizes × 3 Tiers × 3 Seeds | DIV2K HR (`0001`–`0005`) | 90 runs; BER = 0.000000; std dev < 0.06 dB; exact recovery (90/90) | **ACCEPTED (In Scope)** | `docs/experiments/E13_carrier_repeatability_generalization.md` |
+| **E14** | Channel Degradation & Lossy Baseline | 11 Channels (PNG, JPEG Q=70..100, Gaussian Noise) | DIV2K HR (`0001`–`0005`) | 220 runs; PNG: 100% exact; JPEG/Noise: 0.0% recovery, raw BER ~ 50% | **Exact Empirical Boundary** | `docs/experiments/E14_lossy_channel_degradation.md` |
 
 ---
 
