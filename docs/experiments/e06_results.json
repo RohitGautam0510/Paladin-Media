@@ -1,0 +1,47 @@
+[
+  {
+    "bits_per_coefficient": 1,
+    "modulus": 2,
+    "raw_capacity_bytes": 8192,
+    "max_protected_bytes": 8176,
+    "usable_secret_capacity_bytes": 7090,
+    "psnr_db": 75.7202,
+    "ssim": 1.0,
+    "mae": 0.001742,
+    "max_pixel_error": 1,
+    "ber": 0.0,
+    "exact_match": true,
+    "embed_time_ms": 27.9,
+    "extract_time_ms": 4.35
+  },
+  {
+    "bits_per_coefficient": 2,
+    "modulus": 4,
+    "raw_capacity_bytes": 16384,
+    "max_protected_bytes": 16368,
+    "usable_secret_capacity_bytes": 14226,
+    "psnr_db": 74.2409,
+    "ssim": 0.999999,
+    "mae": 0.001704,
+    "max_pixel_error": 2,
+    "ber": 0.0,
+    "exact_match": true,
+    "embed_time_ms": 9.05,
+    "extract_time_ms": 3.21
+  },
+  {
+    "bits_per_coefficient": 3,
+    "modulus": 8,
+    "raw_capacity_bytes": 24576,
+    "max_protected_bytes": 24560,
+    "usable_secret_capacity_bytes": 21362,
+    "psnr_db": 70.3748,
+    "ssim": 0.999999,
+    "mae": 0.002227,
+    "max_pixel_error": 4,
+    "ber": 0.0,
+    "exact_match": true,
+    "embed_time_ms": 6.32,
+    "extract_time_ms": 2.94
+  }
+]

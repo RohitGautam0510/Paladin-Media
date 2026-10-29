@@ -1,0 +1,23 @@
+{
+  "experiment_id": "E09",
+  "protocol": "Multi-Carrier Partitioning Protocol (MCPP)",
+  "secret_plaintext_bytes": 15000,
+  "total_protected_payload_bytes": 17280,
+  "carriers_utilized": 3,
+  "bytes_per_carrier": 5760,
+  "single_carrier_capacity_limit": 8176,
+  "normal_reassembly_match": true,
+  "shuffled_reassembly_match": true,
+  "missing_carrier_fail_closed": true,
+  "tampered_carrier_fail_closed": true,
+  "per_carrier_psnr_db": [
+    63.4705,
+    63.4406,
+    63.4624
+  ],
+  "per_carrier_ssim": [
+    0.999994,
+    0.999993,
+    0.999995
+  ]
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "configuration": "1 Channel (R)",
+    "channels_used": [
+      0
+    ],
+    "raw_capacity_bytes": 8192,
+    "max_protected_bytes": 8176,
+    "usable_secret_capacity_bytes": 7090,
+    "overall_psnr_db": 76.0631,
+    "per_channel_psnr_db": {
+      "R": 71.2919,
+      "G": Infinity,
+      "B": Infinity
+    },
+    "ssim": 1.0,
+    "ber": 0.0,
+    "exact_match": true,
+    "embed_time_ms": 17.61,
+    "extract_time_ms": 12.34
+  },
+  {
+    "configuration": "2 Channels (R+G)",
+    "channels_used": [
+      0,
+      1
+    ],
+    "raw_capacity_bytes": 16384,
+    "max_protected_bytes": 16368,
+    "usable_secret_capacity_bytes": 14226,
+    "overall_psnr_db": 75.8653,
+    "per_channel_psnr_db": {
+      "R": 74.0619,
+      "G": 74.1472,
+      "B": Infinity
+    },
+    "ssim": 1.0,
+    "ber": 0.0,
+    "exact_match": true,
+    "embed_time_ms": 15.35,
+    "extract_time_ms": 16.8
+  },
+  {
+    "configuration": "3 Channels (RGB)",
+    "channels_used": [
+      0,
+      1,
+      2
+    ],
+    "raw_capacity_bytes": 24576,
+    "max_protected_bytes": 24560,
+    "usable_secret_capacity_bytes": 21362,
+    "overall_psnr_db": 75.7905,
+    "per_channel_psnr_db": {
+      "R": 75.4498,
+      "G": 76.1884,
+      "B": 75.7648
+    },
+    "ssim": 1.0,
+    "ber": 0.0,
+    "exact_match": true,
+    "embed_time_ms": 22.2,
+    "extract_time_ms": 21.58
+  }
+]

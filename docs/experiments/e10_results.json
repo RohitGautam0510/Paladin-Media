@@ -1,0 +1,90 @@
+{
+  "Fixture A (Small PNG Fixture)": {
+    "original_bytes": 152,
+    "uncompressed_branch": {
+      "serialized_bytes": 197,
+      "encrypted_bytes": 225,
+      "protected_bytes": 293,
+      "fits_carrier": true,
+      "processing_time_ms": 2.47
+    },
+    "compressed_branch": {
+      "compressed_bytes": 157,
+      "compression_ratio": 0.968,
+      "serialized_bytes": 239,
+      "encrypted_bytes": 267,
+      "protected_bytes": 335,
+      "fits_carrier": true,
+      "capacity_saved_bytes": -42,
+      "protect_time_ms": 2.91,
+      "roundtrip_time_ms": 76.09,
+      "exact_recovery": true
+    }
+  },
+  "Fixture B (Synthetic 64x64 Raw Image)": {
+    "original_bytes": 12288,
+    "uncompressed_branch": {
+      "serialized_bytes": 12331,
+      "encrypted_bytes": 12359,
+      "protected_bytes": 14155,
+      "fits_carrier": false,
+      "processing_time_ms": 41.57
+    },
+    "compressed_branch": {
+      "compressed_bytes": 82,
+      "compression_ratio": 149.854,
+      "serialized_bytes": 164,
+      "encrypted_bytes": 192,
+      "protected_bytes": 228,
+      "fits_carrier": true,
+      "capacity_saved_bytes": 13927,
+      "protect_time_ms": 0.87,
+      "roundtrip_time_ms": 64.92,
+      "exact_recovery": true
+    }
+  },
+  "Fixture C (Structured JSON Telemetry)": {
+    "original_bytes": 12845,
+    "uncompressed_branch": {
+      "serialized_bytes": 12888,
+      "encrypted_bytes": 12916,
+      "protected_bytes": 14776,
+      "fits_carrier": false,
+      "processing_time_ms": 43.39
+    },
+    "compressed_branch": {
+      "compressed_bytes": 1309,
+      "compression_ratio": 9.813,
+      "serialized_bytes": 1391,
+      "encrypted_bytes": 1419,
+      "protected_bytes": 1647,
+      "fits_carrier": true,
+      "capacity_saved_bytes": 13129,
+      "protect_time_ms": 5.54,
+      "roundtrip_time_ms": 110.08,
+      "exact_recovery": true
+    }
+  },
+  "Fixture D (Random High-Entropy Bytes)": {
+    "original_bytes": 1000,
+    "uncompressed_branch": {
+      "serialized_bytes": 1041,
+      "encrypted_bytes": 1069,
+      "protected_bytes": 1233,
+      "fits_carrier": true,
+      "processing_time_ms": 4.66
+    },
+    "compressed_branch": {
+      "compressed_bytes": 1011,
+      "compression_ratio": 0.989,
+      "serialized_bytes": 1090,
+      "encrypted_bytes": 1118,
+      "protected_bytes": 1314,
+      "fits_carrier": true,
+      "capacity_saved_bytes": -81,
+      "protect_time_ms": 3.97,
+      "roundtrip_time_ms": 100.63,
+      "exact_recovery": true
+    }
+  }
+}

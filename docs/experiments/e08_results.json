@@ -1,0 +1,59 @@
+[
+  {
+    "decomposition_level": 1,
+    "subband_shape": [
+      256,
+      256
+    ],
+    "spatial_receptive_field": "2x2 pixels",
+    "eligible_positions": 65536,
+    "raw_capacity_bytes": 8192,
+    "max_protected_bytes": 8176,
+    "usable_secret_capacity_bytes": 7090,
+    "dwt_idwt_invertibility_max_error": 0.0,
+    "payload_fits": true,
+    "notes": "Full Phase 2 baseline standard"
+  },
+  {
+    "decomposition_level": 2,
+    "subband_shape": [
+      128,
+      128
+    ],
+    "spatial_receptive_field": "4x4 pixels",
+    "eligible_positions": 16384,
+    "raw_capacity_bytes": 2048,
+    "max_protected_bytes": 2032,
+    "usable_secret_capacity_bytes": 1515,
+    "dwt_idwt_invertibility_max_error": 0.0,
+    "payload_fits": true,
+    "notes": "Capacity reduced by 75% compared to Level 1"
+  },
+  {
+    "decomposition_level": 3,
+    "subband_shape": [
+      64,
+      64
+    ],
+    "spatial_receptive_field": "8x8 pixels",
+    "eligible_positions": 4096,
+    "raw_capacity_bytes": 512,
+    "max_protected_bytes": 496,
+    "usable_secret_capacity_bytes": 177,
+    "dwt_idwt_invertibility_max_error": 0.0,
+    "payload_fits": true,
+    "notes": "Capacity reduced by 93.75% compared to Level 1; 316 B payload fits within 496 B max"
+  },
+  {
+    "decomposition_level": "Multiscale (HH1 + HH2 + HH3)",
+    "subband_shape": "Pyramid 256x256 + 128x128 + 64x64",
+    "spatial_receptive_field": "Multi-scale",
+    "eligible_positions": 86016,
+    "raw_capacity_bytes": 10752,
+    "max_protected_bytes": 10736,
+    "usable_secret_capacity_bytes": 9320,
+    "dwt_idwt_invertibility_max_error": 0.0,
+    "payload_fits": true,
+    "notes": "Expands capacity by +31.25% over Level 1 alone"
+  }
+]

@@ -1,0 +1,436 @@
+{
+  "experiment_id": "E04_HR",
+  "timestamp": "2026-10-11T17:48:06Z",
+  "description": "Carrier Spatial Scaling & High-Resolution DIV2K Validation",
+  "dataset_path": "dataset/DIV2K/DIV2K_train_HR/DIV2K_train_HR",
+  "dataset_total_images": 800,
+  "capacity_reconciliation": {
+    "512x512": {
+      "raw_capacity_bytes": 8192,
+      "carrier_header_bytes": 16,
+      "max_protected_bytes": 8176,
+      "rs_blocks": 32,
+      "max_encrypted_bytes": 7136,
+      "max_serialized_bytes": 7108,
+      "usable_secret_zero_metadata_bytes": 7090,
+      "usable_secret_ref_metadata_bytes": 7088,
+      "explanation": "With 0 metadata bytes, usable plaintext is strictly 7,090 B. With 2-byte reference metadata (standard minimal JSON dict), usable plaintext is strictly 7,088 B."
+    },
+    "1024x1024": {
+      "raw_capacity_bytes": 32768,
+      "carrier_header_bytes": 16,
+      "max_protected_bytes": 32752,
+      "rs_blocks": 128,
+      "max_encrypted_bytes": 28544,
+      "max_serialized_bytes": 28516,
+      "usable_secret_zero_metadata_bytes": 28498,
+      "usable_secret_ref_metadata_bytes": 28496,
+      "explanation": "With 0 metadata bytes, usable plaintext is strictly 28,498 B. With 2-byte reference metadata, usable plaintext is strictly 28,496 B."
+    }
+  },
+  "scaling_analysis": [
+    {
+      "dimension": "512x512",
+      "subband_dimension": "256x256",
+      "raw_positions": 65536,
+      "raw_capacity_bytes": 8192,
+      "max_protected_bytes": 8176,
+      "usable_secret_capacity_zero_meta_bytes": 7090,
+      "usable_secret_capacity_ref_meta_bytes": 7088,
+      "estimated_dwt_memory_mb": 6.75,
+      "status": "EXECUTED (E04-A Reference Crop)",
+      "skip_reason": null
+    },
+    {
+      "dimension": "1024x1024",
+      "subband_dimension": "512x512",
+      "raw_positions": 262144,
+      "raw_capacity_bytes": 32768,
+      "max_protected_bytes": 32752,
+      "usable_secret_capacity_zero_meta_bytes": 28498,
+      "usable_secret_capacity_ref_meta_bytes": 28496,
+      "estimated_dwt_memory_mb": 27.0,
+      "status": "EXECUTED (E04-B Native HR Crop)",
+      "skip_reason": null
+    },
+    {
+      "dimension": "2048x2048",
+      "subband_dimension": "1024x1024",
+      "raw_positions": 1048576,
+      "raw_capacity_bytes": 131072,
+      "max_protected_bytes": 131056,
+      "usable_secret_capacity_zero_meta_bytes": 114353,
+      "usable_secret_capacity_ref_meta_bytes": 114351,
+      "estimated_dwt_memory_mb": 108.0,
+      "status": "SKIPPED (Native HR Dim < 2048)",
+      "skip_reason": "Maximum native dimensions in DIV2K_train_HR are 2040x1848 px. Square crop of 2048x2048 cannot be formed natively without upscaling. Per architectural constraints, synthetic upscaling is strictly prohibited."
+    },
+    {
+      "dimension": "3072x3072",
+      "subband_dimension": "1536x1536",
+      "raw_positions": 2359296,
+      "raw_capacity_bytes": 294912,
+      "max_protected_bytes": 294896,
+      "usable_secret_capacity_zero_meta_bytes": 257742,
+      "usable_secret_capacity_ref_meta_bytes": 257740,
+      "estimated_dwt_memory_mb": 243.0,
+      "status": "SKIPPED (Native HR Dim < 2048)",
+      "skip_reason": "Maximum native dimensions in DIV2K_train_HR are 2040x1848 px. Square crop of 3072x3072 cannot be formed natively without upscaling. Per architectural constraints, synthetic upscaling is strictly prohibited."
+    },
+    {
+      "dimension": "4096x4096",
+      "subband_dimension": "2048x2048",
+      "raw_positions": 4194304,
+      "raw_capacity_bytes": 524288,
+      "max_protected_bytes": 524272,
+      "usable_secret_capacity_zero_meta_bytes": 458219,
+      "usable_secret_capacity_ref_meta_bytes": 458217,
+      "estimated_dwt_memory_mb": 432.0,
+      "status": "SKIPPED (Native HR Dim < 2048)",
+      "skip_reason": "Maximum native dimensions in DIV2K_train_HR are 2040x1848 px. Square crop of 4096x4096 cannot be formed natively without upscaling. Per architectural constraints, synthetic upscaling is strictly prohibited."
+    },
+    {
+      "dimension": "5120x5120",
+      "subband_dimension": "2560x2560",
+      "raw_positions": 6553600,
+      "raw_capacity_bytes": 819200,
+      "max_protected_bytes": 819184,
+      "usable_secret_capacity_zero_meta_bytes": 716230,
+      "usable_secret_capacity_ref_meta_bytes": 716228,
+      "estimated_dwt_memory_mb": 675.0,
+      "status": "SKIPPED (Native HR Dim < 2048)",
+      "skip_reason": "Maximum native dimensions in DIV2K_train_HR are 2040x1848 px. Square crop of 5120x5120 cannot be formed natively without upscaling. Per architectural constraints, synthetic upscaling is strictly prohibited."
+    }
+  ],
+  "e04_a_reference_runs_512": [
+    {
+      "image_id": "0001.png",
+      "original_dimensions": [
+        2040,
+        1404
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 764,
+        "top": 446,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.8554,
+      "ssim": 1.0,
+      "mae": 0.001689,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 42.11,
+      "io_time_ms": 33.08,
+      "extract_time_ms": 6.32,
+      "total_roundtrip_ms": 81.5,
+      "memory_delta_mb": 13.77
+    },
+    {
+      "image_id": "0002.png",
+      "original_dimensions": [
+        2040,
+        1848
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 764,
+        "top": 668,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.918,
+      "ssim": 1.0,
+      "mae": 0.001664,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 43.8,
+      "io_time_ms": 26.54,
+      "extract_time_ms": 5.77,
+      "total_roundtrip_ms": 76.11,
+      "memory_delta_mb": 0.04
+    },
+    {
+      "image_id": "0003.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 764,
+        "top": 422,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.8034,
+      "ssim": 1.0,
+      "mae": 0.001709,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 46.24,
+      "io_time_ms": 32.58,
+      "extract_time_ms": 7.3,
+      "total_roundtrip_ms": 86.12,
+      "memory_delta_mb": -0.66
+    },
+    {
+      "image_id": "0004.png",
+      "original_dimensions": [
+        2040,
+        1344
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 764,
+        "top": 416,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.8034,
+      "ssim": 1.0,
+      "mae": 0.001709,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 45.37,
+      "io_time_ms": 32.35,
+      "extract_time_ms": 5.93,
+      "total_roundtrip_ms": 83.64,
+      "memory_delta_mb": -1.13
+    },
+    {
+      "image_id": "0005.png",
+      "original_dimensions": [
+        1608,
+        2040
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 548,
+        "top": 764,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.8784,
+      "ssim": 1.0,
+      "mae": 0.00168,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 41.75,
+      "io_time_ms": 26.86,
+      "extract_time_ms": 6.67,
+      "total_roundtrip_ms": 75.28,
+      "memory_delta_mb": 0.02
+    }
+  ],
+  "e04_b_hr_runs_1024": [
+    {
+      "image_id": "0001.png",
+      "original_dimensions": [
+        2040,
+        1404
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 508,
+        "top": 190,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.8337,
+      "ssim": 1.0,
+      "mae": 0.000426,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 181.86,
+      "io_time_ms": 112.78,
+      "extract_time_ms": 11.08,
+      "total_roundtrip_ms": 305.72,
+      "memory_delta_mb": 41.81
+    },
+    {
+      "image_id": "0002.png",
+      "original_dimensions": [
+        2040,
+        1848
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 508,
+        "top": 412,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.6654,
+      "ssim": 1.0,
+      "mae": 0.000443,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 173.39,
+      "io_time_ms": 107.36,
+      "extract_time_ms": 10.97,
+      "total_roundtrip_ms": 291.73,
+      "memory_delta_mb": -0.04
+    },
+    {
+      "image_id": "0003.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 508,
+        "top": 166,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.7376,
+      "ssim": 1.0,
+      "mae": 0.000436,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 141.22,
+      "io_time_ms": 112.9,
+      "extract_time_ms": 9.07,
+      "total_roundtrip_ms": 263.2,
+      "memory_delta_mb": -0.02
+    },
+    {
+      "image_id": "0004.png",
+      "original_dimensions": [
+        2040,
+        1344
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 508,
+        "top": 160,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.9023,
+      "ssim": 1.0,
+      "mae": 0.00042,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 141.47,
+      "io_time_ms": 125.8,
+      "extract_time_ms": 11.68,
+      "total_roundtrip_ms": 278.95,
+      "memory_delta_mb": -0.03
+    },
+    {
+      "image_id": "0005.png",
+      "original_dimensions": [
+        1608,
+        2040
+      ],
+      "crop_dimensions": [
+        1024,
+        1024,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 292,
+        "top": 508,
+        "width": 1024,
+        "height": 1024
+      },
+      "psnr_db": 81.779,
+      "ssim": 1.0,
+      "mae": 0.000432,
+      "max_absolute_error": 1,
+      "carrier_ber": 0.0,
+      "exact_match": true,
+      "embed_time_ms": 166.22,
+      "io_time_ms": 115.41,
+      "extract_time_ms": 13.3,
+      "total_roundtrip_ms": 294.94,
+      "memory_delta_mb": -0.03
+    }
+  ],
+  "high_load_1024_run": {
+    "image_id": "0001.png",
+    "crop_dimensions": [
+      1024,
+      1024,
+      3
+    ],
+    "secret_bytes": 20000,
+    "protected_payload_bytes": 23010,
+    "psnr_db": 63.435,
+    "ssim": 0.999994,
+    "mae": 0.029483,
+    "carrier_ber": 0.0,
+    "exact_match": true,
+    "embed_time_ms": 476.42,
+    "extract_time_ms": 433.69
+  },
+  "negative_hard_gate_tests": [
+    {
+      "carrier_dimension": "512x512",
+      "subband_dim": 256,
+      "max_protected_bytes": 8176,
+      "tested_payload_bytes": 8177,
+      "rejected_fail_closed": true,
+      "exception_type": "PayloadCapacityExceededError",
+      "error_message": "PAYLOAD_CAPACITY_EXCEEDED: Protected payload (8177 B) exceeds maximum carrier capacity (8176 B). Usable capacity is 7090 B. Embedding aborted."
+    },
+    {
+      "carrier_dimension": "1024x1024",
+      "subband_dim": 512,
+      "max_protected_bytes": 32752,
+      "tested_payload_bytes": 32753,
+      "rejected_fail_closed": true,
+      "exception_type": "PayloadCapacityExceededError",
+      "error_message": "PAYLOAD_CAPACITY_EXCEEDED: Protected payload (32753 B) exceeds maximum carrier capacity (32752 B). Usable capacity is 28498 B. Embedding aborted."
+    }
+  ]
+}

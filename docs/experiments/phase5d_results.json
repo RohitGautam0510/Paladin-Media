@@ -1,0 +1,102 @@
+{
+  "phase": "Phase 5D.2 Corrective Security Closure and Remote-Mode Verification",
+  "timestamp": "2026-10-25T12:57:05Z",
+  "total_runtime_seconds": 4.67,
+  "gates": {
+    "gate_preflight": "PASS",
+    "gate_a_streaming_auth_and_key": "PASS",
+    "gate_b_session_and_worker": "PASS",
+    "gate_c_startup_liveness_readiness": "PASS",
+    "gate_d_auth_policy_consistency": "PASS",
+    "gate_e_strict_request_and_resource": "PASS",
+    "overall_verdict": "PASS_WITH_LIMITATIONS"
+  },
+  "preflight": {
+    "status": "PASS",
+    "checkpoint": {
+      "path": "E:\\Paladin_media\\checkpoints\\phase4c_extended_30ep\\best_model.pt",
+      "parameter_digest": "ec11dce74832c0fa0ef599ea7185248dfd3a16a10d83a5ebceddc9e267160d92",
+      "epoch": 30,
+      "verified": true
+    },
+    "manifest": {
+      "file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+      "composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+      "partition_counts": {
+        "train": 600,
+        "val": 100,
+        "test": 100
+      },
+      "verified": true
+    },
+    "onnx_models": {
+      "acs_sub_inn_embedding_opset14.onnx": {
+        "sha256": "3cd22ba35e55d4addfb89e59cdc695f1086383bef5d507f39a3c91dd4917c173",
+        "verified": true
+      },
+      "acs_sub_inn_extraction_opset14.onnx": {
+        "sha256": "ab696814635b39dec34b432b78e80bb949c5fcd68517a3cec5890102152ff8ba",
+        "verified": true
+      },
+      "neural_spatial_embedding_opset14.onnx": {
+        "sha256": "7cda5a3becb8283c6b84572e7adb6d64ea29ecbf9f1e667cf34dcd0324e2d784",
+        "verified": true
+      },
+      "neural_spatial_extraction_opset14.onnx": {
+        "sha256": "bf85d8404469d90c08aa50282db582e3c82b2c6ea2159293423ae6e846b82be2",
+        "verified": true
+      }
+    }
+  },
+  "gate_a_streaming": {
+    "status": "PASS",
+    "streaming_unauthenticated_rejected_401": true,
+    "streaming_invalid_token_rejected_401": true,
+    "streaming_get_query_rejected_405": true,
+    "streaming_authenticated_post_accepted_200": true,
+    "streaming_events_delivered": true
+  },
+  "gate_b_worker": {
+    "status": "PASS",
+    "single_worker_contract_enforced": true,
+    "multi_worker_rejected_for_in_memory_sessions": true,
+    "invalid_deployment_modes_rejected": true,
+    "local_mode_non_loopback_binding_rejected": true
+  },
+  "gate_c_readiness": {
+    "status": "PASS",
+    "liveness_probe_operational_200": true,
+    "readiness_probe_operational_200": true,
+    "config_sha256_verification_verified": true,
+    "remote_mode_startup_fails_closed_when_runtime_unavailable": true
+  },
+  "gate_d_auth_policy": {
+    "status": "PASS",
+    "local_mode_token_protects_config_consistently": true,
+    "remote_mode_wildcard_cors_rejected": true,
+    "remote_mode_missing_token_startup_aborted": true
+  },
+  "gate_e_validation": {
+    "status": "PASS",
+    "dynamic_session_store_configured": true,
+    "strict_key_hex_validation_enforced": true,
+    "asgi_request_body_limits_enforced_413": true,
+    "remote_mode_missing_cover_fails_closed_422": true
+  },
+  "deployment_safeguard_contract": {
+    "official_launcher": "python -m src.api.launcher (or python src/api/launcher.py)",
+    "worker_configuration": "Exactly 1 worker (workers=1 strictly enforced for in-memory session store)",
+    "default_deployment_mode": "local (loopback 127.0.0.1 strictly required)",
+    "remote_deployment_mode": "remote (enforces PALADINMEDIA_API_TOKEN, disallows wildcard CORS)",
+    "streaming_transport": "POST /api/stream with Bearer auth header and request body session IDs/key",
+    "qualified_pipeline": "ONNX Runtime + rs_2t_48 (48 parity symbols)",
+    "carrier_format_contract": "Lossless 8-bit RGB PNG (512x512)",
+    "upload_limit_default": "10 MB (configurable via PALADINMEDIA_MAX_UPLOAD_BYTES, enforced at ASGI boundary)",
+    "session_ttl_default": "300 seconds (configurable via PALADINMEDIA_SESSION_TTL_SECONDS)",
+    "external_deployment_dependencies": [
+      "TLS termination reverse proxy (Nginx, Caddy, Cloudflare, AWS ALB) required for HTTPS",
+      "External secrets management (Vault, AWS Secrets Manager, Kubernetes Secret) for API token",
+      "Reverse proxy rate-limiting and DDoS mitigation"
+    ]
+  }
+}

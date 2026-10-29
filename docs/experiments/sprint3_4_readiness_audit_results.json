@@ -1,0 +1,171 @@
+{
+  "timestamp": "2026-10-20T10:44:18Z",
+  "sprint": "3.4",
+  "training_authorized": false,
+  "optimizer_step_executed": false,
+  "reproducibility": {
+    "seed": 42,
+    "deterministic": true,
+    "cuda_configured": true,
+    "python_seeded": true,
+    "numpy_seeded": true,
+    "torch_seeded": true
+  },
+  "initial_model_param_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+  "dataset_boundary": {
+    "manifest_path": "docs\\project\\div2k_hr_split.json",
+    "manifest_file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+    "composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+    "partition_counts": {
+      "train": 600,
+      "val": 100,
+      "test": 100,
+      "total_canonical": 800,
+      "total_on_disk": 800
+    },
+    "dataset_size_reconciliation": "Canonical DIV2K_train_HR on disk contains exactly 800 high-resolution images (0001.png - 0800.png). These are partitioned 600 train / 100 val / 100 test. Historical references to 'all 1,000 images' in documentation conflated standard full DIV2K competition sizing with the 800-image HR local repository inventory.",
+    "test_split_rejection_verified": true,
+    "dataloader_test_rejection_verified": true
+  },
+  "scaffold_boundaries": {
+    "test_split_rejected": true,
+    "val_split_rejected": true,
+    "tampered_id_rejected": true
+  },
+  "loss_and_gradients": {
+    "diagnostics": {
+      "bit_recovery_loss": {
+        "loss_value": 0.18641269207000732,
+        "context_predictor_grad_norm": 0.0,
+        "adaptive_gain_grad_norm": 12.013631983574404,
+        "context_predictor_grad_is_zero": true
+      },
+      "context_prediction_loss": {
+        "loss_value": 3.33268404006958,
+        "context_predictor_grad_norm": 34.763138354356705,
+        "adaptive_gain_grad_norm": 0.0,
+        "context_predictor_grad_is_zero": false
+      },
+      "adaptive_gain_regularization": {
+        "loss_value": 0.7178764343261719,
+        "context_predictor_grad_norm": 0.0,
+        "adaptive_gain_grad_norm": 72.57296460702482
+      },
+      "image_fidelity_loss": {
+        "loss_value": 0.6712443232536316,
+        "context_predictor_grad_norm": 5.348712468715536,
+        "adaptive_gain_grad_norm": 3.264259360087869
+      }
+    },
+    "composite_loss": {
+      "total_loss": 1.9270579814910889,
+      "bit_loss_weighted": 0.18641269207000732,
+      "ctx_loss_weighted": 3.33268404006958,
+      "gain_loss_weighted": 0.7178764343261719,
+      "img_loss_weighted": 0.6712443232536316,
+      "total_grad_norm": 21.003735936540934,
+      "all_finite": true
+    },
+    "clipping_diagnostic": {
+      "min_val_raw": 0.0,
+      "max_val_raw": 252.0,
+      "num_clipped_total": 0,
+      "clip_fraction": 0.0,
+      "boundary_pixel_count": 5,
+      "boundary_pixel_fraction": 6.357828776041667e-06,
+      "saturation_penalty_l1": 0.0
+    },
+    "context_cancellation_analysis": "MATHEMATICAL PROOF: Under lossless STE, recovered residual is delta_rec = (HH_drop + gamma * P) - C(HH_keep). Since in the forward pass HH_drop is synthesized as C(HH_keep), delta_rec simplifies to gamma * P. Because C cancels out algebraically in delta_rec, d(L_bit)/d(C) = 0 under lossless conditions. Consequently, BitRecoveryLoss yields EXACTLY 0.0 gradient for ContextPredictorCNN. This proves that ContextPredictionLoss is mathematically required to supervise the ContextPredictorCNN."
+  },
+  "memory_and_hardware": {
+    "gpu_name": "NVIDIA GeForce GTX 1650",
+    "total_vram_mb": 4095.6875,
+    "model_parameters_mb": 0.3662109375,
+    "batch_size_1": {
+      "fwd_peak_allocated_mb": 205.80078125,
+      "fwd_peak_reserved_mb": 242.0,
+      "bwd_peak_allocated_mb": 247.57958984375,
+      "bwd_peak_reserved_mb": 284.0,
+      "headroom_pct": 93.06587721841572
+    },
+    "batch_size_2": {
+      "supported_without_oom": true,
+      "fwd_peak_allocated_mb": 382.05078125,
+      "bwd_peak_allocated_mb": 463.39208984375
+    },
+    "recommended_batch_size": 1,
+    "gradient_accumulation_recommended": true,
+    "reclamation_verified": true
+  },
+  "checkpoint_resumption": {
+    "roundtrip_verified": true,
+    "governance_metadata_verified": true,
+    "resumption_gaps": [
+      "RNG states (torch.get_rng_state, torch.cuda.get_rng_state_all, np.random.get_state, random.getstate) are NOT stored in checkpoint dictionary.",
+      "Learning rate scheduler state (scheduler.state_dict()) is NOT stored.",
+      "Epoch, global step, and training iteration counters are NOT stored.",
+      "Dataset sampler/loader state (for deterministic epoch mid-point resumption) is NOT stored.",
+      "Best validation metric and early-stopping patience state are NOT stored."
+    ]
+  },
+  "parameter_immutability": {
+    "initial_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+    "final_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+    "parameters_unchanged": true
+  },
+  "verdict": "READY WITH CONDITIONS",
+  "prerequisites": [
+    {
+      "item": "Canonical DIV2K manifest and split verification",
+      "status": "SATISFIED"
+    },
+    {
+      "item": "Full 800-image on-disk dataset integrity verified",
+      "status": "SATISFIED"
+    },
+    {
+      "item": "Train / Val / Held-Out Test split isolation enforced",
+      "status": "SATISFIED"
+    },
+    {
+      "item": "Differentiable forward and backward pass verified",
+      "status": "SATISFIED"
+    },
+    {
+      "item": "Gradient finiteness verified on real DIV2K image",
+      "status": "SATISFIED"
+    },
+    {
+      "item": "Context cancellation under BitRecoveryLoss mathematically verified",
+      "status": "SATISFIED"
+    },
+    {
+      "item": "ContextPredictionLoss necessity verified",
+      "status": "SATISFIED"
+    },
+    {
+      "item": "Hardware memory headroom verified on GTX 1650 (B=1 safe)",
+      "status": "SATISFIED"
+    },
+    {
+      "item": "Model parameter immutability maintained (zero optimizer steps)",
+      "status": "SATISFIED"
+    },
+    {
+      "item": "Candidate loss weight tuning / empirical calibration",
+      "status": "PENDING_PHASE4"
+    },
+    {
+      "item": "Automated epoch training loop implementation",
+      "status": "PENDING_PHASE4"
+    },
+    {
+      "item": "Full checkpoint resumption (RNG, scheduler, epoch states)",
+      "status": "PENDING_PHASE4"
+    },
+    {
+      "item": "Explicit user training authorization",
+      "status": "PENDING_PHASE4"
+    }
+  ]
+}

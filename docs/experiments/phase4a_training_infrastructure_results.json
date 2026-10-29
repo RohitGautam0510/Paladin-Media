@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-10-20T15:58:48Z",
+  "phase": "4A",
+  "training_authorized": false,
+  "optimizer_steps_executed": 0,
+  "initial_model_param_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+  "dataset_manifest": {
+    "manifest_path": "docs\\project\\div2k_hr_split.json",
+    "file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+    "composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+    "total_on_disk": 800
+  },
+  "authorization_gate": {
+    "default_rejected": true,
+    "invalid_token_rejected": true,
+    "valid_token_accepted": true,
+    "phase4b_passphrase_configured": true
+  },
+  "checkpoint_resumption": {
+    "schema_version": "4.0",
+    "roundtrip_verified": true,
+    "multi_library_rng_captured": true,
+    "manifest_hashes_verified_on_load": true,
+    "atomic_write_verified": true
+  },
+  "parameter_immutability": {
+    "initial_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+    "final_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+    "immutability_verified": true
+  },
+  "verdict": "PASS",
+  "summary": "Phase 4A training infrastructure, authorization gate, atomic checkpoint schema, and validation evaluator are complete, verified, and ready for Phase 4B pilot authorization."
+}

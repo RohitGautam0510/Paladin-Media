@@ -1,0 +1,199 @@
+{
+  "experiment_id": "E04",
+  "description": "Carrier Spatial Scaling & DIV2K Image Content Analysis",
+  "scaling_analysis": [
+    {
+      "dimension": "512x512",
+      "subband_dimension": "256x256",
+      "raw_positions": 65536,
+      "raw_capacity_bytes": 8192,
+      "max_protected_bytes": 8176,
+      "usable_secret_capacity_bytes": 7090,
+      "estimated_dwt_memory_mb": 24.0,
+      "status": "EXECUTED (DIV2K Crop)",
+      "skip_reason": null
+    },
+    {
+      "dimension": "1024x1024",
+      "subband_dimension": "512x512",
+      "raw_positions": 262144,
+      "raw_capacity_bytes": 32768,
+      "max_protected_bytes": 32752,
+      "usable_secret_capacity_bytes": 28498,
+      "estimated_dwt_memory_mb": 96.0,
+      "status": "SKIPPED (HR Unavailable)",
+      "skip_reason": "Native maximum resolution in DIV2K_train_LR_bicubic_X2 is 1020 px. Square crop of 1024x1024 cannot be formed without upscaling. Per Rule 2/3, synthetic upscaling is strictly prohibited."
+    },
+    {
+      "dimension": "2048x2048",
+      "subband_dimension": "1024x1024",
+      "raw_positions": 1048576,
+      "raw_capacity_bytes": 131072,
+      "max_protected_bytes": 131056,
+      "usable_secret_capacity_bytes": 114353,
+      "estimated_dwt_memory_mb": 384.0,
+      "status": "SKIPPED (HR Unavailable)",
+      "skip_reason": "Native maximum resolution in DIV2K_train_LR_bicubic_X2 is 1020 px. Square crop of 2048x2048 cannot be formed without upscaling. Per Rule 2/3, synthetic upscaling is strictly prohibited."
+    },
+    {
+      "dimension": "3072x3072",
+      "subband_dimension": "1536x1536",
+      "raw_positions": 2359296,
+      "raw_capacity_bytes": 294912,
+      "max_protected_bytes": 294896,
+      "usable_secret_capacity_bytes": 257742,
+      "estimated_dwt_memory_mb": 864.0,
+      "status": "SKIPPED (HR Unavailable)",
+      "skip_reason": "Native maximum resolution in DIV2K_train_LR_bicubic_X2 is 1020 px. Square crop of 3072x3072 cannot be formed without upscaling. Per Rule 2/3, synthetic upscaling is strictly prohibited."
+    },
+    {
+      "dimension": "4096x4096",
+      "subband_dimension": "2048x2048",
+      "raw_positions": 4194304,
+      "raw_capacity_bytes": 524288,
+      "max_protected_bytes": 524272,
+      "usable_secret_capacity_bytes": 458219,
+      "estimated_dwt_memory_mb": 1536.0,
+      "status": "SKIPPED (HR Unavailable)",
+      "skip_reason": "Native maximum resolution in DIV2K_train_LR_bicubic_X2 is 1020 px. Square crop of 4096x4096 cannot be formed without upscaling. Per Rule 2/3, synthetic upscaling is strictly prohibited."
+    },
+    {
+      "dimension": "5120x5120",
+      "subband_dimension": "2560x2560",
+      "raw_positions": 6553600,
+      "raw_capacity_bytes": 819200,
+      "max_protected_bytes": 819184,
+      "usable_secret_capacity_bytes": 716230,
+      "estimated_dwt_memory_mb": 2400.0,
+      "status": "SKIPPED (HR Unavailable)",
+      "skip_reason": "Native maximum resolution in DIV2K_train_LR_bicubic_X2 is 1020 px. Square crop of 5120x5120 cannot be formed without upscaling. Per Rule 2/3, synthetic upscaling is strictly prohibited."
+    }
+  ],
+  "empirical_div2k_runs": [
+    {
+      "image_id": "0001x2.png",
+      "original_dimensions": [
+        1020,
+        702
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 254,
+        "top": 95,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.7712,
+      "ssim": 1.0,
+      "mae": 0.001722,
+      "exact_match": true,
+      "embed_time_ms": 34.84,
+      "io_time_ms": 34.38,
+      "extract_time_ms": 6.14
+    },
+    {
+      "image_id": "0002x2.png",
+      "original_dimensions": [
+        1020,
+        924
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 254,
+        "top": 206,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.885,
+      "ssim": 1.0,
+      "mae": 0.001677,
+      "exact_match": true,
+      "embed_time_ms": 49.8,
+      "io_time_ms": 38.41,
+      "extract_time_ms": 6.69
+    },
+    {
+      "image_id": "0003x2.png",
+      "original_dimensions": [
+        1020,
+        678
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 254,
+        "top": 83,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.752,
+      "ssim": 1.0,
+      "mae": 0.001729,
+      "exact_match": true,
+      "embed_time_ms": 35.6,
+      "io_time_ms": 28.29,
+      "extract_time_ms": 6.66
+    },
+    {
+      "image_id": "0004x2.png",
+      "original_dimensions": [
+        1020,
+        672
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 254,
+        "top": 80,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.9883,
+      "ssim": 1.0,
+      "mae": 0.001638,
+      "exact_match": true,
+      "embed_time_ms": 34.4,
+      "io_time_ms": 31.15,
+      "extract_time_ms": 7.73
+    },
+    {
+      "image_id": "0005x2.png",
+      "original_dimensions": [
+        804,
+        1020
+      ],
+      "crop_dimensions": [
+        512,
+        512,
+        3
+      ],
+      "crop_coordinates": {
+        "left": 146,
+        "top": 254,
+        "width": 512,
+        "height": 512
+      },
+      "psnr_db": 75.7744,
+      "ssim": 1.0,
+      "mae": 0.00172,
+      "exact_match": true,
+      "embed_time_ms": 37.39,
+      "io_time_ms": 26.73,
+      "extract_time_ms": 5.67
+    }
+  ]
+}

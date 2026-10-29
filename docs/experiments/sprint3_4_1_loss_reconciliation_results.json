@@ -1,0 +1,155 @@
+{
+  "timestamp": "2026-10-20T11:04:25Z",
+  "sprint": "3.4.1",
+  "training_authorized": false,
+  "optimizer_step_executed": false,
+  "reproducibility": {
+    "seed": 42,
+    "deterministic": true,
+    "cuda_configured": true,
+    "python_seeded": true,
+    "numpy_seeded": true,
+    "torch_seeded": true
+  },
+  "initial_model_param_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+  "dataset_manifest": {
+    "manifest_path": "docs\\project\\div2k_hr_split.json",
+    "file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+    "composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+    "carrier_path": "dataset\\DIV2K\\DIV2K_train_HR\\DIV2K_train_HR\\0001.png"
+  },
+  "isolated_diagnostics": {
+    "bit_recovery_loss": {
+      "raw_loss": 0.1874885857105255,
+      "weight": 1.0,
+      "weighted_loss": 0.1874885857105255,
+      "context_predictor_grad_norm": 0.0,
+      "adaptive_gain_grad_norm": 9.268129348754883,
+      "whole_model_grad_norm": 9.268129348754883,
+      "is_finite": true,
+      "clipping_applied": false,
+      "context_predictor_grad_is_zero": true
+    },
+    "context_prediction_loss": {
+      "raw_loss": 3.2923526763916016,
+      "weight": 0.5,
+      "weighted_loss": 1.6461763381958008,
+      "context_predictor_grad_norm": 44.81252670288086,
+      "adaptive_gain_grad_norm": 0.0,
+      "whole_model_grad_norm": 44.81252670288086,
+      "is_finite": true,
+      "clipping_applied": false,
+      "context_predictor_grad_is_zero": false
+    },
+    "adaptive_gain_regularization": {
+      "raw_loss": 0.7142987251281738,
+      "weight": 0.01,
+      "weighted_loss": 0.007142987251281738,
+      "context_predictor_grad_norm": 0.0,
+      "adaptive_gain_grad_norm": 55.61801528930664,
+      "whole_model_grad_norm": 55.61801528930664,
+      "is_finite": true,
+      "clipping_applied": false
+    },
+    "image_fidelity_loss": {
+      "raw_loss": 0.6644414663314819,
+      "weight": 0.1,
+      "weighted_loss": 0.0664441466331482,
+      "context_predictor_grad_norm": 6.942451000213623,
+      "adaptive_gain_grad_norm": 2.5093295574188232,
+      "whole_model_grad_norm": 7.382030010223389,
+      "is_finite": true,
+      "clipping_applied": false,
+      "context_predictor_grad_is_zero": false
+    }
+  },
+  "composite_reconciliation": {
+    "equation": "total_loss = lambda_bit * l_bit + lambda_ctx * l_ctx + lambda_gain * l_gain + lambda_img * l_img",
+    "components": {
+      "bit_recovery": {
+        "raw_loss": 0.1874885857105255,
+        "weight": 1.0,
+        "weighted_loss": 0.1874885857105255
+      },
+      "context_prediction": {
+        "raw_loss": 3.2923526763916016,
+        "weight": 0.5,
+        "weighted_loss": 1.6461763381958008
+      },
+      "adaptive_gain_regularization": {
+        "raw_loss": 0.7142987251281738,
+        "weight": 0.01,
+        "weighted_loss": 0.007142987251281738
+      },
+      "image_fidelity": {
+        "raw_loss": 0.6644414663314819,
+        "weight": 0.1,
+        "weighted_loss": 0.0664441466331482
+      }
+    },
+    "weighted_sum": 1.9072520577907563,
+    "total_loss": 1.9072520732879639,
+    "numerical_consistency_check": {
+      "difference": 1.5497207517256584e-08,
+      "is_consistent": true
+    },
+    "gradient_norms_unclipped": {
+      "context_predictor_norm": 23.10040855407715,
+      "adaptive_gain_norm": 8.461601257324219,
+      "whole_model_norm": 24.601375579833984,
+      "orthogonal_pythagorean_check": {
+        "computed_from_submodules": 24.601373360103935,
+        "matches_whole_model": true
+      },
+      "is_finite": true
+    },
+    "gradient_norms_clipped": {
+      "clip_threshold": 1.0,
+      "pre_clip_norm": 24.601375579833984,
+      "post_clip_context_predictor_norm": 0.938988447189331,
+      "post_clip_adaptive_gain_norm": 0.34394824504852295,
+      "post_clip_whole_model_norm": 0.9999998807907104,
+      "is_finite": true
+    },
+    "clipping_execution_path_audit": {
+      "sprint3_4_diagnostic_runner_clipped": false,
+      "explanation": "In run_sprint3_4_readiness_audit.py, Diagnostic E called comp_breakdown.total_loss.backward() and directly computed total_grad_norm without calling torch.nn.utils.clip_grad_norm_. The value 21.003736 was the UNCLIPPED whole-model norm. The report text '(post gradient clipping at norm 1.0: normalized to 1.0)' was a descriptive error conflating the configuration in execute_training_step() with the unclipped diagnostic evaluation path. When clip_grad_norm_(max_norm=1.0) is actually called, the whole-model norm is exactly 1.000000, with ContextPredictor norm = 0.938988 and AdaptiveGain norm = 0.343948."
+    }
+  },
+  "context_supervision_analysis": {
+    "summary": "ContextPredictionLoss is NOT the sole provider of gradient flow to ContextPredictorCNN; however, it IS the sole provider of DIRECT subband reconstruction supervision.",
+    "gradient_contributions_to_context_predictor": {
+      "BitRecoveryLoss": {
+        "unweighted_grad_norm": 0.0,
+        "weighted_grad_norm": 0.0,
+        "mechanism": "ALGEBRAIC CANCELLATION: Under idealized Straight-Through Estimator (STE) lossless roundtrip, delta_rec = HH_drop' - C(HH_keep) = [C(HH_keep) + gamma * P] - C(HH_keep) = gamma * P. The context term C cancels out identically, resulting in d(delta_rec)/d(C) = 0 and d(L_bit)/d(theta_C) = 0. Measured gradient norm is exactly 0.000000."
+      },
+      "ContextPredictionLoss": {
+        "unweighted_grad_norm": 44.81252670288086,
+        "weighted_grad_norm": 22.40626335144043,
+        "mechanism": "DIRECT RECONSTRUCTION SUPERVISION: Explicitly minimizes ||C(HH_keep) - HH_drop||_1. Provides strong, direct target supervision ensuring C learns the spatial correlations between the unmodulated green/blue HH subbands and the target red HH subband. Measured norm = 44.812527 (weighted = 22.406263)."
+      },
+      "AdaptiveGainRegularization": {
+        "unweighted_grad_norm": 0.0,
+        "weighted_grad_norm": 0.0,
+        "mechanism": "ABSENT GRADIENT: Operates exclusively on gamma = Softplus(G(HH_keep)) + gamma_min; no dependency on C."
+      },
+      "ImageFidelityLoss": {
+        "unweighted_grad_norm": 6.942451000213623,
+        "weighted_grad_norm": 0.6942451000213623,
+        "mechanism": "INDIRECT SPATIAL DISTORTION REGULARIZATION: Minimizes spatial MAE between cover and stego carrier. Since stego carrier is produced via inverse DWT from HH_drop' = C + gamma * P, ImageFidelityLoss backpropagates through IDWT and straight-through rounding into C. Measured unweighted norm = 6.942451 (weighted = 0.694245). Crucially, ImageFidelityLoss penalizes large values of C (minimizing cover-stego difference), acting as a regularizer rather than teaching C to reconstruct high-frequency texture."
+      },
+      "CompositeLoss": {
+        "unclipped_grad_norm": 23.10040855407715,
+        "clipped_grad_norm": 0.938988447189331,
+        "mechanism": "Linear superposition: 0.5 * grad(L_ctx) + 0.1 * grad(L_img) (+ cross-terms if any)."
+      }
+    },
+    "distinction_proof": "Prior report erroneously claimed: 'ContextPredictionLoss is the sole provider of context gradient'. The correct, evidence-backed statement is: 'ContextPredictionLoss is the sole provider of DIRECT SUBBAND RECONSTRUCTION supervision for ContextPredictorCNN; ImageFidelityLoss also provides a non-zero INDIRECT spatial fidelity gradient (norm 6.94 unweighted, 0.69 weighted), while BitRecoveryLoss provides zero gradient under lossless STE.'"
+  },
+  "parameter_immutability": {
+    "initial_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+    "final_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+    "immutability_verified": true
+  }
+}

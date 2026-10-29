@@ -1,0 +1,102 @@
+{
+  "metadata": {
+    "experiment": "Phase 3 Sprint 3.2 Dataset Loader and Training-Boundary Audit",
+    "date": "2026-10-19",
+    "manifest_path": "E:\\Paladin_media\\docs\\project\\div2k_hr_split.json",
+    "manifest_file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+    "dataset_composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+    "dataset_root": "E:\\Paladin_media\\dataset\\DIV2K\\DIV2K_train_HR\\DIV2K_train_HR",
+    "training_authorized": false,
+    "optimizer_steps_executed": 0,
+    "model_weights_mutated": false
+  },
+  "manifest_audit": {
+    "manifest_path": "E:\\Paladin_media\\docs\\project\\div2k_hr_split.json",
+    "manifest_file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+    "file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+    "dataset_composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+    "composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+    "is_canonical": true,
+    "total_images": 800,
+    "partition_counts": {
+      "train": 600,
+      "val": 100,
+      "test": 100
+    },
+    "partition_ranges": {
+      "train": [
+        1,
+        600
+      ],
+      "val": [
+        601,
+        700
+      ],
+      "test": [
+        701,
+        800
+      ]
+    },
+    "enforce_file_existence": true
+  },
+  "manifest_integrity_hardening_sprint_3_2_1": {
+    "canonical_file_sha256_verified": true,
+    "non_canonical_without_flag_rejected": true,
+    "boolean_image_id_rejected": true,
+    "stem_mismatch_rejected": true
+  },
+  "boundary_enforcement_tests": {
+    "test_for_train_rejected": true,
+    "val_for_train_rejected": true,
+    "test_for_val_rejected": true,
+    "test_batch_in_train_step_rejected": true,
+    "val_batch_in_train_step_rejected": true,
+    "test_batch_in_val_step_rejected": true,
+    "all_boundary_rejections_passed": true,
+    "rejection_details": [
+      {
+        "test_case": "build_stego_dataloader(split='test', purpose='train')",
+        "rejected": true,
+        "error_type": "ValueError",
+        "message": "SECURITY/INTEGRITY VIOLATION: Cannot construct training DataLoader with split='test'. Only split='train' is permitted for training purpose."
+      },
+      {
+        "test_case": "build_stego_dataloader(split='val', purpose='train')",
+        "rejected": true,
+        "error_type": "ValueError",
+        "message": "SECURITY/INTEGRITY VIOLATION: Cannot construct training DataLoader with split='val'. Only split='train' is permitted for training purpose."
+      },
+      {
+        "test_case": "build_stego_dataloader(split='test', purpose='validation')",
+        "rejected": true,
+        "error_type": "ValueError",
+        "message": "SECURITY/INTEGRITY VIOLATION: Cannot construct validation DataLoader with split='test'. Only split='val' is permitted for validation/model-selection purpose."
+      },
+      {
+        "test_case": "execute_partition_verified_step(split='test')",
+        "rejected": true,
+        "error_type": "ValueError",
+        "message": "SECURITY/INTEGRITY VIOLATION: Held-out 'test' partition detected in training step! Optimization on test data is strictly forbidden by Acceptance Criteria \u00a75."
+      },
+      {
+        "test_case": "execute_partition_verified_step(split='val')",
+        "rejected": true,
+        "error_type": "ValueError",
+        "message": "BOUNDARY VIOLATION: execute_partition_verified_step requires split='train', got 'val'."
+      },
+      {
+        "test_case": "evaluate_partition_verified_step(split='test')",
+        "rejected": true,
+        "error_type": "ValueError",
+        "message": "SECURITY/INTEGRITY VIOLATION: Held-out 'test' partition detected in validation/model-selection! Evaluating test data for model selection is strictly forbidden by Acceptance Criteria \u00a75."
+      }
+    ]
+  },
+  "verification_invariants": {
+    "train_partition_count": 600,
+    "val_partition_count": 100,
+    "test_partition_count": 100,
+    "model_weights_bit_for_bit_identical": true,
+    "training_status": "NOT AUTHORIZED \u2014 Sprint 3.2.1 hardens manifest integrity only."
+  }
+}

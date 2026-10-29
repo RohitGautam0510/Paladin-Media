@@ -1,0 +1,308 @@
+{
+  "metadata": {
+    "experiment": "Phase 3 Sprint 3.1 Loss-Gradient Isolation and Scale Audit",
+    "date": "2026-10-19",
+    "device": "cuda",
+    "weights_configuration": {
+      "bit_recovery": 1.0,
+      "context_prediction": 0.5,
+      "gain_regularization": 0.01,
+      "image_fidelity": 0.1
+    },
+    "training_authorized": false
+  },
+  "synthetic_carrier_results": {
+    "isolated_losses": {
+      "bit_recovery": {
+        "raw_loss": 0.2025868445634842,
+        "weight": 1.0,
+        "weighted_loss": 0.2025868445634842,
+        "context_predictor": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 16,
+          "total_param_count": 16,
+          "l2_norm": 0.0,
+          "max_abs_grad": 0.0,
+          "mean_abs_grad": 0.0
+        },
+        "adaptive_gain": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 12,
+          "total_param_count": 12,
+          "l2_norm": 77.77278137207031,
+          "max_abs_grad": 10.567618370056152,
+          "mean_abs_grad": 0.32575394951345515
+        }
+      },
+      "context_prediction": {
+        "raw_loss": 53.388038635253906,
+        "weight": 0.5,
+        "weighted_loss": 26.694019317626953,
+        "context_predictor": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 16,
+          "total_param_count": 16,
+          "l2_norm": 214.62904357910156,
+          "max_abs_grad": 46.86273956298828,
+          "mean_abs_grad": 0.664095427178836
+        },
+        "adaptive_gain": {
+          "present": false,
+          "finite": true,
+          "param_count_with_grad": 0,
+          "total_param_count": 12,
+          "l2_norm": 0.0,
+          "max_abs_grad": 0.0,
+          "mean_abs_grad": 0.0
+        }
+      },
+      "gain_regularization": {
+        "raw_loss": 1.269608497619629,
+        "weight": 0.01,
+        "weighted_loss": 0.012696084976196289,
+        "context_predictor": {
+          "present": false,
+          "finite": true,
+          "param_count_with_grad": 0,
+          "total_param_count": 16,
+          "l2_norm": 0.0,
+          "max_abs_grad": 0.0,
+          "mean_abs_grad": 0.0
+        },
+        "adaptive_gain": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 12,
+          "total_param_count": 12,
+          "l2_norm": 787.010009765625,
+          "max_abs_grad": 106.96147155761719,
+          "mean_abs_grad": 3.27970838843612
+        }
+      },
+      "image_fidelity": {
+        "raw_loss": 4.4315595626831055,
+        "weight": 0.1,
+        "weighted_loss": 0.44315595626831056,
+        "context_predictor": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 16,
+          "total_param_count": 16,
+          "l2_norm": 20.011518478393555,
+          "max_abs_grad": 3.9202466011047363,
+          "mean_abs_grad": 0.06267043435900632
+        },
+        "adaptive_gain": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 12,
+          "total_param_count": 12,
+          "l2_norm": 5.736085414886475,
+          "max_abs_grad": 1.093019962310791,
+          "mean_abs_grad": 0.022643029275987676
+        }
+      }
+    },
+    "combined_objective": {
+      "total_scalar_loss": 27.35245704650879,
+      "context_predictor": {
+        "present": true,
+        "finite": true,
+        "param_count_with_grad": 16,
+        "total_param_count": 16,
+        "l2_norm": 109.07378387451172,
+        "max_abs_grad": 23.82339859008789,
+        "mean_abs_grad": 0.3373806237905228
+      },
+      "adaptive_gain": {
+        "present": true,
+        "finite": true,
+        "param_count_with_grad": 12,
+        "total_param_count": 12,
+        "l2_norm": 69.66427612304688,
+        "max_abs_grad": 9.475116729736328,
+        "mean_abs_grad": 0.2916725167773014
+      },
+      "total_grad_norm": 129.42257690429688
+    },
+    "context_cancellation_comparison": {
+      "ideal_coefficient_domain": {
+        "context_predictor_norm": 0.0,
+        "context_predictor_max_abs": 0.0,
+        "adaptive_gain_norm": 67.21240234375,
+        "explanation": "delta_rec = (context + gamma*P) - context = gamma*P; d(delta)/d(context) == 0 exact."
+      },
+      "spatial_bridge_path": {
+        "context_predictor_norm": 0.0,
+        "context_predictor_max_abs": 0.0,
+        "adaptive_gain_norm": 77.77278137207031,
+        "explanation": "Through spatial IDWT, STE clamp/rounding, and DWT, hh_keep_rec undergoes small spatial rounding noise eps_keep != 0. context_rec is evaluated at hh_keep_rec, breaking exact cancellation."
+      }
+    }
+  },
+  "real_div2k_carrier_results": {
+    "isolated_losses": {
+      "bit_recovery": {
+        "raw_loss": 0.19173063337802887,
+        "weight": 1.0,
+        "weighted_loss": 0.19173063337802887,
+        "context_predictor": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 16,
+          "total_param_count": 16,
+          "l2_norm": 0.0,
+          "max_abs_grad": 0.0,
+          "mean_abs_grad": 0.0
+        },
+        "adaptive_gain": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 12,
+          "total_param_count": 12,
+          "l2_norm": 11.900556564331055,
+          "max_abs_grad": 1.6409052610397339,
+          "mean_abs_grad": 0.0551477749007366
+        }
+      },
+      "context_prediction": {
+        "raw_loss": 3.7120649814605713,
+        "weight": 0.5,
+        "weighted_loss": 1.8560324907302856,
+        "context_predictor": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 16,
+          "total_param_count": 16,
+          "l2_norm": 78.24695587158203,
+          "max_abs_grad": 15.541072845458984,
+          "mean_abs_grad": 0.25133119072415866
+        },
+        "adaptive_gain": {
+          "present": false,
+          "finite": true,
+          "param_count_with_grad": 0,
+          "total_param_count": 12,
+          "l2_norm": 0.0,
+          "max_abs_grad": 0.0,
+          "mean_abs_grad": 0.0
+        }
+      },
+      "gain_regularization": {
+        "raw_loss": 0.7102383375167847,
+        "weight": 0.01,
+        "weighted_loss": 0.007102383375167847,
+        "context_predictor": {
+          "present": false,
+          "finite": true,
+          "param_count_with_grad": 0,
+          "total_param_count": 16,
+          "l2_norm": 0.0,
+          "max_abs_grad": 0.0,
+          "mean_abs_grad": 0.0
+        },
+        "adaptive_gain": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 12,
+          "total_param_count": 12,
+          "l2_norm": 70.34784698486328,
+          "max_abs_grad": 9.7188720703125,
+          "mean_abs_grad": 0.3260044812535246
+        }
+      },
+      "image_fidelity": {
+        "raw_loss": 0.06101226806640625,
+        "weight": 0.1,
+        "weighted_loss": 0.006101226806640625,
+        "context_predictor": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 16,
+          "total_param_count": 16,
+          "l2_norm": 0.854440450668335,
+          "max_abs_grad": 0.17535725235939026,
+          "mean_abs_grad": 0.002742510279176713
+        },
+        "adaptive_gain": {
+          "present": true,
+          "finite": true,
+          "param_count_with_grad": 12,
+          "total_param_count": 12,
+          "l2_norm": 0.24761073291301727,
+          "max_abs_grad": 0.03448101133108139,
+          "mean_abs_grad": 0.0011767683337022088
+        }
+      }
+    },
+    "combined_objective": {
+      "total_scalar_loss": 2.060966730117798,
+      "context_predictor": {
+        "present": true,
+        "finite": true,
+        "param_count_with_grad": 16,
+        "total_param_count": 16,
+        "l2_norm": 39.20814895629883,
+        "max_abs_grad": 7.788071632385254,
+        "mean_abs_grad": 0.12593619383551413
+      },
+      "adaptive_gain": {
+        "present": true,
+        "finite": true,
+        "param_count_with_grad": 12,
+        "total_param_count": 12,
+        "l2_norm": 11.172523498535156,
+        "max_abs_grad": 1.5403176546096802,
+        "mean_abs_grad": 0.05177028855359822
+      },
+      "total_grad_norm": 40.7689094543457
+    },
+    "context_cancellation_comparison": {
+      "ideal_coefficient_domain": {
+        "context_predictor_norm": 0.0,
+        "context_predictor_max_abs": 0.0,
+        "adaptive_gain_norm": 10.697598457336426,
+        "explanation": "delta_rec = (context + gamma*P) - context = gamma*P; d(delta)/d(context) == 0 exact."
+      },
+      "spatial_bridge_path": {
+        "context_predictor_norm": 0.0,
+        "context_predictor_max_abs": 0.0,
+        "adaptive_gain_norm": 11.900556564331055,
+        "explanation": "Through spatial IDWT, STE clamp/rounding, and DWT, hh_keep_rec undergoes small spatial rounding noise eps_keep != 0. context_rec is evaluated at hh_keep_rec, breaking exact cancellation."
+      }
+    }
+  },
+  "clipping_leakage_experiment": {
+    "clip_stats": {
+      "min_val_raw": 254.15342712402344,
+      "max_val_raw": 255.84657287597656,
+      "num_clipped_low": 0,
+      "num_clipped_high": 512,
+      "num_clipped_total": 512,
+      "clip_fraction": 0.16666666666666666
+    },
+    "clip_grad_enabled": true,
+    "context_predictor": {
+      "present": true,
+      "finite": true,
+      "param_count_with_grad": 16,
+      "total_param_count": 16,
+      "l2_norm": 0.13990001380443573,
+      "max_abs_grad": 0.13447071611881256,
+      "mean_abs_grad": 0.009107504851272097
+    },
+    "adaptive_gain": {
+      "present": true,
+      "finite": true,
+      "param_count_with_grad": 12,
+      "total_param_count": 12,
+      "l2_norm": 0.06725063920021057,
+      "max_abs_grad": 0.06723535805940628,
+      "mean_abs_grad": 0.005635459622377918
+    },
+    "explanation": "When STE gradient clipping (clip_grad=True) is active on pixels clamped at 255.0, the spatial IDWT -> STE -> DWT path no longer inverts to Identity (dL/dx = 0 at clamped pixels). This breaks the exact coefficient-domain context cancellation, causing non-zero gradient leakage."
+  }
+}

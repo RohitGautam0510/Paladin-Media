@@ -1,0 +1,57 @@
+{
+  "experiment_id": "E03",
+  "carrier_path": "MVP 0 Dataset\\0001x2.png",
+  "carrier_dimensions": [
+    512,
+    512,
+    3
+  ],
+  "secret_path": "tests\\fixtures\\secret_small.png",
+  "secret_dimensions": [
+    24,
+    24,
+    3
+  ],
+  "secret_plaintext_bytes": 152,
+  "serialized_bytes": 220,
+  "encrypted_bytes": 248,
+  "protected_payload_bytes": 316,
+  "carrier_header_bytes": 16,
+  "total_embedded_bits": 2656,
+  "raw_capacity_bytes": 8192,
+  "max_protected_bytes": 8176,
+  "usable_secret_capacity_bytes": 7088,
+  "remaining_capacity_bytes": 7860,
+  "capacity_status": "FITS",
+  "dwt_max_error": 0.0,
+  "dwt_mse": 0.0,
+  "stego_psnr_db": 75.885,
+  "stego_ssim": 1.0,
+  "stego_mae": 0.001677,
+  "stego_max_pixel_error": 1,
+  "bit_errors": 0,
+  "ber": 0.0,
+  "header_session_counter": 42,
+  "header_payload_length": 316,
+  "rs_outcome": "SUCCESS",
+  "aes_outcome": "AUTHENTICATED",
+  "exact_byte_equality": true,
+  "hard_gate_negative_test": true,
+  "timing_ms": {
+    "serialize": 0.036,
+    "encrypt": 1.156,
+    "ecc_encode": 1.159,
+    "embed": 32.401,
+    "png_io": 31.629,
+    "extract": 4.369,
+    "rs_decode": 1.543,
+    "decrypt": 0.046,
+    "deserialize": 0.043,
+    "total_roundtrip": 134.788
+  },
+  "memory_mb": {
+    "initial": 32.22,
+    "final": 75.07,
+    "delta": 42.85
+  }
+}
