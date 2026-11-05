@@ -1,13 +1,12 @@
-"""Baseline Transform-Domain Embedding Engine for PaladinMedia Phase 2.
+"""Baseline Transform-Domain Embedding Engine for PaladinMedia.
 
-Implements the MVP 0 baseline embedding mechanism per Architecture §10/§12 and
-Phase-2 instructions:
+Implements the MVP 0 baseline embedding mechanism per Architecture §10/§12 and Wire Protocol v2:
 - Target: Red channel (channel 0) of the HH subband.
 - Bit representation: Exact integer-parity modulation on the 2D Haar 2*HH coefficient:
     2*HH = a - b - c + d  (where a, b, c, d are the 2x2 spatial carrier pixels)
 - Bit embedding rule:
     Enforces (2*HH mod 2) == bit by adjusting carrier pixel 'a' by +/-1.
-- Guarantees 0 clipping, minimal distortion (PSNR > 57 dB), and exact bit preservation
+- Guarantees 0 clipping, minimal distortion (PSNR > 53 dB), and exact bit preservation
   through 8-bit RGB PNG serialization and reload.
 """
 
@@ -35,7 +34,7 @@ class EmbeddingResult:
     """Contains artifacts resulting from carrier embedding.
 
     Attributes:
-        stego_array: Stego RGB image array (512, 512, 3) uint8.
+        stego_array: Stego RGB image array (H, W, 3) uint8.
         stego_image: Stego PIL Image in RGB format.
         original_subbands: DWTSubbands before embedding.
         modified_subbands: DWTSubbands after embedding.
@@ -65,7 +64,6 @@ class BaselineEmbedder:
         if not data:
             return np.empty(0, dtype=np.uint8)
         byte_arr = np.frombuffer(data, dtype=np.uint8)
-        # Unpack bits: 8 bits per byte, MSB-first
         bits = np.unpackbits(byte_arr)
         return bits
 
@@ -75,21 +73,23 @@ class BaselineEmbedder:
         cover_image: Union[np.ndarray, Image.Image],
         protected_payload: bytes,
         session_counter: int = 1,
+        version: int = CarrierHeader.VERSION_2,
     ) -> EmbeddingResult:
         """Executes the complete baseline embedding workflow.
 
         Sequence:
-            1. Capacity check: Verify protected_payload <= 8,176 bytes (hard gate).
-            2. Header packaging: Create and pack 16-byte carrier header.
-            3. DWT computation: Forward 2D 1-level Haar DWT on 512x512 cover image.
-            4. Deterministic mask: Derive fixed header anchors + payload coordinates.
+            1. Capacity check: Verify protected_payload fits within usable capacity.
+            2. Header packaging: Create and pack carrier header (v2: 24B RS(24, 16); v1: 16B raw).
+            3. DWT computation: Forward 2D 1-level Haar DWT on cover image.
+            4. Deterministic mask: Derive fixed header anchors + non-colliding payload coordinates.
             5. Transform embedding: Modulate parity of 2*HH on channel 0.
             6. IDWT & Stego generation: Synthesize 8-bit RGB stego image.
 
         Args:
-            cover_image: 512x512 RGB carrier (numpy array or PIL Image).
+            cover_image: RGB carrier (numpy array or PIL Image).
             protected_payload: Reed-Solomon protected byte stream.
             session_counter: 32-bit session/file counter for context and mask seed.
+            version: Wire protocol version (2 for qualified v2; 1 for legacy v1).
 
         Returns:
             EmbeddingResult with stego image, subband arrays, and visual artifacts.
@@ -107,20 +107,21 @@ class BaselineEmbedder:
             raise ValueError(f"Expected 3-channel RGB carrier, got shape {arr.shape}")
         if arr.shape[0] % 2 != 0 or arr.shape[1] % 2 != 0:
             raise ValueError(f"Carrier dimensions must be even, got {arr.shape[:2]}")
-        if arr.shape[0] != arr.shape[1]:
-            raise ValueError(f"Carrier dimensions must be square, got {arr.shape[:2]}")
+        if arr.shape[0] < 32 or arr.shape[1] < 32:
+            raise ValueError(f"Carrier dimensions too small: must be at least 32x32, got {arr.shape[:2]}")
 
-        subband_dim = arr.shape[0] // 2
+        subband_dim = (arr.shape[0] // 2, arr.shape[1] // 2)
 
         # Step 1: Hard-gate capacity check
         capacity_report = CapacityCalculator.check_capacity(
-            len(protected_payload), subband_dim=subband_dim
+            len(protected_payload), subband_dim=subband_dim, version=version
         )
 
-        # Step 2: Construct 16-byte carrier header
-        header = CarrierHeader(
+        # Step 2: Construct carrier header
+        header = CarrierHeader.create(
             session_counter=session_counter,
             payload_length=len(protected_payload),
+            version=version,
         )
         header_bytes = header.pack()
 
@@ -132,6 +133,7 @@ class BaselineEmbedder:
             session_counter=session_counter,
             payload_length_bytes=len(protected_payload),
             subband_dim=subband_dim,
+            version=version,
         )
 
         # Prepare bit streams
@@ -151,7 +153,6 @@ class BaselineEmbedder:
 
             two_hh = a_val - b_val - c_val + d_val
             if ((two_hh % 2 + 2) % 2) != int(bit):
-                # Adjust pixel 'a' by +1 (or -1 if saturated)
                 new_a = a_val + 1 if a_val < 255 else a_val - 1
                 stego_arr[2 * r, 2 * c_idx, ch] = new_a
 

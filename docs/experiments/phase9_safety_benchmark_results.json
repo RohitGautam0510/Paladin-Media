@@ -1,0 +1,316 @@
+{
+  "timestamp": 1793886290.9715993,
+  "dimension_benchmarks": [
+    {
+      "status": "ok",
+      "dim": 512,
+      "model_name": "neural_spatial_onnx",
+      "baseline_rss": 28.33,
+      "app_init_rss": 84.71,
+      "model_loaded_rss": 88.98,
+      "upload_peak_rss": 96.44,
+      "embed_peak_rss": 138.23,
+      "idwt_peak_rss": 138.23,
+      "extract_peak_rss": 168.85,
+      "recovery_peak_rss": 168.85,
+      "max_rss": 168.85,
+      "embed_latency_s": 0.177,
+      "extract_latency_s": 0.057,
+      "total_latency_s": 0.234,
+      "exact_match": true,
+      "recovered_size": 400,
+      "error": null
+    },
+    {
+      "status": "ok",
+      "dim": 512,
+      "model_name": "acs_sub_inn_onnx",
+      "baseline_rss": 28.3,
+      "app_init_rss": 84.44,
+      "model_loaded_rss": 87.67,
+      "upload_peak_rss": 95.41,
+      "embed_peak_rss": 98.2,
+      "idwt_peak_rss": 98.2,
+      "extract_peak_rss": 99.62,
+      "recovery_peak_rss": 99.62,
+      "max_rss": 99.62,
+      "embed_latency_s": 0.188,
+      "extract_latency_s": 0.086,
+      "total_latency_s": 0.274,
+      "exact_match": true,
+      "recovered_size": 400,
+      "error": null
+    },
+    {
+      "status": "ok",
+      "dim": 768,
+      "model_name": "neural_spatial_onnx",
+      "baseline_rss": 28.33,
+      "app_init_rss": 84.76,
+      "model_loaded_rss": 89.55,
+      "upload_peak_rss": 100.89,
+      "embed_peak_rss": 210.11,
+      "idwt_peak_rss": 210.11,
+      "extract_peak_rss": 280.19,
+      "recovery_peak_rss": 280.19,
+      "max_rss": 280.19,
+      "embed_latency_s": 0.412,
+      "extract_latency_s": 0.122,
+      "total_latency_s": 0.534,
+      "exact_match": true,
+      "recovered_size": 400,
+      "error": null
+    },
+    {
+      "status": "ok",
+      "dim": 768,
+      "model_name": "acs_sub_inn_onnx",
+      "baseline_rss": 28.3,
+      "app_init_rss": 84.48,
+      "model_loaded_rss": 87.62,
+      "upload_peak_rss": 99.15,
+      "embed_peak_rss": 100.43,
+      "idwt_peak_rss": 100.43,
+      "extract_peak_rss": 101.55,
+      "recovery_peak_rss": 101.55,
+      "max_rss": 101.55,
+      "embed_latency_s": 0.443,
+      "extract_latency_s": 0.154,
+      "total_latency_s": 0.596,
+      "exact_match": true,
+      "recovered_size": 400,
+      "error": null
+    },
+    {
+      "status": "ok",
+      "dim": 1024,
+      "model_name": "neural_spatial_onnx",
+      "baseline_rss": 28.29,
+      "app_init_rss": 84.35,
+      "model_loaded_rss": 89.34,
+      "upload_peak_rss": 103.66,
+      "embed_peak_rss": 268.41,
+      "idwt_peak_rss": 268.41,
+      "extract_peak_rss": 386.41,
+      "recovery_peak_rss": 386.41,
+      "max_rss": 386.41,
+      "embed_latency_s": 0.743,
+      "extract_latency_s": 0.205,
+      "total_latency_s": 0.948,
+      "exact_match": true,
+      "recovered_size": 400,
+      "error": null
+    },
+    {
+      "status": "ok",
+      "dim": 1024,
+      "model_name": "acs_sub_inn_onnx",
+      "baseline_rss": 28.38,
+      "app_init_rss": 84.27,
+      "model_loaded_rss": 87.38,
+      "upload_peak_rss": 101.79,
+      "embed_peak_rss": 105.24,
+      "idwt_peak_rss": 105.24,
+      "extract_peak_rss": 105.94,
+      "recovery_peak_rss": 105.94,
+      "max_rss": 105.94,
+      "embed_latency_s": 0.732,
+      "extract_latency_s": 0.269,
+      "total_latency_s": 1.001,
+      "exact_match": true,
+      "recovered_size": 400,
+      "error": null
+    },
+    {
+      "status": "ok",
+      "dim": 2048,
+      "model_name": "neural_spatial_onnx",
+      "baseline_rss": 28.25,
+      "app_init_rss": 84.77,
+      "model_loaded_rss": 89.54,
+      "upload_peak_rss": 131.0,
+      "embed_peak_rss": 782.09,
+      "idwt_peak_rss": 782.09,
+      "extract_peak_rss": 1250.12,
+      "recovery_peak_rss": 1250.12,
+      "max_rss": 1250.12,
+      "embed_latency_s": 2.923,
+      "extract_latency_s": 0.775,
+      "total_latency_s": 3.698,
+      "exact_match": true,
+      "recovered_size": 400,
+      "error": null
+    },
+    {
+      "status": "ok",
+      "dim": 2048,
+      "model_name": "acs_sub_inn_onnx",
+      "baseline_rss": 28.38,
+      "app_init_rss": 84.27,
+      "model_loaded_rss": 87.3,
+      "upload_peak_rss": 128.79,
+      "embed_peak_rss": 134.18,
+      "idwt_peak_rss": 134.18,
+      "extract_peak_rss": 132.2,
+      "recovery_peak_rss": 132.2,
+      "max_rss": 134.18,
+      "embed_latency_s": 2.909,
+      "extract_latency_s": 0.959,
+      "total_latency_s": 3.868,
+      "exact_match": true,
+      "recovered_size": 400,
+      "error": null
+    }
+  ],
+  "concurrency_benchmarks": [
+    {
+      "concurrent_requests": 1,
+      "all_success": true,
+      "all_exact_matches": true,
+      "batch_latency_s": 4.839,
+      "peak_rss_mb": 193.2,
+      "headroom_mb": 318.8,
+      "headroom_pct": 62.3,
+      "streams": [
+        {
+          "stream_idx": 0,
+          "model_name": "neural_spatial_onnx",
+          "status_code": 200,
+          "event_count": 27,
+          "exact_match": true,
+          "latency_s": 4.839
+        }
+      ]
+    },
+    {
+      "concurrent_requests": 2,
+      "all_success": true,
+      "all_exact_matches": true,
+      "batch_latency_s": 5.284,
+      "peak_rss_mb": 288.3,
+      "headroom_mb": 223.7,
+      "headroom_pct": 43.7,
+      "streams": [
+        {
+          "stream_idx": 0,
+          "model_name": "neural_spatial_onnx",
+          "status_code": 200,
+          "event_count": 27,
+          "exact_match": true,
+          "latency_s": 5.283
+        },
+        {
+          "stream_idx": 1,
+          "model_name": "acs_sub_inn_onnx",
+          "status_code": 200,
+          "event_count": 27,
+          "exact_match": true,
+          "latency_s": 5.283
+        }
+      ]
+    },
+    {
+      "concurrent_requests": 3,
+      "all_success": true,
+      "all_exact_matches": true,
+      "batch_latency_s": 5.992,
+      "peak_rss_mb": 320.1,
+      "headroom_mb": 191.9,
+      "headroom_pct": 37.5,
+      "streams": [
+        {
+          "stream_idx": 0,
+          "model_name": "neural_spatial_onnx",
+          "status_code": 200,
+          "event_count": 27,
+          "exact_match": true,
+          "latency_s": 5.991
+        },
+        {
+          "stream_idx": 1,
+          "model_name": "acs_sub_inn_onnx",
+          "status_code": 200,
+          "event_count": 27,
+          "exact_match": true,
+          "latency_s": 5.991
+        },
+        {
+          "stream_idx": 2,
+          "model_name": "neural_spatial_onnx",
+          "status_code": 200,
+          "event_count": 27,
+          "exact_match": true,
+          "latency_s": 5.991
+        }
+      ]
+    }
+  ],
+  "safety_matrix": {
+    "oversized_upload_2mb": {
+      "status_code": 413,
+      "rejected": true,
+      "detail": "Upload exceeds maximum permitted size of 2097152 bytes"
+    },
+    "oversized_dimension_514x514_demo": {
+      "status_code": 413,
+      "rejected": true,
+      "detail": "Image dimensions (514x514=264196 pixels) exceed maximum allowed pixel budget of 262144 pixels (512x512)."
+    },
+    "valid_carrier_512x512": {
+      "status_code": 200,
+      "accepted": true,
+      "session_id": "185f1fa79b569aba79a889d3ee29633a"
+    },
+    "odd_dimensions_capacity": {
+      "status_code": 422,
+      "rejected": true,
+      "detail": "Carrier dimensions must be even for DWT decomposition, got 511x512"
+    },
+    "malformed_png": {
+      "status_code": 400,
+      "rejected": true,
+      "detail": "Malformed or corrupted image content"
+    },
+    "truncated_png": {
+      "status_code": 400,
+      "rejected": true,
+      "detail": "Malformed or corrupted image content"
+    },
+    "unsupported_jpeg_carrier": {
+      "status_code": 422,
+      "rejected": true,
+      "detail": "Carrier format must be lossless PNG, got JPEG"
+    },
+    "payload_capacity_gate": {
+      "status_code": 413,
+      "rejected": true,
+      "detail": "PAYLOAD_CAPACITY_EXCEEDED: Secret payload data (10000 B) exceeds maximum usable capacity (6525 B with 53B metadata) for ECC parity 48 under Wire Protocol v2."
+    }
+  },
+  "security_and_telemetry": {
+    "telemetry": {
+      "available": true,
+      "is_estimated": true,
+      "source": "estimated_hardware_model",
+      "metrics_tracked": [
+        "execution_time_ms",
+        "cpu_utilization_percent",
+        "memory_rss_mb",
+        "estimated_power_watts",
+        "energy_kwh",
+        "co2_emissions_grams"
+      ],
+      "valid": true
+    },
+    "cors": {
+      "allowed_origin_matched": true,
+      "unauthorized_origin_blocked": true
+    },
+    "rate_limiting": {
+      "requests_sent": 65,
+      "count_200": 59,
+      "count_429": 6,
+      "enforced": true
+    }
+  }
+}

@@ -1,0 +1,471 @@
+{
+  "status": "PASS",
+  "tested_carriers": [
+    "0701.png",
+    "0715.png",
+    "0774.png",
+    "0777.png",
+    "0785.png",
+    "0795.png"
+  ],
+  "supported_inference_path_exists_in_production": false,
+  "production_integration_status": "No production integration for acs_sub_inn_*_opset14.onnx exists in MediaStegoPipeline or NeuralModulationEngine. NeuralModulationEngine hardcodes 'neural_spatial_*_opset14.onnx'. Evaluation was conducted via offline diagnostic pipeline executing external Haar DWT/IDWT.",
+  "results_by_image": {
+    "0701.png": {
+      "image_id": 701,
+      "filename": "0701.png",
+      "continuous_parity_inn_vs_py": {
+        "max_abs_err_drop": 7.62939453125e-05,
+        "max_rel_err_drop": 0.001198883866891265,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "continuous_parity_sp_vs_py": {
+        "max_abs_err_stego": 3.814697265625e-05,
+        "max_rel_err_stego": 6.260523514356464e-05,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "inn_vs_sp_pixel_diff": {
+        "max_abs_pixel_diff": 0.0,
+        "mean_abs_pixel_diff": 0.0
+      },
+      "binary_payload_agreement": {
+        "inn_onnx_vs_pytorch_header_identical": true,
+        "inn_onnx_vs_pytorch_payload_identical": true,
+        "inn_onnx_vs_spatial_onnx_payload_identical": false
+      },
+      "header_bit_errors": {
+        "pytorch": 0,
+        "acs_sub_inn_onnx": 0,
+        "spatial_onnx": 0
+      },
+      "payload_bit_errors": {
+        "pytorch": 26,
+        "acs_sub_inn_onnx": 26,
+        "spatial_onnx": 24
+      },
+      "payload_ber": {
+        "pytorch": 0.0023739956172388606,
+        "acs_sub_inn_onnx": 0.0023739956172388606,
+        "spatial_onnx": 0.002191380569758948
+      },
+      "acs_sub_inn_onnx_rs_codeword_errors": {
+        "max_codeword_error": 10,
+        "per_codeword_errors": [
+          5,
+          1,
+          3,
+          10,
+          6,
+          1
+        ],
+        "exceeded_t24": false,
+        "rs_decode_success": true
+      },
+      "recovered_payload_equality": {
+        "acs_sub_inn_onnx_exact_recovery": true
+      },
+      "stego_fidelity": {
+        "psnr_pytorch": 52.30479587689619,
+        "psnr_acs_sub_inn_onnx": 52.30479587689619,
+        "psnr_spatial_onnx": 52.30479587689619,
+        "ssim_pytorch": 0.9999675903834554,
+        "ssim_acs_sub_inn_onnx": 0.9999675903834554,
+        "ssim_spatial_onnx": 0.9999675903834554
+      },
+      "latency_ms": {
+        "embed": {
+          "pytorch": 106.91,
+          "acs_sub_inn_onnx_with_ext_dwt": 132.76,
+          "spatial_onnx_internal_dwt": 165.02
+        },
+        "extract": {
+          "pytorch": 65.21,
+          "acs_sub_inn_onnx_with_ext_dwt": 81.16,
+          "spatial_onnx_internal_dwt": 79.75
+        }
+      }
+    },
+    "0715.png": {
+      "image_id": 715,
+      "filename": "0715.png",
+      "continuous_parity_inn_vs_py": {
+        "max_abs_err_drop": 3.4332275390625e-05,
+        "max_rel_err_drop": 0.005351748317480087,
+        "allclose_1e4_1e5": false,
+        "allclose_1e4_2e5": true
+      },
+      "continuous_parity_sp_vs_py": {
+        "max_abs_err_stego": 3.0517578125e-05,
+        "max_rel_err_stego": 0.00018248928245157003,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "inn_vs_sp_pixel_diff": {
+        "max_abs_pixel_diff": 0.0,
+        "mean_abs_pixel_diff": 0.0
+      },
+      "binary_payload_agreement": {
+        "inn_onnx_vs_pytorch_header_identical": true,
+        "inn_onnx_vs_pytorch_payload_identical": true,
+        "inn_onnx_vs_spatial_onnx_payload_identical": false
+      },
+      "header_bit_errors": {
+        "pytorch": 6,
+        "acs_sub_inn_onnx": 6,
+        "spatial_onnx": 6
+      },
+      "payload_bit_errors": {
+        "pytorch": 42,
+        "acs_sub_inn_onnx": 42,
+        "spatial_onnx": 36
+      },
+      "payload_ber": {
+        "pytorch": 0.003834915997078159,
+        "acs_sub_inn_onnx": 0.003834915997078159,
+        "spatial_onnx": 0.003287070854638422
+      },
+      "acs_sub_inn_onnx_rs_codeword_errors": {
+        "max_codeword_error": 13,
+        "per_codeword_errors": [
+          9,
+          13,
+          7,
+          6,
+          4,
+          2
+        ],
+        "exceeded_t24": false,
+        "rs_decode_success": true
+      },
+      "recovered_payload_equality": {
+        "acs_sub_inn_onnx_exact_recovery": false
+      },
+      "stego_fidelity": {
+        "psnr_pytorch": 53.69671886611613,
+        "psnr_acs_sub_inn_onnx": 53.69671886611613,
+        "psnr_spatial_onnx": 53.69671886611613,
+        "ssim_pytorch": 0.9999680306089156,
+        "ssim_acs_sub_inn_onnx": 0.9999680306089156,
+        "ssim_spatial_onnx": 0.9999680306089156
+      },
+      "latency_ms": {
+        "embed": {
+          "pytorch": 108.15,
+          "acs_sub_inn_onnx_with_ext_dwt": 151.04,
+          "spatial_onnx_internal_dwt": 161.1
+        },
+        "extract": {
+          "pytorch": 72.14,
+          "acs_sub_inn_onnx_with_ext_dwt": 85.92,
+          "spatial_onnx_internal_dwt": 72.1
+        }
+      }
+    },
+    "0774.png": {
+      "image_id": 774,
+      "filename": "0774.png",
+      "continuous_parity_inn_vs_py": {
+        "max_abs_err_drop": 3.4332275390625e-05,
+        "max_rel_err_drop": 0.0009596446761861444,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "continuous_parity_sp_vs_py": {
+        "max_abs_err_stego": 1.52587890625e-05,
+        "max_rel_err_stego": 2.7380085043660074e-07,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "inn_vs_sp_pixel_diff": {
+        "max_abs_pixel_diff": 0.0,
+        "mean_abs_pixel_diff": 0.0
+      },
+      "binary_payload_agreement": {
+        "inn_onnx_vs_pytorch_header_identical": true,
+        "inn_onnx_vs_pytorch_payload_identical": true,
+        "inn_onnx_vs_spatial_onnx_payload_identical": false
+      },
+      "header_bit_errors": {
+        "pytorch": 2,
+        "acs_sub_inn_onnx": 2,
+        "spatial_onnx": 2
+      },
+      "payload_bit_errors": {
+        "pytorch": 102,
+        "acs_sub_inn_onnx": 102,
+        "spatial_onnx": 96
+      },
+      "payload_ber": {
+        "pytorch": 0.00931336742147553,
+        "acs_sub_inn_onnx": 0.00931336742147553,
+        "spatial_onnx": 0.008765522279035792
+      },
+      "acs_sub_inn_onnx_rs_codeword_errors": {
+        "max_codeword_error": 27,
+        "per_codeword_errors": [
+          18,
+          27,
+          22,
+          12,
+          13,
+          8
+        ],
+        "exceeded_t24": true,
+        "rs_decode_success": false
+      },
+      "recovered_payload_equality": {
+        "acs_sub_inn_onnx_exact_recovery": false
+      },
+      "stego_fidelity": {
+        "psnr_pytorch": 54.16831266770524,
+        "psnr_acs_sub_inn_onnx": 54.16831266770524,
+        "psnr_spatial_onnx": 54.16831266770524,
+        "ssim_pytorch": 0.9999791036253479,
+        "ssim_acs_sub_inn_onnx": 0.9999791036253479,
+        "ssim_spatial_onnx": 0.9999791036253479
+      },
+      "latency_ms": {
+        "embed": {
+          "pytorch": 100.2,
+          "acs_sub_inn_onnx_with_ext_dwt": 137.12,
+          "spatial_onnx_internal_dwt": 153.95
+        },
+        "extract": {
+          "pytorch": 65.49,
+          "acs_sub_inn_onnx_with_ext_dwt": 78.71,
+          "spatial_onnx_internal_dwt": 68.95
+        }
+      }
+    },
+    "0777.png": {
+      "image_id": 777,
+      "filename": "0777.png",
+      "continuous_parity_inn_vs_py": {
+        "max_abs_err_drop": 1.33514404296875e-05,
+        "max_rel_err_drop": 0.000379007076844573,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "continuous_parity_sp_vs_py": {
+        "max_abs_err_stego": 1.52587890625e-05,
+        "max_rel_err_stego": 0.0006151229608803988,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "inn_vs_sp_pixel_diff": {
+        "max_abs_pixel_diff": 0.0,
+        "mean_abs_pixel_diff": 0.0
+      },
+      "binary_payload_agreement": {
+        "inn_onnx_vs_pytorch_header_identical": true,
+        "inn_onnx_vs_pytorch_payload_identical": true,
+        "inn_onnx_vs_spatial_onnx_payload_identical": false
+      },
+      "header_bit_errors": {
+        "pytorch": 1,
+        "acs_sub_inn_onnx": 1,
+        "spatial_onnx": 1
+      },
+      "payload_bit_errors": {
+        "pytorch": 61,
+        "acs_sub_inn_onnx": 61,
+        "spatial_onnx": 63
+      },
+      "payload_ber": {
+        "pytorch": 0.005569758948137327,
+        "acs_sub_inn_onnx": 0.005569758948137327,
+        "spatial_onnx": 0.005752373995617239
+      },
+      "acs_sub_inn_onnx_rs_codeword_errors": {
+        "max_codeword_error": 18,
+        "per_codeword_errors": [
+          10,
+          9,
+          9,
+          8,
+          18,
+          5
+        ],
+        "exceeded_t24": false,
+        "rs_decode_success": true
+      },
+      "recovered_payload_equality": {
+        "acs_sub_inn_onnx_exact_recovery": false
+      },
+      "stego_fidelity": {
+        "psnr_pytorch": 54.43286901696051,
+        "psnr_acs_sub_inn_onnx": 54.43286901696051,
+        "psnr_spatial_onnx": 54.43286901696051,
+        "ssim_pytorch": 0.9999755921860399,
+        "ssim_acs_sub_inn_onnx": 0.9999755921860399,
+        "ssim_spatial_onnx": 0.9999755921860399
+      },
+      "latency_ms": {
+        "embed": {
+          "pytorch": 101.06,
+          "acs_sub_inn_onnx_with_ext_dwt": 136.31,
+          "spatial_onnx_internal_dwt": 179.18
+        },
+        "extract": {
+          "pytorch": 61.95,
+          "acs_sub_inn_onnx_with_ext_dwt": 75.7,
+          "spatial_onnx_internal_dwt": 71.95
+        }
+      }
+    },
+    "0785.png": {
+      "image_id": 785,
+      "filename": "0785.png",
+      "continuous_parity_inn_vs_py": {
+        "max_abs_err_drop": 3.4332275390625e-05,
+        "max_rel_err_drop": 0.00120410299859941,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "continuous_parity_sp_vs_py": {
+        "max_abs_err_stego": 3.0517578125e-05,
+        "max_rel_err_stego": 0.0011121741263195872,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "inn_vs_sp_pixel_diff": {
+        "max_abs_pixel_diff": 0.0,
+        "mean_abs_pixel_diff": 0.0
+      },
+      "binary_payload_agreement": {
+        "inn_onnx_vs_pytorch_header_identical": true,
+        "inn_onnx_vs_pytorch_payload_identical": true,
+        "inn_onnx_vs_spatial_onnx_payload_identical": false
+      },
+      "header_bit_errors": {
+        "pytorch": 1,
+        "acs_sub_inn_onnx": 1,
+        "spatial_onnx": 1
+      },
+      "payload_bit_errors": {
+        "pytorch": 84,
+        "acs_sub_inn_onnx": 84,
+        "spatial_onnx": 78
+      },
+      "payload_ber": {
+        "pytorch": 0.007669831994156318,
+        "acs_sub_inn_onnx": 0.007669831994156318,
+        "spatial_onnx": 0.007121986851716581
+      },
+      "acs_sub_inn_onnx_rs_codeword_errors": {
+        "max_codeword_error": 18,
+        "per_codeword_errors": [
+          13,
+          17,
+          18,
+          15,
+          12,
+          5
+        ],
+        "exceeded_t24": false,
+        "rs_decode_success": true
+      },
+      "recovered_payload_equality": {
+        "acs_sub_inn_onnx_exact_recovery": false
+      },
+      "stego_fidelity": {
+        "psnr_pytorch": 52.866180842017314,
+        "psnr_acs_sub_inn_onnx": 52.866180842017314,
+        "psnr_spatial_onnx": 52.866180842017314,
+        "ssim_pytorch": 0.999930560248496,
+        "ssim_acs_sub_inn_onnx": 0.999930560248496,
+        "ssim_spatial_onnx": 0.999930560248496
+      },
+      "latency_ms": {
+        "embed": {
+          "pytorch": 95.36,
+          "acs_sub_inn_onnx_with_ext_dwt": 136.15,
+          "spatial_onnx_internal_dwt": 158.56
+        },
+        "extract": {
+          "pytorch": 58.76,
+          "acs_sub_inn_onnx_with_ext_dwt": 76.66,
+          "spatial_onnx_internal_dwt": 69.91
+        }
+      }
+    },
+    "0795.png": {
+      "image_id": 795,
+      "filename": "0795.png",
+      "continuous_parity_inn_vs_py": {
+        "max_abs_err_drop": 3.814697265625e-05,
+        "max_rel_err_drop": 0.00015628899564035237,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "continuous_parity_sp_vs_py": {
+        "max_abs_err_stego": 3.0517578125e-05,
+        "max_rel_err_stego": 0.00010980998195009306,
+        "allclose_1e4_1e5": true,
+        "allclose_1e4_2e5": true
+      },
+      "inn_vs_sp_pixel_diff": {
+        "max_abs_pixel_diff": 0.0,
+        "mean_abs_pixel_diff": 0.0
+      },
+      "binary_payload_agreement": {
+        "inn_onnx_vs_pytorch_header_identical": true,
+        "inn_onnx_vs_pytorch_payload_identical": true,
+        "inn_onnx_vs_spatial_onnx_payload_identical": true
+      },
+      "header_bit_errors": {
+        "pytorch": 3,
+        "acs_sub_inn_onnx": 3,
+        "spatial_onnx": 4
+      },
+      "payload_bit_errors": {
+        "pytorch": 2,
+        "acs_sub_inn_onnx": 2,
+        "spatial_onnx": 2
+      },
+      "payload_ber": {
+        "pytorch": 0.00018261504747991235,
+        "acs_sub_inn_onnx": 0.00018261504747991235,
+        "spatial_onnx": 0.00018261504747991235
+      },
+      "acs_sub_inn_onnx_rs_codeword_errors": {
+        "max_codeword_error": 1,
+        "per_codeword_errors": [
+          0,
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        "exceeded_t24": false,
+        "rs_decode_success": true
+      },
+      "recovered_payload_equality": {
+        "acs_sub_inn_onnx_exact_recovery": false
+      },
+      "stego_fidelity": {
+        "psnr_pytorch": 52.58153750013675,
+        "psnr_acs_sub_inn_onnx": 52.58153750013675,
+        "psnr_spatial_onnx": 52.58153750013675,
+        "ssim_pytorch": 0.9999741939360784,
+        "ssim_acs_sub_inn_onnx": 0.9999741939360784,
+        "ssim_spatial_onnx": 0.9999741939360784
+      },
+      "latency_ms": {
+        "embed": {
+          "pytorch": 114.1,
+          "acs_sub_inn_onnx_with_ext_dwt": 134.58,
+          "spatial_onnx_internal_dwt": 152.37
+        },
+        "extract": {
+          "pytorch": 65.02,
+          "acs_sub_inn_onnx_with_ext_dwt": 85.88,
+          "spatial_onnx_internal_dwt": 70.79
+        }
+      }
+    }
+  }
+}

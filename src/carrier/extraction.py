@@ -1,9 +1,10 @@
-"""Steganographic Carrier Extractor for PaladinMedia Phase 2.
+"""Steganographic Carrier Extractor for PaladinMedia.
 
-Implements the receiver extraction procedure per Architecture §8.2/§19.2:
-- Reads the 16-byte fixed carrier header from fixed anchor positions in HH.
-- Validates carrier framing and extracts session counter + payload length.
-- Reconstructs the deterministic position mask.
+Implements the receiver extraction procedure per Architecture §8.2/§19.2 and Wire Protocol v2:
+- Reads the carrier header from fixed anchor positions in HH (192 bits for v2, with fallback to 128 bits for v1).
+- Corrects up to 4 byte errors in Wire Protocol v2 headers via shortened RS(24, 16) decoding.
+- Validates carrier framing, protocol version, and capacity hard-gate before allocation.
+- Reconstructs the deterministic position mask using the header's wire version.
 - Extracts bits and packs them into the Reed-Solomon protected byte stream.
 """
 
@@ -14,6 +15,7 @@ from typing import Sequence, Tuple, Union
 import numpy as np
 from PIL import Image
 
+from src.carrier.capacity import CapacityCalculator
 from src.carrier.dwt import HaarDWT2D
 from src.carrier.header import CarrierHeader, CarrierHeaderError
 from src.carrier.mask import DeterministicMaskGenerator
@@ -44,13 +46,14 @@ class Extractor:
         """Extracts the carrier header and protected payload from a stego carrier image.
 
         Args:
-            stego_image: Square even-dimension RGB carrier (numpy array or PIL Image).
+            stego_image: Even-dimension RGB carrier (numpy array or PIL Image).
 
         Returns:
             Tuple of (CarrierHeader, protected_payload_bytes).
 
         Raises:
             CarrierHeaderError: If carrier header magic or framing is invalid.
+            PayloadCapacityExceededError: If payload length exceeds carrier capacity.
         """
         if isinstance(stego_image, Image.Image):
             arr = np.array(stego_image.convert("RGB"), dtype=np.uint8)
@@ -61,15 +64,15 @@ class Extractor:
             raise ValueError(f"Expected 3-channel RGB carrier, got shape {arr.shape}")
         if arr.shape[0] % 2 != 0 or arr.shape[1] % 2 != 0:
             raise ValueError(f"Carrier dimensions must be even, got {arr.shape[:2]}")
-        if arr.shape[0] != arr.shape[1]:
-            raise ValueError(f"Carrier dimensions must be square, got {arr.shape[:2]}")
+        if arr.shape[0] < 32 or arr.shape[1] < 32:
+            raise ValueError(f"Carrier dimensions too small: must be at least 32x32, got {arr.shape[:2]}")
 
-        subband_dim = arr.shape[0] // 2
+        subband_dim = (arr.shape[0] // 2, arr.shape[1] // 2)
         ch = cls.EMBEDDING_CHANNEL
 
-        # 1. Extract 128 header bits from fixed anchor positions
+        # 1. Extract 192 header bits from fixed anchor positions (supporting v2 and v1)
         header_positions = DeterministicMaskGenerator.generate_header_positions(
-            subband_dim=subband_dim
+            subband_dim=subband_dim, version=CarrierHeader.VERSION_2
         )
         header_bits = []
         for r, c_idx in header_positions:
@@ -85,7 +88,15 @@ class Extractor:
         header_bytes = cls.bits_to_bytes(header_bits)
         header = CarrierHeader.unpack(header_bytes)
 
-        # 2. Reconstruct deterministic mask for payload bits
+        # 2. Hard-gate capacity check before allocation or mask generation
+        CapacityCalculator.check_capacity(
+            protected_payload_bytes=header.payload_length,
+            subband_dim=subband_dim,
+            rs_parity=header.ecc_parity,
+            version=header.version,
+        )
+
+        # 3. Reconstruct deterministic mask for payload bits using version layout
         payload_length = header.payload_length
         if payload_length == 0:
             return header, b""
@@ -94,9 +105,10 @@ class Extractor:
             session_counter=header.session_counter,
             payload_length_bytes=payload_length,
             subband_dim=subband_dim,
+            version=header.version,
         )
 
-        # 3. Extract payload bits
+        # 4. Extract payload bits
         payload_bits = []
         for r, c_idx in payload_positions:
             a_val = int(arr[2 * r, 2 * c_idx, ch])

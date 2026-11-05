@@ -7,6 +7,7 @@ from src.core.exceptions import (
     ECCError,
     PaladinSecurityError,
     SerializationError,
+    UnsupportedCarrierFormatError,
 )
 __all__ = [
     "AuthenticationError",
@@ -16,6 +17,7 @@ __all__ = [
     "PaladinSecurityError",
     "SecurityPipeline",
     "SerializationError",
+    "UnsupportedCarrierFormatError",
 ]
 
 

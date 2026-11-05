@@ -1,0 +1,24 @@
+# Render Blueprint Specification for PaladinMedia Backend
+# Free-Tier Web Service (Python 3.10+, 512 MB RAM, 0.1 CPU)
+
+services:
+  - type: web
+    name: paladinmedia-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt"
+    startCommand: "python -m src.api.launcher --mode demo --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.11
+      - key: PALADINMEDIA_MODE
+        value: demo
+      - key: PALADIN_DEPLOYMENT_MODE
+        value: demo
+      - key: PALADINMEDIA_ENABLE_DOCS
+        value: "true"
+      - key: PALADINMEDIA_ALLOWED_ORIGINS
+        value: "http://localhost:5173,http://127.0.0.1:5173,https://paladinmedia.vercel.app"

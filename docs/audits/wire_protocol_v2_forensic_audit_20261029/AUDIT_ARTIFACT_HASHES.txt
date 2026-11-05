@@ -1,0 +1,21 @@
+# SHA-256 Hashes of Audit Documents and Inspected Artifacts
+# Generated: 2026-10-29
+
+7e2fe74ac5b7e7a9ad365b5cf6b5c4b0ad4e127eb73e8ea485ef70261ebcd5ec       11721 bytes  docs/audits/wire_protocol_v2_forensic_audit_20261029/AUDIT_SUMMARY.md
+0759975bbd5e654e555ffc3e1433c7e2c4827527bdbcc469574cafa458a31a6d        9266 bytes  docs/audits/wire_protocol_v2_forensic_audit_20261029/V1_V2_PROTOCOL_COMPARISON.md
+87f3caeca6d22255edb5a6eb045d7e35613cfddca1be7c0dbdd8a7b9f8161e30       21671 bytes  docs/audits/wire_protocol_v2_forensic_audit_20261029/CARRIER_BASELINE_RECONCILIATION.csv
+c12a06fb834d6d361258d53bee4fcc20bbc124223fa83057238be73d14f832c5        9307 bytes  docs/audits/wire_protocol_v2_forensic_audit_20261029/PAYLOAD_BER_METRIC_AUDIT.md
+e19a62fa9d6ee067a303629b09abe9558d3f47d92bfe64deb747ddd5301f0c6d        8505 bytes  docs/audits/wire_protocol_v2_forensic_audit_20261029/FAILURE_CASE_ANALYSIS.md
+9a0d18057c5a9e9be92ffcf71277ca0700e3bf6e88d913bf86971db8cf10756e        8141 bytes  docs/audits/wire_protocol_v2_forensic_audit_20261029/REGRESSION_TEST_RESULTS.md
+72bd6014db8118038e0c9437d7eb942621554c0ce96fa07294a28f2ae01d8000        8815 bytes  docs/audits/wire_protocol_v2_forensic_audit_20261029/CAPACITY_ACCOUNTING_AUDIT.md
+32bfad806dbfcf057359c5f2f84a716832b88d43e9566ec331d0566ad446c4ee     1182418 bytes  checkpoints/phase4c_extended_30ep/best_model.pt
+7cda5a3becb8283c6b84572e7adb6d64ea29ecbf9f1e667cf34dcd0324e2d784      429807 bytes  checkpoints/phase5a_onnx/neural_spatial_embedding_opset14.onnx
+bf85d8404469d90c08aa50282db582e3c82b2c6ea2159293423ae6e846b82be2      234628 bytes  checkpoints/phase5a_onnx/neural_spatial_extraction_opset14.onnx
+2ec2d13d534636770f96a9557548191064b66ea73894d12694e741e39990ffd9      189014 bytes  docs/experiments/held_out_test_results_20261029.json
+ccff9ab410395950c88909258175527b795273fb33d7c5276fd9da80560ed8b6        7631 bytes  docs/diagnostics_20261029/full_100_carrier_qualification/PRODUCTION_V2_100_CARRIER_QUALIFICATION_REPORT.md
+903cc1c6b343bd7cfa853da01e207becca4cd04bbdd1088195bb94a7613bc70b        6555 bytes  docs/diagnostics_20261029/full_100_carrier_qualification/production_v2_100_carrier_comparison.csv
+afc142e70fa885740668d0f9e06bbfae92f5966b7604a48f93b6e7654dc4155c       85573 bytes  docs/diagnostics_20261029/full_100_carrier_qualification/production_v2_100_carrier_results.json
+ea64761fe77001147aeb403690d2e1eca660833b9aec63402a79579b29564907       11029 bytes  docs/specifications/WIRE_PROTOCOL_V2_SPECIFICATION.md
+f2666606f5fe766235a4290d0ac5e605ae2364ced21f335c30d23ee567f427f0       12134 bytes  src/carrier/header.py
+46f7ccdef15ea349cd708452b83812a8fe423db7fa6b55fe688ad8a9bf460398        6594 bytes  src/carrier/mask.py
+78f557762fe3e3eb1cedad6dc02fe087e39cbb9d2d3225e5671dbdb8a00f45c3       10860 bytes  src/carrier/capacity.py

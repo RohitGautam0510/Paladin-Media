@@ -1,0 +1,241 @@
+{
+  "timestamp": 1793618192.387518,
+  "telemetry_source": "estimated_hardware_model",
+  "is_estimated": true,
+  "power_model_assumptions": {
+    "cpu_tdp_watts": 45.0,
+    "cpu_idle_watts": 10.0,
+    "ram_w_per_gb": 0.375,
+    "grid_carbon_intensity_g_per_kwh": 475.0
+  },
+  "engine_benchmarks": {
+    "parity_classical": {
+      "runs_count": 5,
+      "avg_latency_ms": 149.66,
+      "avg_cpu_percent": 8.3,
+      "avg_ram_mb": 401.7,
+      "avg_power_watts": 13.06,
+      "avg_energy_kwh": 5.4e-07,
+      "avg_co2_grams": 0.000258,
+      "detailed_runs": [
+        {
+          "run_id": "bench_parity_classical_0",
+          "execution_time_ms": 135.77,
+          "cpu_utilization_percent": 8.6,
+          "memory_rss_mb": 400.5,
+          "memory_delta_mb": 5.69,
+          "estimated_power_watts": 13.17,
+          "energy_kwh": 5e-07,
+          "co2_emissions_grams": 0.000236,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618192.8188174
+        },
+        {
+          "run_id": "bench_parity_classical_1",
+          "execution_time_ms": 133.75,
+          "cpu_utilization_percent": 7.8,
+          "memory_rss_mb": 401.6,
+          "memory_delta_mb": 1.04,
+          "estimated_power_watts": 12.87,
+          "energy_kwh": 4.8e-07,
+          "co2_emissions_grams": 0.000227,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618192.9527042
+        },
+        {
+          "run_id": "bench_parity_classical_2",
+          "execution_time_ms": 143.22,
+          "cpu_utilization_percent": 8.2,
+          "memory_rss_mb": 402.1,
+          "memory_delta_mb": 0.51,
+          "estimated_power_watts": 13.01,
+          "energy_kwh": 5.2e-07,
+          "co2_emissions_grams": 0.000246,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618193.0963018
+        },
+        {
+          "run_id": "bench_parity_classical_3",
+          "execution_time_ms": 142.01,
+          "cpu_utilization_percent": 8.3,
+          "memory_rss_mb": 402.1,
+          "memory_delta_mb": 0.0,
+          "estimated_power_watts": 13.04,
+          "energy_kwh": 5.1e-07,
+          "co2_emissions_grams": 0.000244,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618193.2379148
+        },
+        {
+          "run_id": "bench_parity_classical_4",
+          "execution_time_ms": 193.56,
+          "cpu_utilization_percent": 8.7,
+          "memory_rss_mb": 402.1,
+          "memory_delta_mb": 0.0,
+          "estimated_power_watts": 13.21,
+          "energy_kwh": 7.1e-07,
+          "co2_emissions_grams": 0.000337,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618193.4318414
+        }
+      ]
+    },
+    "neural_spatial_onnx": {
+      "runs_count": 5,
+      "avg_latency_ms": 278.68,
+      "avg_cpu_percent": 31.7,
+      "avg_ram_mb": 548.9,
+      "avg_power_watts": 21.3,
+      "avg_energy_kwh": 1.65e-06,
+      "avg_co2_grams": 0.000783,
+      "detailed_runs": [
+        {
+          "run_id": "bench_neural_spatial_onnx_0",
+          "execution_time_ms": 291.11,
+          "cpu_utilization_percent": 30.0,
+          "memory_rss_mb": 498.4,
+          "memory_delta_mb": 71.96,
+          "estimated_power_watts": 20.67,
+          "energy_kwh": 1.67e-06,
+          "co2_emissions_grams": 0.000794,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618193.8295598
+        },
+        {
+          "run_id": "bench_neural_spatial_onnx_1",
+          "execution_time_ms": 274.61,
+          "cpu_utilization_percent": 32.7,
+          "memory_rss_mb": 560.9,
+          "memory_delta_mb": 62.56,
+          "estimated_power_watts": 21.66,
+          "energy_kwh": 1.65e-06,
+          "co2_emissions_grams": 0.000785,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618194.10448
+        },
+        {
+          "run_id": "bench_neural_spatial_onnx_2",
+          "execution_time_ms": 290.17,
+          "cpu_utilization_percent": 29.6,
+          "memory_rss_mb": 561.4,
+          "memory_delta_mb": 0.48,
+          "estimated_power_watts": 20.57,
+          "energy_kwh": 1.66e-06,
+          "co2_emissions_grams": 0.000788,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618194.3888226
+        },
+        {
+          "run_id": "bench_neural_spatial_onnx_3",
+          "execution_time_ms": 264.05,
+          "cpu_utilization_percent": 31.6,
+          "memory_rss_mb": 561.7,
+          "memory_delta_mb": 0.27,
+          "estimated_power_watts": 21.25,
+          "energy_kwh": 1.56e-06,
+          "co2_emissions_grams": 0.00074,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618194.6555445
+        },
+        {
+          "run_id": "bench_neural_spatial_onnx_4",
+          "execution_time_ms": 273.47,
+          "cpu_utilization_percent": 34.8,
+          "memory_rss_mb": 562.2,
+          "memory_delta_mb": 0.48,
+          "estimated_power_watts": 22.37,
+          "energy_kwh": 1.7e-06,
+          "co2_emissions_grams": 0.000807,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618194.9318633
+        }
+      ]
+    },
+    "acs_sub_inn_onnx": {
+      "runs_count": 5,
+      "avg_latency_ms": 264.77,
+      "avg_cpu_percent": 28.8,
+      "avg_ram_mb": 527.3,
+      "avg_power_watts": 20.29,
+      "avg_energy_kwh": 1.49e-06,
+      "avg_co2_grams": 0.000708,
+      "detailed_runs": [
+        {
+          "run_id": "bench_acs_sub_inn_onnx_0",
+          "execution_time_ms": 275.36,
+          "cpu_utilization_percent": 27.9,
+          "memory_rss_mb": 485.4,
+          "memory_delta_mb": 49.91,
+          "estimated_power_watts": 19.94,
+          "energy_kwh": 1.53e-06,
+          "co2_emissions_grams": 0.000725,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618195.237246
+        },
+        {
+          "run_id": "bench_acs_sub_inn_onnx_1",
+          "execution_time_ms": 264.58,
+          "cpu_utilization_percent": 28.5,
+          "memory_rss_mb": 537.5,
+          "memory_delta_mb": 52.09,
+          "estimated_power_watts": 20.19,
+          "energy_kwh": 1.48e-06,
+          "co2_emissions_grams": 0.000705,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618195.5015042
+        },
+        {
+          "run_id": "bench_acs_sub_inn_onnx_2",
+          "execution_time_ms": 253.18,
+          "cpu_utilization_percent": 31.9,
+          "memory_rss_mb": 537.6,
+          "memory_delta_mb": 0.11,
+          "estimated_power_watts": 21.36,
+          "energy_kwh": 1.5e-06,
+          "co2_emissions_grams": 0.000713,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618195.7491567
+        },
+        {
+          "run_id": "bench_acs_sub_inn_onnx_3",
+          "execution_time_ms": 265.71,
+          "cpu_utilization_percent": 28.4,
+          "memory_rss_mb": 537.6,
+          "memory_delta_mb": 0.04,
+          "estimated_power_watts": 20.14,
+          "energy_kwh": 1.49e-06,
+          "co2_emissions_grams": 0.000706,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618196.0161185
+        },
+        {
+          "run_id": "bench_acs_sub_inn_onnx_4",
+          "execution_time_ms": 265.04,
+          "cpu_utilization_percent": 27.5,
+          "memory_rss_mb": 538.4,
+          "memory_delta_mb": 0.77,
+          "estimated_power_watts": 19.83,
+          "energy_kwh": 1.46e-06,
+          "co2_emissions_grams": 0.000693,
+          "is_estimated": true,
+          "telemetry_source": "estimated_hardware_model",
+          "timestamp": 1793618196.2827294
+        }
+      ]
+    }
+  }
+}

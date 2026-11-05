@@ -1,0 +1,292 @@
+{
+  "theoretical_candidate_comparison": {
+    "candidate_1_unprotected": {
+      "name": "Current Unprotected Header",
+      "header_raw_bytes": 16,
+      "header_encoded_bits": 128,
+      "header_encoded_bytes": 16,
+      "redundancy_overhead_bits": 0,
+      "redundancy_overhead_pct": 0.0,
+      "theoretical_bit_error_tolerance": 0,
+      "theoretical_symbol_error_tolerance": 0,
+      "subband_footprint_positions": 128,
+      "subband_footprint_pct": 0.1953,
+      "available_payload_bits": 65408,
+      "available_protected_payload_bytes": 8176,
+      "usable_secret_payload_bytes_rs48": 6589,
+      "capacity_reduction_vs_current_bytes": -11
+    },
+    "candidate_2_repetition_3x": {
+      "name": "3x Bit Repetition Majority Code",
+      "header_raw_bytes": 16,
+      "header_encoded_bits": 384,
+      "header_encoded_bytes": 48,
+      "redundancy_overhead_bits": 256,
+      "redundancy_overhead_pct": 200.0,
+      "theoretical_bit_error_tolerance": 1,
+      "theoretical_symbol_error_tolerance": 0,
+      "subband_footprint_positions": 384,
+      "subband_footprint_pct": 0.5859,
+      "available_payload_bits": 65152,
+      "available_protected_payload_bytes": 8144,
+      "usable_secret_payload_bytes_rs48": 6573,
+      "capacity_reduction_vs_current_bytes": 5
+    },
+    "candidate_3_rs24_16": {
+      "name": "Shortened Reed-Solomon RS(24, 16) Codec over GF(2^8)",
+      "header_raw_bytes": 16,
+      "header_encoded_bits": 192,
+      "header_encoded_bytes": 24,
+      "redundancy_overhead_bits": 64,
+      "redundancy_overhead_pct": 50.0,
+      "theoretical_bit_error_tolerance": 32,
+      "theoretical_symbol_error_tolerance": 4,
+      "subband_footprint_positions": 192,
+      "subband_footprint_pct": 0.293,
+      "available_payload_bits": 65344,
+      "available_protected_payload_bytes": 8168,
+      "usable_secret_payload_bytes_rs48": 6589,
+      "capacity_reduction_vs_current_bytes": -11
+    },
+    "candidate_4_repetition_5x": {
+      "name": "5x Bit Repetition Majority Code",
+      "header_raw_bytes": 16,
+      "header_encoded_bits": 640,
+      "header_encoded_bytes": 80,
+      "redundancy_overhead_bits": 512,
+      "redundancy_overhead_pct": 400.0,
+      "theoretical_bit_error_tolerance": 2,
+      "theoretical_symbol_error_tolerance": 0,
+      "subband_footprint_positions": 640,
+      "subband_footprint_pct": 0.9766,
+      "available_payload_bits": 64896,
+      "available_protected_payload_bytes": 8112,
+      "usable_secret_payload_bytes_rs48": 6541,
+      "capacity_reduction_vs_current_bytes": 37
+    }
+  },
+  "synthetic_monte_carlo_simulation": {
+    "1": {
+      "bit_errors_injected": 1,
+      "trials": 1000,
+      "success_rate_unprotected": 0.0,
+      "success_rate_repetition_3x": 100.0,
+      "success_rate_rs24_16": 100.0,
+      "success_rate_repetition_5x": 100.0
+    },
+    "2": {
+      "bit_errors_injected": 2,
+      "trials": 1000,
+      "success_rate_unprotected": 0.0,
+      "success_rate_repetition_3x": 99.4,
+      "success_rate_rs24_16": 100.0,
+      "success_rate_repetition_5x": 100.0
+    },
+    "3": {
+      "bit_errors_injected": 3,
+      "trials": 1000,
+      "success_rate_unprotected": 0.0,
+      "success_rate_repetition_3x": 98.5,
+      "success_rate_rs24_16": 100.0,
+      "success_rate_repetition_5x": 100.0
+    },
+    "4": {
+      "bit_errors_injected": 4,
+      "trials": 1000,
+      "success_rate_unprotected": 0.0,
+      "success_rate_repetition_3x": 96.1,
+      "success_rate_rs24_16": 100.0,
+      "success_rate_repetition_5x": 100.0
+    },
+    "5": {
+      "bit_errors_injected": 5,
+      "trials": 1000,
+      "success_rate_unprotected": 0.0,
+      "success_rate_repetition_3x": 95.7,
+      "success_rate_rs24_16": 31.9,
+      "success_rate_repetition_5x": 100.0
+    },
+    "6": {
+      "bit_errors_injected": 6,
+      "trials": 1000,
+      "success_rate_unprotected": 0.0,
+      "success_rate_repetition_3x": 91.8,
+      "success_rate_rs24_16": 7.9,
+      "success_rate_repetition_5x": 99.9
+    },
+    "8": {
+      "bit_errors_injected": 8,
+      "trials": 1000,
+      "success_rate_unprotected": 0.0,
+      "success_rate_repetition_3x": 86.5,
+      "success_rate_rs24_16": 0.1,
+      "success_rate_repetition_5x": 99.9
+    },
+    "10": {
+      "bit_errors_injected": 10,
+      "trials": 1000,
+      "success_rate_unprotected": 0.0,
+      "success_rate_repetition_3x": 79.7,
+      "success_rate_rs24_16": 0.0,
+      "success_rate_repetition_5x": 99.7
+    }
+  },
+  "real_carrier_empirical_results": {
+    "0701.png": {
+      "image_id": 701,
+      "filename": "0701.png",
+      "scheme_a_current_unprotected": {
+        "header_bit_errors": 0,
+        "header_recovered": true,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      },
+      "scheme_b_repetition_3x": {
+        "raw_channel_bit_errors_384": 1,
+        "header_errors_after_majority_decode": 0,
+        "header_recovered": true,
+        "payload_max_codeword_error": 8,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      },
+      "scheme_c_rs24_16": {
+        "raw_channel_bit_errors_192": 0,
+        "rs_corrected_symbols": 0,
+        "header_recovered": true,
+        "payload_max_codeword_error": 6,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      }
+    },
+    "0715.png": {
+      "image_id": 715,
+      "filename": "0715.png",
+      "scheme_a_current_unprotected": {
+        "header_bit_errors": 6,
+        "header_recovered": false,
+        "payload_rs_success": false,
+        "exact_recovery": false
+      },
+      "scheme_b_repetition_3x": {
+        "raw_channel_bit_errors_384": 18,
+        "header_errors_after_majority_decode": 0,
+        "header_recovered": true,
+        "payload_max_codeword_error": 12,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      },
+      "scheme_c_rs24_16": {
+        "raw_channel_bit_errors_192": 10,
+        "rs_corrected_symbols": 0,
+        "header_recovered": false,
+        "payload_max_codeword_error": null,
+        "payload_rs_success": false,
+        "exact_recovery": false
+      }
+    },
+    "0774.png": {
+      "image_id": 774,
+      "filename": "0774.png",
+      "scheme_a_current_unprotected": {
+        "header_bit_errors": 2,
+        "header_recovered": false,
+        "payload_rs_success": false,
+        "exact_recovery": false
+      },
+      "scheme_b_repetition_3x": {
+        "raw_channel_bit_errors_384": 7,
+        "header_errors_after_majority_decode": 1,
+        "header_recovered": false,
+        "payload_max_codeword_error": null,
+        "payload_rs_success": false,
+        "exact_recovery": false
+      },
+      "scheme_c_rs24_16": {
+        "raw_channel_bit_errors_192": 5,
+        "rs_corrected_symbols": 4,
+        "header_recovered": true,
+        "payload_max_codeword_error": 23,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      }
+    },
+    "0777.png": {
+      "image_id": 777,
+      "filename": "0777.png",
+      "scheme_a_current_unprotected": {
+        "header_bit_errors": 1,
+        "header_recovered": false,
+        "payload_rs_success": false,
+        "exact_recovery": false
+      },
+      "scheme_b_repetition_3x": {
+        "raw_channel_bit_errors_384": 7,
+        "header_errors_after_majority_decode": 0,
+        "header_recovered": true,
+        "payload_max_codeword_error": 13,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      },
+      "scheme_c_rs24_16": {
+        "raw_channel_bit_errors_192": 2,
+        "rs_corrected_symbols": 2,
+        "header_recovered": true,
+        "payload_max_codeword_error": 15,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      }
+    },
+    "0785.png": {
+      "image_id": 785,
+      "filename": "0785.png",
+      "scheme_a_current_unprotected": {
+        "header_bit_errors": 1,
+        "header_recovered": false,
+        "payload_rs_success": false,
+        "exact_recovery": false
+      },
+      "scheme_b_repetition_3x": {
+        "raw_channel_bit_errors_384": 1,
+        "header_errors_after_majority_decode": 0,
+        "header_recovered": true,
+        "payload_max_codeword_error": 21,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      },
+      "scheme_c_rs24_16": {
+        "raw_channel_bit_errors_192": 1,
+        "rs_corrected_symbols": 1,
+        "header_recovered": true,
+        "payload_max_codeword_error": 16,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      }
+    },
+    "0795.png": {
+      "image_id": 795,
+      "filename": "0795.png",
+      "scheme_a_current_unprotected": {
+        "header_bit_errors": 3,
+        "header_recovered": false,
+        "payload_rs_success": false,
+        "exact_recovery": false
+      },
+      "scheme_b_repetition_3x": {
+        "raw_channel_bit_errors_384": 2,
+        "header_errors_after_majority_decode": 0,
+        "header_recovered": true,
+        "payload_max_codeword_error": 1,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      },
+      "scheme_c_rs24_16": {
+        "raw_channel_bit_errors_192": 3,
+        "rs_corrected_symbols": 3,
+        "header_recovered": true,
+        "payload_max_codeword_error": 1,
+        "payload_rs_success": true,
+        "exact_recovery": true
+      }
+    }
+  }
+}

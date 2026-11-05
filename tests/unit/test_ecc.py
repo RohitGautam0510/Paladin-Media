@@ -352,15 +352,21 @@ def test_negative_truncated_encoded_stream():
 
 
 def test_negative_corrupted_length_prefix():
-    """Verify that corrupting the 4-byte length prefix to an impossible value raises ECCDecodeError."""
+    """Verify that corrupting the 4-byte length prefix raises ECCDecodeError when strict_prefix=True,
+    or when the stream length itself is structurally invalid."""
     encoder = ReedSolomonEncoder(ecc_symbols=32, block_size=255)
     data = b"Short payload"
     encoded = encoder.encode(data)
-    
-    # Set declared length to 10,000,000 bytes (exceeds actual stream)
+
+    # 1. Under strict_prefix=True, declared length mismatch raises ECCDecodeError
     corrupted = struct.pack(">I", 10_000_000) + encoded[4:]
     with pytest.raises((ECCDecodeError, ECCError)):
-        encoder.decode(corrupted)
+        encoder.decode(corrupted, strict_prefix=True)
+
+    # 2. When stream length itself is invalid, raises ECCDecodeError even with recovery
+    invalid_stream = encoded[:-5]
+    with pytest.raises((ECCDecodeError, ECCError)):
+        encoder.decode(invalid_stream)
 
 
 # =============================================================================

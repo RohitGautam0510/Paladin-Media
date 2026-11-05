@@ -1,0 +1,7029 @@
+{
+  "metadata": {
+    "title": "PaladinMedia Held-Out ACS-Sub-INN Evaluation and Readiness Verification",
+    "date": "2026-10-29",
+    "eval_duration_sec": 129.72,
+    "device": "CPU",
+    "pytorch_version": "2.14.1+cpu",
+    "onnxruntime_version": "1.31.0"
+  },
+  "preflight_integrity": {
+    "checkpoint_path": "E:\\Paladin_media\\checkpoints\\phase4c_extended_30ep\\best_model.pt",
+    "checkpoint_sha256_pre": "32bfad806dbfcf057359c5f2f84a716832b88d43e9566ec331d0566ad446c4ee",
+    "checkpoint_sha256_post": "32bfad806dbfcf057359c5f2f84a716832b88d43e9566ec331d0566ad446c4ee",
+    "checkpoint_unmutated": true,
+    "parameter_digest": "ec11dce74832c0fa0ef599ea7185248dfd3a16a10d83a5ebceddc9e267160d92",
+    "parameter_digest_verified": true,
+    "manifest_file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+    "manifest_composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+    "canonical_manifest_verified": true,
+    "dataset_root": "E:\\Paladin_media\\dataset\\DIV2K\\DIV2K_train_HR\\DIV2K_train_HR",
+    "onnx_models": {
+      "acs_sub_inn_embedding_opset14.onnx": {
+        "sha256": "3cd22ba35e55d4addfb89e59cdc695f1086383bef5d507f39a3c91dd4917c173",
+        "size_bytes": 385954,
+        "verified": true
+      },
+      "acs_sub_inn_extraction_opset14.onnx": {
+        "sha256": "ab696814635b39dec34b432b78e80bb949c5fcd68517a3cec5890102152ff8ba",
+        "size_bytes": 230704,
+        "verified": true
+      },
+      "neural_spatial_embedding_opset14.onnx": {
+        "sha256": "7cda5a3becb8283c6b84572e7adb6d64ea29ecbf9f1e667cf34dcd0324e2d784",
+        "size_bytes": 429807,
+        "verified": true
+      },
+      "neural_spatial_extraction_opset14.onnx": {
+        "sha256": "bf85d8404469d90c08aa50282db582e3c82b2c6ea2159293423ae6e846b82be2",
+        "size_bytes": 234628,
+        "verified": true
+      }
+    },
+    "official_test_dir_div2k_test_hr_exists": false
+  },
+  "test_dataset_partition": {
+    "split": "test",
+    "range": "0701.png - 0800.png",
+    "image_count": 100,
+    "crop_size": 512,
+    "payload_size_bytes": 1000
+  },
+  "primary_qualified_production_rs48": {
+    "pipeline": "MediaStegoPipeline.create_qualified_deployment(backend='onnx')",
+    "backend": "onnx",
+    "ecc_profile": "rs_2t_48 (t=24, parity_symbols=48)",
+    "exact_recovery_rate_pct": 95.0,
+    "exact_recovery_count": 95,
+    "aes_gcm_auth_rate_pct": 95.0,
+    "payload_rs_success_rate_pct": 99.0,
+    "header_intact_rate_pct": 95.0,
+    "total_images": 100,
+    "psnr_stats": {
+      "mean": 53.94063106830883,
+      "std": 1.0114321956419399,
+      "min": 50.48962204559849,
+      "max": 55.56068004132244,
+      "median": 54.37048001637894,
+      "p05": 51.8161956428183,
+      "p95": 54.91320450500823
+    },
+    "ssim_stats": {
+      "mean": 0.9999598568390385,
+      "std": 1.7435933953343714e-05,
+      "min": 0.999894161870219,
+      "max": 0.9999871399752098,
+      "median": 0.9999639819329623,
+      "p05": 0.99992514257528,
+      "p95": 0.9999823026608124
+    },
+    "header_ber_stats": {
+      "mean": 0.001015625,
+      "std": 0.005141432307429031,
+      "min": 0.0,
+      "max": 0.0390625,
+      "median": 0.0,
+      "p05": 0.0,
+      "p95": 0.0003906249999999778
+    },
+    "payload_ber_stats": {
+      "mean": 0.0007258351101634684,
+      "std": 0.001716001012893229,
+      "min": 0.0,
+      "max": 0.01003909026297086,
+      "median": 0.0,
+      "p05": 0.0,
+      "p95": 0.004366560056858564
+    },
+    "overall_ber_stats": {
+      "mean": 0.0007290934645115951,
+      "std": 0.0017256764907344392,
+      "min": 0.0,
+      "max": 0.010189739985945186,
+      "median": 0.0,
+      "p05": 0.0,
+      "p95": 0.00448436401967674
+    },
+    "max_codeword_error_stats": {
+      "mean": 2.2,
+      "std": 4.458699361921591,
+      "min": 0.0,
+      "max": 26.0,
+      "median": 0.0,
+      "p05": 0.0,
+      "p95": 12.0
+    },
+    "embed_latency_ms": {
+      "mean": 186.4101319999827,
+      "std": 7.42276788560419,
+      "min": 161.96339999987686,
+      "max": 209.03209999960382,
+      "median": 185.23575000017445,
+      "p05": 173.61199500046496,
+      "p95": 198.77525999854697
+    },
+    "extract_latency_ms": {
+      "mean": 74.12227900000289,
+      "std": 8.721674844713785,
+      "min": 41.04480000023614,
+      "max": 112.22860000088986,
+      "median": 72.29160000042612,
+      "p05": 60.49915500052521,
+      "p95": 88.67701500003022
+    },
+    "codeword_error_histogram": {
+      "0": 56,
+      "1": 17,
+      "2": 7,
+      "3": 2,
+      "4": 2,
+      "5": 3,
+      "6": 1,
+      "7": 0,
+      "8": 3,
+      "9": 0,
+      "10": 1,
+      "11": 1,
+      "12": 3,
+      "13": 0,
+      "14": 1,
+      "15": 1,
+      "16": 0,
+      "17": 0,
+      "18": 1,
+      "19": 0,
+      "20": 0,
+      "21": 0,
+      "22": 0,
+      "23": 0,
+      "24": 0,
+      "25": 0,
+      "26": 1
+    },
+    "header_corrupted_cases": [
+      {
+        "filename": "0715.png",
+        "header_errors": 5,
+        "error_msg": "CarrierHeaderError: Unsupported ECC profile in carrier header flags: 0x05"
+      },
+      {
+        "filename": "0774.png",
+        "header_errors": 3,
+        "error_msg": "MaskGenerationError: Requested payload bits (41954280) exceeds available positions (65408)"
+      },
+      {
+        "filename": "0777.png",
+        "header_errors": 1,
+        "error_msg": "ECCDecodeError: Reed-Solomon decoding failed in block 1/6: uncorrectable symbol errors exceed capacity"
+      },
+      {
+        "filename": "0785.png",
+        "header_errors": 1,
+        "error_msg": "ECCDecodeError: Reed-Solomon decoding failed in block 1/6: uncorrectable symbol errors exceed capacity"
+      },
+      {
+        "filename": "0795.png",
+        "header_errors": 3,
+        "error_msg": "ECCDecodeError: Reed-Solomon decoding failed in block 1/6: uncorrectable symbol errors exceed capacity"
+      }
+    ],
+    "payload_rs_failed_cases": [
+      {
+        "filename": "0774.png",
+        "max_codeword_error": 26
+      }
+    ],
+    "worst_psnr_cases": [
+      {
+        "filename": "0770.png",
+        "psnr_db": 50.48962204559849
+      },
+      {
+        "filename": "0797.png",
+        "psnr_db": 51.334763119251065
+      },
+      {
+        "filename": "0766.png",
+        "psnr_db": 51.3614290667763
+      },
+      {
+        "filename": "0788.png",
+        "psnr_db": 51.39752927858844
+      },
+      {
+        "filename": "0761.png",
+        "psnr_db": 51.60459016917372
+      }
+    ],
+    "worst_payload_ber_cases": [
+      {
+        "filename": "0774.png",
+        "payload_ber": 0.01003909026297086
+      },
+      {
+        "filename": "0785.png",
+        "payload_ber": 0.007995735607675906
+      },
+      {
+        "filename": "0777.png",
+        "payload_ber": 0.00550817341862118
+      },
+      {
+        "filename": "0784.png",
+        "payload_ber": 0.005241648898365316
+      },
+      {
+        "filename": "0730.png",
+        "payload_ber": 0.004619758351101635
+      }
+    ],
+    "worst_codeword_error_cases": [
+      {
+        "filename": "0774.png",
+        "max_codeword_error": 26,
+        "per_codeword_errors": [
+          26,
+          21,
+          23,
+          13,
+          17,
+          8
+        ],
+        "margin": -2
+      },
+      {
+        "filename": "0785.png",
+        "max_codeword_error": 18,
+        "per_codeword_errors": [
+          12,
+          15,
+          11,
+          13,
+          16,
+          18
+        ],
+        "margin": 6
+      },
+      {
+        "filename": "0784.png",
+        "max_codeword_error": 15,
+        "per_codeword_errors": [
+          10,
+          15,
+          6,
+          10,
+          12,
+          6
+        ],
+        "margin": 9
+      },
+      {
+        "filename": "0777.png",
+        "max_codeword_error": 14,
+        "per_codeword_errors": [
+          14,
+          6,
+          13,
+          13,
+          8,
+          5
+        ],
+        "margin": 10
+      },
+      {
+        "filename": "0725.png",
+        "max_codeword_error": 12,
+        "per_codeword_errors": [
+          12,
+          9,
+          4,
+          9,
+          10,
+          4
+        ],
+        "margin": 12
+      }
+    ]
+  },
+  "baseline_deployment_rs32": {
+    "pipeline": "MediaStegoPipeline(backend='onnx')",
+    "backend": "onnx",
+    "ecc_profile": "rs_2t_32 (t=16, parity_symbols=32)",
+    "exact_recovery_rate_pct": 95.0,
+    "exact_recovery_count": 95,
+    "payload_rs_success_rate_pct": 99.0,
+    "payload_ber_stats": {
+      "mean": 0.0006694683346364347,
+      "std": 0.0016017640270936592,
+      "min": 0.0,
+      "max": 0.010066458170445661,
+      "median": 0.0,
+      "p05": 0.0,
+      "p95": 0.0036649726348709903
+    },
+    "max_codeword_error_stats": {
+      "mean": 2.02,
+      "std": 3.8883929842545495,
+      "min": 0.0,
+      "max": 21.0,
+      "median": 0.0,
+      "p05": 0.0,
+      "p95": 12.0
+    },
+    "codeword_error_histogram": {
+      "0": 56,
+      "1": 18,
+      "2": 5,
+      "3": 2,
+      "4": 4,
+      "5": 2,
+      "6": 1,
+      "7": 1,
+      "8": 3,
+      "9": 1,
+      "10": 1,
+      "11": 0,
+      "12": 2,
+      "13": 2,
+      "14": 0,
+      "15": 1,
+      "16": 0,
+      "17": 0,
+      "18": 0,
+      "19": 0,
+      "20": 0,
+      "21": 1
+    },
+    "exceeded_t16_images_count": 1,
+    "exceeded_t16_images": [
+      {
+        "filename": "0774.png",
+        "max_codeword_error": 21
+      }
+    ]
+  },
+  "pytorch_reference_rs48": {
+    "pipeline": "MediaStegoPipeline(backend='pytorch', ecc_encoder=RS(48))",
+    "backend": "pytorch",
+    "ecc_profile": "rs_2t_48 (t=24)",
+    "exact_recovery_rate_pct": 95.0,
+    "payload_rs_success_rate_pct": 99.0,
+    "psnr_stats": {
+      "mean": 53.93577718721813,
+      "std": 1.0051616027917354,
+      "min": 50.537520566864515,
+      "max": 55.61219794001637,
+      "median": 54.37327539802394,
+      "p05": 51.82229875677931,
+      "p95": 54.90873829542135
+    },
+    "ssim_stats": {
+      "mean": 0.9999598030056677,
+      "std": 1.746020532808116e-05,
+      "min": 0.9998936504794333,
+      "max": 0.9999872788393297,
+      "median": 0.9999639170419801,
+      "p05": 0.9999250361087227,
+      "p95": 0.9999821847476996
+    },
+    "payload_ber_stats": {
+      "mean": 0.0006707533759772564,
+      "std": 0.0016340257301070032,
+      "min": 0.0,
+      "max": 0.010305614783226724,
+      "median": 0.0,
+      "p05": 0.0,
+      "p95": 0.0038335110163468366
+    },
+    "max_codeword_error_stats": {
+      "mean": 2.08,
+      "std": 4.410623538684751,
+      "min": 0.0,
+      "max": 29.0,
+      "median": 0.0,
+      "p05": 0.0,
+      "p95": 11.0
+    }
+  },
+  "held_out_vs_validation_comparison": {
+    "validation_reference": {
+      "dataset_split": "val (0601.png - 0700.png)",
+      "sample_size": 100,
+      "mean_psnr_db": 52.32,
+      "mean_ssim": 0.99997,
+      "pre_ecc_ber": 0.005118
+    },
+    "held_out_test_onnx_q": {
+      "dataset_split": "test (0701.png - 0800.png)",
+      "sample_size": 100,
+      "mean_psnr_db": 53.94063106830883,
+      "mean_ssim": 0.9999598568390385,
+      "payload_ber": 0.0007258351101634684,
+      "delta_psnr_db": 1.6206310683088319,
+      "delta_ssim": -1.0143160961484377e-05,
+      "delta_ber": -0.004392164889836531
+    }
+  },
+  "per_image_results": [
+    {
+      "image_id": 701,
+      "filename": "0701.png",
+      "original_dimensions": [
+        2040,
+        1344
+      ],
+      "crop_box": [
+        764,
+        416,
+        1276,
+        928
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 52.08296475766976,
+        "ssim": 0.9999658918026998,
+        "stego_png_size_bytes": 526930,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 27,
+        "payload_ber": 0.002398720682302772,
+        "overall_ber": 0.002371749824314828,
+        "rs_per_codeword_errors": [
+          4,
+          5,
+          4,
+          5,
+          8,
+          1
+        ],
+        "rs_max_codeword_error": 8,
+        "rs_correctable_margin": 16,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 161.96,
+        "extract_latency_ms": 112.23
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0033229085222830335,
+        "rs_per_codeword_errors": [
+          6,
+          7,
+          8,
+          5,
+          8
+        ],
+        "rs_max_codeword_error": 8,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 52.00936921011663,
+        "ssim": 0.9999653088673384,
+        "payload_ber": 0.0031982942430703624,
+        "rs_max_codeword_error": 9,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 702,
+      "filename": "0702.png",
+      "original_dimensions": [
+        2040,
+        1320
+      ],
+      "crop_box": [
+        764,
+        404,
+        1276,
+        916
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.624399603675435,
+        "ssim": 0.9999684519925692,
+        "stego_png_size_bytes": 417838,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 202.51,
+        "extract_latency_ms": 79.71
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.64004382560704,
+        "ssim": 0.9999685654227292,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 703,
+      "filename": "0703.png",
+      "original_dimensions": [
+        1356,
+        2040
+      ],
+      "crop_box": [
+        422,
+        764,
+        934,
+        1276
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.58467951306989,
+        "ssim": 0.9999717694386198,
+        "stego_png_size_bytes": 389387,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 200.15,
+        "extract_latency_ms": 70.17
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.54831958179716,
+        "ssim": 0.9999715321039099,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 704,
+      "filename": "0704.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.767930600458364,
+        "ssim": 0.9999647190572291,
+        "stego_png_size_bytes": 386086,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 175.62,
+        "extract_latency_ms": 70.52
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.742141307300386,
+        "ssim": 0.9999645089650502,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 705,
+      "filename": "0705.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.62252804802525,
+        "ssim": 0.9999708324905814,
+        "stego_png_size_bytes": 517324,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 181.71,
+        "extract_latency_ms": 70.23
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.60493550277853,
+        "ssim": 0.9999707141135341,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 706,
+      "filename": "0706.png",
+      "original_dimensions": [
+        2040,
+        1368
+      ],
+      "crop_box": [
+        764,
+        428,
+        1276,
+        940
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 52.69582596254559,
+        "ssim": 0.9999572238963106,
+        "stego_png_size_bytes": 515760,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 3,
+        "payload_ber": 0.00026652452025586353,
+        "overall_ber": 0.00026352775825720307,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          0,
+          1,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 183.93,
+        "extract_latency_ms": 79.13
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.00019546520719311962,
+        "rs_per_codeword_errors": [
+          1,
+          0,
+          0,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 52.65049944751639,
+        "ssim": 0.9999567751925512,
+        "payload_ber": 0.00035536602700781805,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 707,
+      "filename": "0707.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.0661605461874,
+        "ssim": 0.9999689446014309,
+        "stego_png_size_bytes": 483905,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 3,
+        "payload_ber": 0.00026652452025586353,
+        "overall_ber": 0.00026352775825720307,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          0,
+          2,
+          0
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_correctable_margin": 22,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.4,
+        "extract_latency_ms": 79.74
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.09965015246345,
+        "ssim": 0.9999691832217155,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 708,
+      "filename": "0708.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.55299333426646,
+        "ssim": 0.9999559716144005,
+        "stego_png_size_bytes": 477965,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 1,
+        "payload_ber": 8.884150675195451e-05,
+        "overall_ber": 8.784258608573436e-05,
+        "rs_per_codeword_errors": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 173.74,
+        "extract_latency_ms": 77.14
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.46354528771239,
+        "ssim": 0.9999550554994294,
+        "payload_ber": 0.00017768301350390902,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 709,
+      "filename": "0709.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.66702272934509,
+        "ssim": 0.9999449197601853,
+        "stego_png_size_bytes": 459908,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 189.8,
+        "extract_latency_ms": 70.3
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.61384572188885,
+        "ssim": 0.9999442411219872,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 710,
+      "filename": "0710.png",
+      "original_dimensions": [
+        2040,
+        936
+      ],
+      "crop_box": [
+        764,
+        212,
+        1276,
+        724
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.1790883714261,
+        "ssim": 0.999927143509729,
+        "stego_png_size_bytes": 548061,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 5,
+        "payload_ber": 0.00044420753375977256,
+        "overall_ber": 0.0004392129304286718,
+        "rs_per_codeword_errors": [
+          2,
+          1,
+          1,
+          0,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_correctable_margin": 22,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 183.28,
+        "extract_latency_ms": 80.92
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.14505306198957,
+        "ssim": 0.9999265702029373,
+        "payload_ber": 0.00035536602700781805,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 711,
+      "filename": "0711.png",
+      "original_dimensions": [
+        2040,
+        1536
+      ],
+      "crop_box": [
+        764,
+        512,
+        1276,
+        1024
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.55488363638714,
+        "ssim": 0.9999758805765241,
+        "stego_png_size_bytes": 460380,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 17,
+        "payload_ber": 0.0015103056147832267,
+        "overall_ber": 0.0014933239634574841,
+        "rs_per_codeword_errors": [
+          1,
+          4,
+          5,
+          2,
+          4,
+          1
+        ],
+        "rs_max_codeword_error": 5,
+        "rs_correctable_margin": 19,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 182.76,
+        "extract_latency_ms": 90.24
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0013682564503518374,
+        "rs_per_codeword_errors": [
+          1,
+          5,
+          2,
+          5,
+          1
+        ],
+        "rs_max_codeword_error": 5,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.558763755979875,
+        "ssim": 0.9999759021394513,
+        "payload_ber": 0.0010660980810234541,
+        "rs_max_codeword_error": 3,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 712,
+      "filename": "0712.png",
+      "original_dimensions": [
+        2040,
+        1788
+      ],
+      "crop_box": [
+        764,
+        638,
+        1276,
+        1150
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.763212577731565,
+        "ssim": 0.9999440610916239,
+        "stego_png_size_bytes": 468457,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 1,
+        "payload_ber": 8.884150675195451e-05,
+        "overall_ber": 8.784258608573436e-05,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 176.08,
+        "extract_latency_ms": 72.45
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.00019546520719311962,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          2,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.74412462883832,
+        "ssim": 0.9999438147006354,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 713,
+      "filename": "0713.png",
+      "original_dimensions": [
+        2040,
+        1344
+      ],
+      "crop_box": [
+        764,
+        416,
+        1276,
+        928
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.9453923859095,
+        "ssim": 0.9999445166165664,
+        "stego_png_size_bytes": 407685,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 14,
+        "payload_ber": 0.0012437810945273632,
+        "overall_ber": 0.001229796205200281,
+        "rs_per_codeword_errors": [
+          2,
+          6,
+          2,
+          3,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 6,
+        "rs_correctable_margin": 18,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 189.17,
+        "extract_latency_ms": 84.34
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0005863956215793589,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          0,
+          4,
+          1
+        ],
+        "rs_max_codeword_error": 4,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.91953725937139,
+        "ssim": 0.9999441851028256,
+        "payload_ber": 0.0009772565742714996,
+        "rs_max_codeword_error": 5,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 714,
+      "filename": "0714.png",
+      "original_dimensions": [
+        2040,
+        1524
+      ],
+      "crop_box": [
+        764,
+        506,
+        1276,
+        1018
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.42058371689021,
+        "ssim": 0.99996555987787,
+        "stego_png_size_bytes": 452197,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 190.16,
+        "extract_latency_ms": 70.23
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.41297580096944,
+        "ssim": 0.9999654995203836,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 715,
+      "filename": "0715.png",
+      "original_dimensions": [
+        2040,
+        1332
+      ],
+      "crop_box": [
+        764,
+        410,
+        1276,
+        922
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.57534864790498,
+        "ssim": 0.9999671245566196,
+        "stego_png_size_bytes": 466266,
+        "header_bit_errors": 5,
+        "header_ber": 0.0390625,
+        "header_intact": false,
+        "header_error_msg": null,
+        "payload_bit_errors": 46,
+        "payload_ber": 0.004086709310589908,
+        "overall_ber": 0.004479971890372453,
+        "rs_per_codeword_errors": [
+          6,
+          9,
+          10,
+          7,
+          11,
+          3
+        ],
+        "rs_max_codeword_error": 11,
+        "rs_correctable_margin": 13,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false,
+        "receiver_aes_authenticated": false,
+        "receiver_error": "CarrierHeaderError: Unsupported ECC profile in carrier header flags: 0x05",
+        "embed_latency_ms": 182.54,
+        "extract_latency_ms": 50.5
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.003616106333072713,
+        "rs_per_codeword_errors": [
+          8,
+          8,
+          8,
+          5,
+          8
+        ],
+        "rs_max_codeword_error": 8,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.58541992276376,
+        "ssim": 0.999967200721413,
+        "payload_ber": 0.003820184790334044,
+        "rs_max_codeword_error": 10,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false
+      }
+    },
+    {
+      "image_id": 716,
+      "filename": "0716.png",
+      "original_dimensions": [
+        2040,
+        2040
+      ],
+      "crop_box": [
+        764,
+        764,
+        1276,
+        1276
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.81698543004371,
+        "ssim": 0.9999570268637975,
+        "stego_png_size_bytes": 516309,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 171.35,
+        "extract_latency_ms": 71.57
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.78844776478852,
+        "ssim": 0.9999567435002288,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 717,
+      "filename": "0717.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.733747186506335,
+        "ssim": 0.9999700308802235,
+        "stego_png_size_bytes": 508631,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 180.18,
+        "extract_latency_ms": 78.99
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.722924538349375,
+        "ssim": 0.9999699561752101,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 718,
+      "filename": "0718.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.38241401100887,
+        "ssim": 0.9999697557446527,
+        "stego_png_size_bytes": 551210,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 14,
+        "payload_ber": 0.0012437810945273632,
+        "overall_ber": 0.001229796205200281,
+        "rs_per_codeword_errors": [
+          2,
+          5,
+          4,
+          1,
+          2,
+          0
+        ],
+        "rs_max_codeword_error": 5,
+        "rs_correctable_margin": 19,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 196.15,
+        "extract_latency_ms": 84.38
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.000488663017982799,
+        "rs_per_codeword_errors": [
+          2,
+          0,
+          1,
+          2,
+          0
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.40635103674474,
+        "ssim": 0.999969922096639,
+        "payload_ber": 0.00044420753375977256,
+        "rs_max_codeword_error": 2,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 719,
+      "filename": "0719.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.81412835640546,
+        "ssim": 0.9999836792804013,
+        "stego_png_size_bytes": 436049,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 179.06,
+        "extract_latency_ms": 72.75
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.78256852205652,
+        "ssim": 0.9999835602376704,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 720,
+      "filename": "0720.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 52.338830510087185,
+        "ssim": 0.999957138180914,
+        "stego_png_size_bytes": 435246,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 22,
+        "payload_ber": 0.0019545131485429993,
+        "overall_ber": 0.001932536893886156,
+        "rs_per_codeword_errors": [
+          4,
+          5,
+          3,
+          5,
+          3,
+          2
+        ],
+        "rs_max_codeword_error": 5,
+        "rs_correctable_margin": 19,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 191.11,
+        "extract_latency_ms": 84.81
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.002052384675527756,
+        "rs_per_codeword_errors": [
+          5,
+          3,
+          3,
+          4,
+          6
+        ],
+        "rs_max_codeword_error": 6,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 52.332984500212916,
+        "ssim": 0.9999570804650151,
+        "payload_ber": 0.0016879886282871357,
+        "rs_max_codeword_error": 5,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 721,
+      "filename": "0721.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.490783872805295,
+        "ssim": 0.9999822302071499,
+        "stego_png_size_bytes": 424650,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 187.02,
+        "extract_latency_ms": 70.52
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.46207393964703,
+        "ssim": 0.9999821123534907,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 722,
+      "filename": "0722.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.95460799720526,
+        "ssim": 0.9999250012024236,
+        "stego_png_size_bytes": 602485,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 180.84,
+        "extract_latency_ms": 69.02
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.8921908847378,
+        "ssim": 0.9999239151090723,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 723,
+      "filename": "0723.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.98762986844599,
+        "ssim": 0.9999852844906424,
+        "stego_png_size_bytes": 508820,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 185.81,
+        "extract_latency_ms": 62.71
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.96298227628511,
+        "ssim": 0.9999852006994195,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 724,
+      "filename": "0724.png",
+      "original_dimensions": [
+        1356,
+        2040
+      ],
+      "crop_box": [
+        422,
+        764,
+        934,
+        1276
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.73516192527369,
+        "ssim": 0.9999759943387087,
+        "stego_png_size_bytes": 477667,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 198.73,
+        "extract_latency_ms": 70.18
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.76073176449154,
+        "ssim": 0.9999761352407747,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 725,
+      "filename": "0725.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 51.82733277301012,
+        "ssim": 0.9999599327889241,
+        "stego_png_size_bytes": 490698,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 49,
+        "payload_ber": 0.004353233830845771,
+        "overall_ber": 0.004304286718200984,
+        "rs_per_codeword_errors": [
+          12,
+          9,
+          4,
+          9,
+          10,
+          4
+        ],
+        "rs_max_codeword_error": 12,
+        "rs_correctable_margin": 12,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 187.72,
+        "extract_latency_ms": 91.38
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0030297107114933544,
+        "rs_per_codeword_errors": [
+          2,
+          5,
+          9,
+          7,
+          8
+        ],
+        "rs_max_codeword_error": 9,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 51.83355910691054,
+        "ssim": 0.9999599900976406,
+        "payload_ber": 0.004353233830845771,
+        "rs_max_codeword_error": 11,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 726,
+      "filename": "0726.png",
+      "original_dimensions": [
+        2040,
+        1152
+      ],
+      "crop_box": [
+        764,
+        320,
+        1276,
+        832
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.94114891037401,
+        "ssim": 0.9999625489021023,
+        "stego_png_size_bytes": 482545,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 185.7,
+        "extract_latency_ms": 70.41
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.92778969624614,
+        "ssim": 0.999962433483099,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 727,
+      "filename": "0727.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.858040745377316,
+        "ssim": 0.9999864367384256,
+        "stego_png_size_bytes": 350075,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 173.14,
+        "extract_latency_ms": 69.07
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.846852433015776,
+        "ssim": 0.9999864017612222,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 728,
+      "filename": "0728.png",
+      "original_dimensions": [
+        2040,
+        1368
+      ],
+      "crop_box": [
+        764,
+        428,
+        1276,
+        940
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.59836886977555,
+        "ssim": 0.9999561879869456,
+        "stego_png_size_bytes": 455633,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 196.8,
+        "extract_latency_ms": 76.05
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.56177323485924,
+        "ssim": 0.9999558172814828,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 729,
+      "filename": "0729.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.83661207745231,
+        "ssim": 0.9999511158401994,
+        "stego_png_size_bytes": 683409,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 185.57,
+        "extract_latency_ms": 72.12
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.808678861274686,
+        "ssim": 0.9999508004852807,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 730,
+      "filename": "0730.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.69047674537395,
+        "ssim": 0.9999657736079703,
+        "stego_png_size_bytes": 560705,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 52,
+        "payload_ber": 0.004619758351101635,
+        "overall_ber": 0.004567814476458187,
+        "rs_per_codeword_errors": [
+          8,
+          12,
+          10,
+          7,
+          11,
+          4
+        ],
+        "rs_max_codeword_error": 12,
+        "rs_correctable_margin": 12,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 185.4,
+        "extract_latency_ms": 88.67
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0033229085222830335,
+        "rs_per_codeword_errors": [
+          7,
+          10,
+          2,
+          6,
+          9
+        ],
+        "rs_max_codeword_error": 10,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.71270295876392,
+        "ssim": 0.9999659484953409,
+        "payload_ber": 0.0033759772565742714,
+        "rs_max_codeword_error": 11,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 731,
+      "filename": "0731.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.686604780159115,
+        "ssim": 0.999968351636792,
+        "stego_png_size_bytes": 514826,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 2,
+        "payload_ber": 0.00017768301350390902,
+        "overall_ber": 0.00017568517217146873,
+        "rs_per_codeword_errors": [
+          1,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 195.21,
+        "extract_latency_ms": 78.43
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.00019546520719311962,
+        "rs_per_codeword_errors": [
+          1,
+          0,
+          0,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.58266737112282,
+        "ssim": 0.9999675851054115,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 732,
+      "filename": "0732.png",
+      "original_dimensions": [
+        2040,
+        1536
+      ],
+      "crop_box": [
+        764,
+        512,
+        1276,
+        1024
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.072752950982455,
+        "ssim": 0.9999675825532993,
+        "stego_png_size_bytes": 590899,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 178.87,
+        "extract_latency_ms": 70.97
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.084591715301045,
+        "ssim": 0.999967670846549,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 733,
+      "filename": "0733.png",
+      "original_dimensions": [
+        2040,
+        1308
+      ],
+      "crop_box": [
+        764,
+        398,
+        1276,
+        910
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 55.06018971710934,
+        "ssim": 0.9999649197657984,
+        "stego_png_size_bytes": 379000,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.0,
+        "extract_latency_ms": 69.12
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 55.033260343403114,
+        "ssim": 0.9999647015830682,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 734,
+      "filename": "0734.png",
+      "original_dimensions": [
+        1356,
+        2040
+      ],
+      "crop_box": [
+        422,
+        764,
+        934,
+        1276
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.147243684870354,
+        "ssim": 0.9999700800757235,
+        "stego_png_size_bytes": 541359,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 4,
+        "payload_ber": 0.00035536602700781805,
+        "overall_ber": 0.00035137034434293746,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          2,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_correctable_margin": 22,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 183.03,
+        "extract_latency_ms": 80.42
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0011727912431587178,
+        "rs_per_codeword_errors": [
+          1,
+          5,
+          4,
+          1,
+          1
+        ],
+        "rs_max_codeword_error": 5,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.18959015440372,
+        "ssim": 0.9999703703692547,
+        "payload_ber": 0.0007107320540156361,
+        "rs_max_codeword_error": 3,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 735,
+      "filename": "0735.png",
+      "original_dimensions": [
+        2040,
+        1536
+      ],
+      "crop_box": [
+        764,
+        512,
+        1276,
+        1024
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.73394926383086,
+        "ssim": 0.999923636413959,
+        "stego_png_size_bytes": 376746,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 196.94,
+        "extract_latency_ms": 72.26
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.719725797903614,
+        "ssim": 0.9999233859651463,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 736,
+      "filename": "0736.png",
+      "original_dimensions": [
+        2040,
+        1452
+      ],
+      "crop_box": [
+        764,
+        470,
+        1276,
+        982
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.84807110494337,
+        "ssim": 0.9999680156359629,
+        "stego_png_size_bytes": 429160,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 183.83,
+        "extract_latency_ms": 70.02
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.83636525654809,
+        "ssim": 0.999967929271678,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 737,
+      "filename": "0737.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.109919659854825,
+        "ssim": 0.9999632448086956,
+        "stego_png_size_bytes": 446097,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 11,
+        "payload_ber": 0.0009772565742714996,
+        "overall_ber": 0.000966268446943078,
+        "rs_per_codeword_errors": [
+          2,
+          2,
+          2,
+          3,
+          1,
+          1
+        ],
+        "rs_max_codeword_error": 3,
+        "rs_correctable_margin": 21,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 193.99,
+        "extract_latency_ms": 83.68
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0011727912431587178,
+        "rs_per_codeword_errors": [
+          1,
+          4,
+          4,
+          2,
+          1
+        ],
+        "rs_max_codeword_error": 4,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.11274301564633,
+        "ssim": 0.9999632686409813,
+        "payload_ber": 0.0009772565742714996,
+        "rs_max_codeword_error": 2,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 738,
+      "filename": "0738.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.82740004717262,
+        "ssim": 0.9999711263738927,
+        "stego_png_size_bytes": 374785,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 182.72,
+        "extract_latency_ms": 69.72
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.816676466587595,
+        "ssim": 0.999971054979843,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 739,
+      "filename": "0739.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.71411480606765,
+        "ssim": 0.9999774302437683,
+        "stego_png_size_bytes": 478179,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.24,
+        "extract_latency_ms": 71.74
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.75293589654595,
+        "ssim": 0.9999776310987404,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 740,
+      "filename": "0740.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.05774571452028,
+        "ssim": 0.9999699056553577,
+        "stego_png_size_bytes": 579404,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 181.43,
+        "extract_latency_ms": 71.16
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.019756422000114,
+        "ssim": 0.9999696412563851,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 741,
+      "filename": "0741.png",
+      "original_dimensions": [
+        1320,
+        2040
+      ],
+      "crop_box": [
+        404,
+        764,
+        916,
+        1276
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.82180295282649,
+        "ssim": 0.9999649641995931,
+        "stego_png_size_bytes": 487327,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 188.35,
+        "extract_latency_ms": 59.27
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.79981982103599,
+        "ssim": 0.9999647863675977,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 742,
+      "filename": "0742.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.360228018059175,
+        "ssim": 0.999960727261728,
+        "stego_png_size_bytes": 586458,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 34,
+        "payload_ber": 0.0030206112295664534,
+        "overall_ber": 0.0029866479269149682,
+        "rs_per_codeword_errors": [
+          6,
+          8,
+          7,
+          2,
+          7,
+          3
+        ],
+        "rs_max_codeword_error": 8,
+        "rs_correctable_margin": 16,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 186.98,
+        "extract_latency_ms": 82.91
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.002638780297107115,
+        "rs_per_codeword_errors": [
+          8,
+          5,
+          6,
+          4,
+          4
+        ],
+        "rs_max_codeword_error": 8,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.37204521111953,
+        "ssim": 0.9999608343127974,
+        "payload_ber": 0.0033759772565742714,
+        "rs_max_codeword_error": 9,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 743,
+      "filename": "0743.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.83308189398614,
+        "ssim": 0.9999586245712073,
+        "stego_png_size_bytes": 487347,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 189.43,
+        "extract_latency_ms": 69.13
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.80623613402389,
+        "ssim": 0.9999583681404977,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 744,
+      "filename": "0744.png",
+      "original_dimensions": [
+        2040,
+        1584
+      ],
+      "crop_box": [
+        764,
+        536,
+        1276,
+        1048
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.82414924326396,
+        "ssim": 0.9999713253467807,
+        "stego_png_size_bytes": 420962,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 1,
+        "payload_ber": 8.884150675195451e-05,
+        "overall_ber": 8.784258608573436e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 185.1,
+        "extract_latency_ms": 72.02
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.00019546520719311962,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.79418129643051,
+        "ssim": 0.9999711267876086,
+        "payload_ber": 0.00035536602700781805,
+        "rs_max_codeword_error": 2,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 745,
+      "filename": "0745.png",
+      "original_dimensions": [
+        2040,
+        1140
+      ],
+      "crop_box": [
+        764,
+        314,
+        1276,
+        826
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.41879837691029,
+        "ssim": 0.9999497264732468,
+        "stego_png_size_bytes": 481784,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 185.49,
+        "extract_latency_ms": 70.47
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.45033685032738,
+        "ssim": 0.9999500902628853,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 746,
+      "filename": "0746.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.20192767124808,
+        "ssim": 0.9999740399319411,
+        "stego_png_size_bytes": 503700,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 182.79,
+        "extract_latency_ms": 71.8
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.29363492319896,
+        "ssim": 0.9999745823772537,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 747,
+      "filename": "0747.png",
+      "original_dimensions": [
+        2040,
+        1464
+      ],
+      "crop_box": [
+        764,
+        476,
+        1276,
+        988
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.74488895205004,
+        "ssim": 0.9999487145793331,
+        "stego_png_size_bytes": 534218,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 1,
+        "payload_ber": 8.884150675195451e-05,
+        "overall_ber": 8.784258608573436e-05,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 185.06,
+        "extract_latency_ms": 74.74
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.64243159612834,
+        "ssim": 0.9999474898525821,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 748,
+      "filename": "0748.png",
+      "original_dimensions": [
+        2040,
+        1536
+      ],
+      "crop_box": [
+        764,
+        512,
+        1276,
+        1024
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.81544083251737,
+        "ssim": 0.9999740996271632,
+        "stego_png_size_bytes": 467068,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 1,
+        "payload_ber": 8.884150675195451e-05,
+        "overall_ber": 8.784258608573436e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 193.72,
+        "extract_latency_ms": 73.76
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.81412835640546,
+        "ssim": 0.9999740918228875,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 749,
+      "filename": "0749.png",
+      "original_dimensions": [
+        2040,
+        1332
+      ],
+      "crop_box": [
+        764,
+        410,
+        1276,
+        922
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.60160216240055,
+        "ssim": 0.99994291215744,
+        "stego_png_size_bytes": 413980,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 183.83,
+        "extract_latency_ms": 73.45
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.583365036055824,
+        "ssim": 0.9999426719351404,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 750,
+      "filename": "0750.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.74750990879357,
+        "ssim": 0.9999652800894527,
+        "stego_png_size_bytes": 439086,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 188.95,
+        "extract_latency_ms": 70.72
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.698427453113936,
+        "ssim": 0.9999648855096065,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 751,
+      "filename": "0751.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.67374389850519,
+        "ssim": 0.9999251500159566,
+        "stego_png_size_bytes": 423852,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 187.75,
+        "extract_latency_ms": 69.47
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.67058116398892,
+        "ssim": 0.9999250951087043,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 752,
+      "filename": "0752.png",
+      "original_dimensions": [
+        1176,
+        2040
+      ],
+      "crop_box": [
+        332,
+        764,
+        844,
+        1276
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.486224275078605,
+        "ssim": 0.9999573281052154,
+        "stego_png_size_bytes": 443684,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 182.67,
+        "extract_latency_ms": 71.04
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.470220073291394,
+        "ssim": 0.999957170611642,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 753,
+      "filename": "0753.png",
+      "original_dimensions": [
+        2040,
+        1536
+      ],
+      "crop_box": [
+        764,
+        512,
+        1276,
+        1024
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.35462405912658,
+        "ssim": 0.9999715996819765,
+        "stego_png_size_bytes": 481669,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 181.19,
+        "extract_latency_ms": 73.4
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.37078794969804,
+        "ssim": 0.999971705174148,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 754,
+      "filename": "0754.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.125875408294206,
+        "ssim": 0.9999668979875682,
+        "stego_png_size_bytes": 455001,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 2,
+        "payload_ber": 0.00017768301350390902,
+        "overall_ber": 0.00017568517217146873,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          1,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 191.98,
+        "extract_latency_ms": 77.5
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.04379988036912,
+        "ssim": 0.9999662664779131,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 755,
+      "filename": "0755.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.33983483187226,
+        "ssim": 0.9999683809618523,
+        "stego_png_size_bytes": 441875,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 185.37,
+        "extract_latency_ms": 70.62
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.29521891606288,
+        "ssim": 0.9999680544773316,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 756,
+      "filename": "0756.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.164721716572075,
+        "ssim": 0.9999595706362542,
+        "stego_png_size_bytes": 502312,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 2,
+        "payload_ber": 0.00017768301350390902,
+        "overall_ber": 0.00017568517217146873,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 193.26,
+        "extract_latency_ms": 78.52
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0005863956215793589,
+        "rs_per_codeword_errors": [
+          1,
+          1,
+          1,
+          2,
+          1
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.126645783984806,
+        "ssim": 0.9999592144600205,
+        "payload_ber": 0.00017768301350390902,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 757,
+      "filename": "0757.png",
+      "original_dimensions": [
+        1428,
+        2040
+      ],
+      "crop_box": [
+        458,
+        764,
+        970,
+        1276
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.610407107789534,
+        "ssim": 0.9999422686057106,
+        "stego_png_size_bytes": 521809,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 186.29,
+        "extract_latency_ms": 72.32
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.58929484856078,
+        "ssim": 0.9999419873222678,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 758,
+      "filename": "0758.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.615013182292365,
+        "ssim": 0.9999594569715492,
+        "stego_png_size_bytes": 560729,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 4,
+        "payload_ber": 0.00035536602700781805,
+        "overall_ber": 0.00035137034434293746,
+        "rs_per_codeword_errors": [
+          1,
+          0,
+          1,
+          0,
+          2,
+          0
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_correctable_margin": 22,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 185.04,
+        "extract_latency_ms": 80.23
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.00019546520719311962,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.57523257707622,
+        "ssim": 0.9999590840412779,
+        "payload_ber": 0.00017768301350390902,
+        "rs_max_codeword_error": 2,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 759,
+      "filename": "0759.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.20597690486605,
+        "ssim": 0.9999580303346692,
+        "stego_png_size_bytes": 568227,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 4,
+        "payload_ber": 0.00035536602700781805,
+        "overall_ber": 0.00035137034434293746,
+        "rs_per_codeword_errors": [
+          0,
+          3,
+          1,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 3,
+        "rs_correctable_margin": 21,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 191.06,
+        "extract_latency_ms": 79.28
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.141165237521406,
+        "ssim": 0.999957399254159,
+        "payload_ber": 0.0005330490405117271,
+        "rs_max_codeword_error": 4,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 760,
+      "filename": "0760.png",
+      "original_dimensions": [
+        1356,
+        2040
+      ],
+      "crop_box": [
+        422,
+        764,
+        934,
+        1276
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.58019098337953,
+        "ssim": 0.9999630729426248,
+        "stego_png_size_bytes": 515377,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 189.11,
+        "extract_latency_ms": 70.3
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.609940648482976,
+        "ssim": 0.9999633251189098,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 761,
+      "filename": "0761.png",
+      "original_dimensions": [
+        2040,
+        1440
+      ],
+      "crop_box": [
+        764,
+        464,
+        1276,
+        976
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 51.60459016917372,
+        "ssim": 0.9999034492338787,
+        "stego_png_size_bytes": 569145,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 1,
+        "payload_ber": 8.884150675195451e-05,
+        "overall_ber": 8.784258608573436e-05,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 183.9,
+        "extract_latency_ms": 75.72
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 51.60835210428587,
+        "ssim": 0.999903532506271,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 762,
+      "filename": "0762.png",
+      "original_dimensions": [
+        2040,
+        1296
+      ],
+      "crop_box": [
+        764,
+        392,
+        1276,
+        904
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 55.007653617360475,
+        "ssim": 0.9999871399752098,
+        "stego_png_size_bytes": 382261,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.14,
+        "extract_latency_ms": 72.52
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 55.05480134611909,
+        "ssim": 0.9999872788393297,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 763,
+      "filename": "0763.png",
+      "original_dimensions": [
+        2040,
+        1536
+      ],
+      "crop_box": [
+        764,
+        512,
+        1276,
+        1024
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.485794821492604,
+        "ssim": 0.9999764026300191,
+        "stego_png_size_bytes": 432829,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 191.9,
+        "extract_latency_ms": 72.75
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.48021578590528,
+        "ssim": 0.9999763723014342,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 764,
+      "filename": "0764.png",
+      "original_dimensions": [
+        2040,
+        1344
+      ],
+      "crop_box": [
+        764,
+        416,
+        1276,
+        928
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 55.56068004132244,
+        "ssim": 0.9999840837757928,
+        "stego_png_size_bytes": 323931,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 1,
+        "payload_ber": 8.884150675195451e-05,
+        "overall_ber": 8.784258608573436e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 188.45,
+        "extract_latency_ms": 71.47
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.00019546520719311962,
+        "rs_per_codeword_errors": [
+          1,
+          0,
+          1,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 55.61219794001637,
+        "ssim": 0.9999842716548909,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 765,
+      "filename": "0765.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.54664987454051,
+        "ssim": 0.9999761050365192,
+        "stego_png_size_bytes": 448110,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 182.09,
+        "extract_latency_ms": 63.58
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.49310131421096,
+        "ssim": 0.9999758085638616,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 766,
+      "filename": "0766.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 51.3614290667763,
+        "ssim": 0.9999535325662673,
+        "stego_png_size_bytes": 682206,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 195.67,
+        "extract_latency_ms": 70.98
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 51.37553472615454,
+        "ssim": 0.999953683340291,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 767,
+      "filename": "0767.png",
+      "original_dimensions": [
+        2040,
+        1572
+      ],
+      "crop_box": [
+        764,
+        530,
+        1276,
+        1042
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.82110704449279,
+        "ssim": 0.9999047834835283,
+        "stego_png_size_bytes": 452323,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 183.63,
+        "extract_latency_ms": 70.6
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.82770977448985,
+        "ssim": 0.9999049283543423,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 768,
+      "filename": "0768.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.91173374683108,
+        "ssim": 0.9999488343380304,
+        "stego_png_size_bytes": 374796,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 173.64,
+        "extract_latency_ms": 71.08
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.90773559011478,
+        "ssim": 0.9999487872016591,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 769,
+      "filename": "0769.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.42989686608351,
+        "ssim": 0.9999623921418511,
+        "stego_png_size_bytes": 549164,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 182.45,
+        "extract_latency_ms": 71.28
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.38456109737394,
+        "ssim": 0.9999619974200107,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 770,
+      "filename": "0770.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 50.48962204559849,
+        "ssim": 0.9999292614117666,
+        "stego_png_size_bytes": 608942,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 44,
+        "payload_ber": 0.0039090262970859985,
+        "overall_ber": 0.003865073787772312,
+        "rs_per_codeword_errors": [
+          8,
+          12,
+          9,
+          4,
+          6,
+          4
+        ],
+        "rs_max_codeword_error": 12,
+        "rs_correctable_margin": 12,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 195.52,
+        "extract_latency_ms": 87.7
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.004593432369038311,
+        "rs_per_codeword_errors": [
+          7,
+          6,
+          10,
+          13,
+          8
+        ],
+        "rs_max_codeword_error": 13,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 50.537520566864515,
+        "ssim": 0.9999300376146504,
+        "payload_ber": 0.0031982942430703624,
+        "rs_max_codeword_error": 10,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 771,
+      "filename": "0771.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 52.76935661519296,
+        "ssim": 0.9999418937468962,
+        "stego_png_size_bytes": 488638,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 1,
+        "payload_ber": 8.884150675195451e-05,
+        "overall_ber": 8.784258608573436e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 186.25,
+        "extract_latency_ms": 78.39
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 52.79688889587652,
+        "ssim": 0.9999422610144387,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 772,
+      "filename": "0772.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 52.63450325843753,
+        "ssim": 0.9999617046210446,
+        "stego_png_size_bytes": 673144,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 31,
+        "payload_ber": 0.00275408670931059,
+        "overall_ber": 0.002723120168657765,
+        "rs_per_codeword_errors": [
+          8,
+          6,
+          7,
+          6,
+          3,
+          1
+        ],
+        "rs_max_codeword_error": 8,
+        "rs_correctable_margin": 16,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 197.53,
+        "extract_latency_ms": 86.48
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0023455824863174357,
+        "rs_per_codeword_errors": [
+          5,
+          6,
+          0,
+          7,
+          5
+        ],
+        "rs_max_codeword_error": 7,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 52.699239854755476,
+        "ssim": 0.9999622711037063,
+        "payload_ber": 0.00275408670931059,
+        "rs_max_codeword_error": 9,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 773,
+      "filename": "0773.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.5724688913607,
+        "ssim": 0.9999796664785259,
+        "stego_png_size_bytes": 466346,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 188.95,
+        "extract_latency_ms": 60.47
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.58709645803423,
+        "ssim": 0.9999797348488214,
+        "payload_ber": 8.884150675195451e-05,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 774,
+      "filename": "0774.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.08146053649271,
+        "ssim": 0.9999786815189465,
+        "stego_png_size_bytes": 493207,
+        "header_bit_errors": 3,
+        "header_ber": 0.0234375,
+        "header_intact": false,
+        "header_error_msg": null,
+        "payload_bit_errors": 113,
+        "payload_ber": 0.01003909026297086,
+        "overall_ber": 0.010189739985945186,
+        "rs_per_codeword_errors": [
+          26,
+          21,
+          23,
+          13,
+          17,
+          8
+        ],
+        "rs_max_codeword_error": 26,
+        "rs_correctable_margin": -2,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": false,
+        "receiver_exact_byte_match": false,
+        "receiver_aes_authenticated": false,
+        "receiver_error": "MaskGenerationError: Requested payload bits (41954280) exceeds available positions (65408)",
+        "embed_latency_ms": 187.51,
+        "extract_latency_ms": 41.04
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.010066458170445661,
+        "rs_per_codeword_errors": [
+          20,
+          19,
+          21,
+          19,
+          20
+        ],
+        "rs_max_codeword_error": 21,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": true,
+        "payload_rs_decode_success": false,
+        "receiver_exact_byte_match": false
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.079700239980454,
+        "ssim": 0.9999786728144466,
+        "payload_ber": 0.010305614783226724,
+        "rs_max_codeword_error": 29,
+        "payload_rs_decode_success": false,
+        "receiver_exact_byte_match": false
+      }
+    },
+    {
+      "image_id": 775,
+      "filename": "0775.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 52.80882316227168,
+        "ssim": 0.9999459681418065,
+        "stego_png_size_bytes": 545923,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 11,
+        "payload_ber": 0.0009772565742714996,
+        "overall_ber": 0.000966268446943078,
+        "rs_per_codeword_errors": [
+          1,
+          1,
+          4,
+          2,
+          3,
+          0
+        ],
+        "rs_max_codeword_error": 4,
+        "rs_correctable_margin": 20,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 188.43,
+        "extract_latency_ms": 84.43
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0007818608287724785,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          1,
+          3,
+          3
+        ],
+        "rs_max_codeword_error": 3,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 52.86184525419874,
+        "ssim": 0.9999466237767004,
+        "payload_ber": 0.0007995735607675906,
+        "rs_max_codeword_error": 3,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 776,
+      "filename": "0776.png",
+      "original_dimensions": [
+        2040,
+        1536
+      ],
+      "crop_box": [
+        764,
+        512,
+        1276,
+        1024
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.23434075968526,
+        "ssim": 0.9999541238100378,
+        "stego_png_size_bytes": 588475,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 199.68,
+        "extract_latency_ms": 73.31
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.24125844916822,
+        "ssim": 0.9999541964827163,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 777,
+      "filename": "0777.png",
+      "original_dimensions": [
+        2040,
+        1536
+      ],
+      "crop_box": [
+        764,
+        512,
+        1276,
+        1024
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.233350201485536,
+        "ssim": 0.9999744446491726,
+        "stego_png_size_bytes": 457192,
+        "header_bit_errors": 1,
+        "header_ber": 0.0078125,
+        "header_intact": false,
+        "header_error_msg": null,
+        "payload_bit_errors": 62,
+        "payload_ber": 0.00550817341862118,
+        "overall_ber": 0.005534082923401265,
+        "rs_per_codeword_errors": [
+          14,
+          6,
+          13,
+          13,
+          8,
+          5
+        ],
+        "rs_max_codeword_error": 14,
+        "rs_correctable_margin": 10,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false,
+        "receiver_aes_authenticated": false,
+        "receiver_error": "ECCDecodeError: Reed-Solomon decoding failed in block 1/6: uncorrectable symbol errors exceed capacity",
+        "embed_latency_ms": 190.96,
+        "extract_latency_ms": 60.5
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0050820953870211105,
+        "rs_per_codeword_errors": [
+          12,
+          10,
+          11,
+          10,
+          9
+        ],
+        "rs_max_codeword_error": 12,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.262893696768025,
+        "ssim": 0.999974617948045,
+        "payload_ber": 0.003820184790334044,
+        "rs_max_codeword_error": 11,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false
+      }
+    },
+    {
+      "image_id": 778,
+      "filename": "0778.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.386335973631304,
+        "ssim": 0.9999742078434651,
+        "stego_png_size_bytes": 532989,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 196.57,
+        "extract_latency_ms": 72.83
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.37576284634984,
+        "ssim": 0.9999741449367275,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 779,
+      "filename": "0779.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.437066215574674,
+        "ssim": 0.9999500145315041,
+        "stego_png_size_bytes": 569152,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 209.03,
+        "extract_latency_ms": 76.99
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.44873591576488,
+        "ssim": 0.9999501489338687,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 780,
+      "filename": "0780.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.40678659716551,
+        "ssim": 0.9999665256526451,
+        "stego_png_size_bytes": 439168,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 203.63,
+        "extract_latency_ms": 72.55
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.429335198528776,
+        "ssim": 0.9999666989799159,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 781,
+      "filename": "0781.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.55120073095783,
+        "ssim": 0.9999707668857408,
+        "stego_png_size_bytes": 497192,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.27,
+        "extract_latency_ms": 71.2
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.52538709204064,
+        "ssim": 0.9999705926371775,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 782,
+      "filename": "0782.png",
+      "original_dimensions": [
+        1632,
+        2040
+      ],
+      "crop_box": [
+        560,
+        764,
+        1072,
+        1276
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.8553895595092,
+        "ssim": 0.9999487248583115,
+        "stego_png_size_bytes": 468747,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.07,
+        "extract_latency_ms": 71.49
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.8714310707389,
+        "ssim": 0.9999489139609641,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 783,
+      "filename": "0783.png",
+      "original_dimensions": [
+        2040,
+        1368
+      ],
+      "crop_box": [
+        764,
+        428,
+        1276,
+        940
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.577461104404634,
+        "ssim": 0.9999455669504677,
+        "stego_png_size_bytes": 416546,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 1,
+        "payload_ber": 8.884150675195451e-05,
+        "overall_ber": 8.784258608573436e-05,
+        "rs_per_codeword_errors": [
+          0,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 189.73,
+        "extract_latency_ms": 73.58
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.5675796527197,
+        "ssim": 0.9999454427625204,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 784,
+      "filename": "0784.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 52.5410701841913,
+        "ssim": 0.9999580382756597,
+        "stego_png_size_bytes": 506834,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 59,
+        "payload_ber": 0.005241648898365316,
+        "overall_ber": 0.005182712579058327,
+        "rs_per_codeword_errors": [
+          10,
+          15,
+          6,
+          10,
+          12,
+          6
+        ],
+        "rs_max_codeword_error": 15,
+        "rs_correctable_margin": 9,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 172.43,
+        "extract_latency_ms": 88.82
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.00527756059421423,
+        "rs_per_codeword_errors": [
+          11,
+          12,
+          12,
+          6,
+          12
+        ],
+        "rs_max_codeword_error": 12,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 52.4644538614954,
+        "ssim": 0.9999572913155297,
+        "payload_ber": 0.004708599857853589,
+        "rs_max_codeword_error": 13,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 785,
+      "filename": "0785.png",
+      "original_dimensions": [
+        2040,
+        1224
+      ],
+      "crop_box": [
+        764,
+        356,
+        1276,
+        868
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 52.65042127415005,
+        "ssim": 0.999927023222108,
+        "stego_png_size_bytes": 606006,
+        "header_bit_errors": 1,
+        "header_ber": 0.0078125,
+        "header_intact": false,
+        "header_error_msg": null,
+        "payload_bit_errors": 90,
+        "payload_ber": 0.007995735607675906,
+        "overall_ber": 0.007993675333801827,
+        "rs_per_codeword_errors": [
+          12,
+          15,
+          11,
+          13,
+          16,
+          18
+        ],
+        "rs_max_codeword_error": 18,
+        "rs_correctable_margin": 6,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false,
+        "receiver_aes_authenticated": false,
+        "receiver_error": "ECCDecodeError: Reed-Solomon decoding failed in block 1/6: uncorrectable symbol errors exceed capacity",
+        "embed_latency_ms": 181.11,
+        "extract_latency_ms": 61.83
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0065480844409695075,
+        "rs_per_codeword_errors": [
+          14,
+          11,
+          15,
+          14,
+          12
+        ],
+        "rs_max_codeword_error": 15,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 52.75128493825821,
+        "ssim": 0.9999286989064248,
+        "payload_ber": 0.007640369580668088,
+        "rs_max_codeword_error": 17,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false
+      }
+    },
+    {
+      "image_id": 786,
+      "filename": "0786.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.16211652749374,
+        "ssim": 0.9999697785158841,
+        "stego_png_size_bytes": 619080,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 4,
+        "payload_ber": 0.00035536602700781805,
+        "overall_ber": 0.00035137034434293746,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          0,
+          2,
+          1
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_correctable_margin": 22,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.8,
+        "extract_latency_ms": 77.69
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0005863956215793589,
+        "rs_per_codeword_errors": [
+          0,
+          2,
+          1,
+          1,
+          2
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.153190221978875,
+        "ssim": 0.9999697163291409,
+        "payload_ber": 0.0005330490405117271,
+        "rs_max_codeword_error": 3,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 787,
+      "filename": "0787.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.81284200005659,
+        "ssim": 0.9999758900978073,
+        "stego_png_size_bytes": 509027,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 2,
+        "payload_ber": 0.00017768301350390902,
+        "overall_ber": 0.00017568517217146873,
+        "rs_per_codeword_errors": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 181.34,
+        "extract_latency_ms": 77.45
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.00039093041438623924,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          3,
+          0
+        ],
+        "rs_max_codeword_error": 3,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.77376455419964,
+        "ssim": 0.9999756721830974,
+        "payload_ber": 0.00017768301350390902,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 788,
+      "filename": "0788.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 51.39752927858844,
+        "ssim": 0.999894161870219,
+        "stego_png_size_bytes": 606571,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 2,
+        "payload_ber": 0.00017768301350390902,
+        "overall_ber": 0.00017568517217146873,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          1,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 191.27,
+        "extract_latency_ms": 75.13
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.00029319781078967946,
+        "rs_per_codeword_errors": [
+          2,
+          0,
+          0,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 51.37660732593222,
+        "ssim": 0.9998936504794333,
+        "payload_ber": 0.00026652452025586353,
+        "rs_max_codeword_error": 2,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 789,
+      "filename": "0789.png",
+      "original_dimensions": [
+        2040,
+        1260
+      ],
+      "crop_box": [
+        764,
+        374,
+        1276,
+        886
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 51.958437812185885,
+        "ssim": 0.9999521459757794,
+        "stego_png_size_bytes": 514472,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 169.81,
+        "extract_latency_ms": 71.29
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 51.97723618385613,
+        "ssim": 0.9999523526414312,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 790,
+      "filename": "0790.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.78415257800191,
+        "ssim": 0.9999684626358654,
+        "stego_png_size_bytes": 383661,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.01,
+        "extract_latency_ms": 71.59
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.79564148440158,
+        "ssim": 0.9999685459704609,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 791,
+      "filename": "0791.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.57259058440394,
+        "ssim": 0.9999508070351797,
+        "stego_png_size_bytes": 339941,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.88,
+        "extract_latency_ms": 70.86
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.59210552352425,
+        "ssim": 0.9999510276418514,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 792,
+      "filename": "0792.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.80137708458899,
+        "ssim": 0.9999681383404969,
+        "stego_png_size_bytes": 458854,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 5,
+        "payload_ber": 0.00044420753375977256,
+        "overall_ber": 0.0004392129304286718,
+        "rs_per_codeword_errors": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          2
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_correctable_margin": 22,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 187.9,
+        "extract_latency_ms": 79.91
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.87816713158314,
+        "ssim": 0.999968696769343,
+        "payload_ber": 0.00026652452025586353,
+        "rs_max_codeword_error": 1,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 793,
+      "filename": "0793.png",
+      "original_dimensions": [
+        2040,
+        1488
+      ],
+      "crop_box": [
+        764,
+        488,
+        1276,
+        1000
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.6149269917176,
+        "ssim": 0.9999599360145559,
+        "stego_png_size_bytes": 478545,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 181.89,
+        "extract_latency_ms": 71.93
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.58924598334612,
+        "ssim": 0.9999596983784009,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 794,
+      "filename": "0794.png",
+      "original_dimensions": [
+        2040,
+        1272
+      ],
+      "crop_box": [
+        764,
+        380,
+        1276,
+        892
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.43783640411506,
+        "ssim": 0.9999701533458257,
+        "stego_png_size_bytes": 489275,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 15,
+        "payload_ber": 0.0013326226012793177,
+        "overall_ber": 0.0013176387912860155,
+        "rs_per_codeword_errors": [
+          2,
+          4,
+          1,
+          3,
+          2,
+          2
+        ],
+        "rs_max_codeword_error": 4,
+        "rs_correctable_margin": 20,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 192.91,
+        "extract_latency_ms": 76.45
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.000977326035965598,
+        "rs_per_codeword_errors": [
+          0,
+          2,
+          1,
+          3,
+          4
+        ],
+        "rs_max_codeword_error": 4,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.53803734981643,
+        "ssim": 0.999970834213998,
+        "payload_ber": 0.0007995735607675906,
+        "rs_max_codeword_error": 2,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 795,
+      "filename": "0795.png",
+      "original_dimensions": [
+        2040,
+        1152
+      ],
+      "crop_box": [
+        764,
+        320,
+        1276,
+        832
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 52.394911051899726,
+        "ssim": 0.9999730608203027,
+        "stego_png_size_bytes": 429174,
+        "header_bit_errors": 3,
+        "header_ber": 0.0234375,
+        "header_intact": false,
+        "header_error_msg": null,
+        "payload_bit_errors": 2,
+        "payload_ber": 0.00017768301350390902,
+        "overall_ber": 0.0004392129304286718,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false,
+        "receiver_aes_authenticated": false,
+        "receiver_error": "ECCDecodeError: Reed-Solomon decoding failed in block 1/6: uncorrectable symbol errors exceed capacity",
+        "embed_latency_ms": 182.24,
+        "extract_latency_ms": 56.65
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 52.48168409944274,
+        "ssim": 0.9999735937160947,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": false
+      }
+    },
+    {
+      "image_id": 796,
+      "filename": "0796.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.70512215854532,
+        "ssim": 0.9999464688892483,
+        "stego_png_size_bytes": 435437,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 2,
+        "payload_ber": 0.00017768301350390902,
+        "overall_ber": 0.00017568517217146873,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 1,
+        "rs_correctable_margin": 23,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 184.17,
+        "extract_latency_ms": 76.86
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 9.773260359655981e-05,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.7446221945018,
+        "ssim": 0.999946953582443,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 797,
+      "filename": "0797.png",
+      "original_dimensions": [
+        2040,
+        1416
+      ],
+      "crop_box": [
+        764,
+        452,
+        1276,
+        964
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 51.334763119251065,
+        "ssim": 0.9999491406875604,
+        "stego_png_size_bytes": 615343,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 44,
+        "payload_ber": 0.0039090262970859985,
+        "overall_ber": 0.003865073787772312,
+        "rs_per_codeword_errors": [
+          7,
+          3,
+          10,
+          8,
+          8,
+          7
+        ],
+        "rs_max_codeword_error": 10,
+        "rs_correctable_margin": 14,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 182.96,
+        "extract_latency_ms": 89.64
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.003616106333072713,
+        "rs_per_codeword_errors": [
+          5,
+          8,
+          7,
+          4,
+          13
+        ],
+        "rs_max_codeword_error": 13,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 51.351888363799745,
+        "ssim": 0.9999493408013989,
+        "payload_ber": 0.004086709310589908,
+        "rs_max_codeword_error": 11,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 798,
+      "filename": "0798.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 53.818263210548494,
+        "ssim": 0.9999587653839777,
+        "stego_png_size_bytes": 512177,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 7,
+        "payload_ber": 0.0006218905472636816,
+        "overall_ber": 0.0006148981026001405,
+        "rs_per_codeword_errors": [
+          2,
+          2,
+          1,
+          1,
+          0,
+          1
+        ],
+        "rs_max_codeword_error": 2,
+        "rs_correctable_margin": 22,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 183.76,
+        "extract_latency_ms": 84.56
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.000488663017982799,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          4,
+          1
+        ],
+        "rs_max_codeword_error": 4,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 53.82631076568405,
+        "ssim": 0.99995884168326,
+        "payload_ber": 0.0006218905472636816,
+        "rs_max_codeword_error": 3,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 799,
+      "filename": "0799.png",
+      "original_dimensions": [
+        2040,
+        1356
+      ],
+      "crop_box": [
+        764,
+        422,
+        1276,
+        934
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.873116497272754,
+        "ssim": 0.9999595866267728,
+        "stego_png_size_bytes": 330459,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 195.4,
+        "extract_latency_ms": 70.84
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.87009194443199,
+        "ssim": 0.9999595584747897,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    },
+    {
+      "image_id": 800,
+      "filename": "0800.png",
+      "original_dimensions": [
+        2040,
+        1332
+      ],
+      "crop_box": [
+        764,
+        410,
+        1276,
+        922
+      ],
+      "onnx_qualified_rs48": {
+        "psnr_db": 54.54261135405038,
+        "ssim": 0.9999782403042189,
+        "stego_png_size_bytes": 297017,
+        "header_bit_errors": 0,
+        "header_ber": 0.0,
+        "header_intact": true,
+        "header_error_msg": null,
+        "payload_bit_errors": 0,
+        "payload_ber": 0.0,
+        "overall_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_correctable_margin": 24,
+        "rs_max_allowed": 24,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true,
+        "receiver_aes_authenticated": true,
+        "receiver_error": null,
+        "embed_latency_ms": 182.05,
+        "extract_latency_ms": 70.78
+      },
+      "onnx_baseline_rs32": {
+        "payload_ber": 0.0,
+        "rs_per_codeword_errors": [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "rs_max_codeword_error": 0,
+        "rs_max_allowed": 16,
+        "rs_exceeded_t16": false,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      },
+      "pytorch_reference_rs48": {
+        "psnr_db": 54.54785974328553,
+        "ssim": 0.9999782665731166,
+        "payload_ber": 0.0,
+        "rs_max_codeword_error": 0,
+        "payload_rs_decode_success": true,
+        "receiver_exact_byte_match": true
+      }
+    }
+  ]
+}

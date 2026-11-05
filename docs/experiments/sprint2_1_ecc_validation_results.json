@@ -1,0 +1,1254 @@
+{
+  "metadata": {
+    "experiment": "Phase 3 Sprint 2.1 Spatial Bridge and ECC Gate Validation",
+    "date": "2026-10-18",
+    "ecc_configuration": {
+      "scheme": "Reed-Solomon GF(2^8)",
+      "n": 255,
+      "k": 223,
+      "parity_symbols": 32,
+      "max_correctable_symbols_t": 16
+    },
+    "crypto_configuration": {
+      "cipher": "AES-256-GCM",
+      "nonce_bytes": 12,
+      "tag_bytes": 16
+    }
+  },
+  "task2_controlled_ecc": [
+    {
+      "error_symbols_injected": 0,
+      "max_correctable_t": 16,
+      "within_limit": true,
+      "status": "SUCCESS",
+      "corrected_symbols": 0,
+      "exact_match": true,
+      "error_msg": "",
+      "test_passed": true
+    },
+    {
+      "error_symbols_injected": 1,
+      "max_correctable_t": 16,
+      "within_limit": true,
+      "status": "SUCCESS",
+      "corrected_symbols": 1,
+      "exact_match": true,
+      "error_msg": "",
+      "test_passed": true
+    },
+    {
+      "error_symbols_injected": 4,
+      "max_correctable_t": 16,
+      "within_limit": true,
+      "status": "SUCCESS",
+      "corrected_symbols": 4,
+      "exact_match": true,
+      "error_msg": "",
+      "test_passed": true
+    },
+    {
+      "error_symbols_injected": 8,
+      "max_correctable_t": 16,
+      "within_limit": true,
+      "status": "SUCCESS",
+      "corrected_symbols": 8,
+      "exact_match": true,
+      "error_msg": "",
+      "test_passed": true
+    },
+    {
+      "error_symbols_injected": 12,
+      "max_correctable_t": 16,
+      "within_limit": true,
+      "status": "SUCCESS",
+      "corrected_symbols": 12,
+      "exact_match": true,
+      "error_msg": "",
+      "test_passed": true
+    },
+    {
+      "error_symbols_injected": 15,
+      "max_correctable_t": 16,
+      "within_limit": true,
+      "status": "SUCCESS",
+      "corrected_symbols": 15,
+      "exact_match": true,
+      "error_msg": "",
+      "test_passed": true
+    },
+    {
+      "error_symbols_injected": 16,
+      "max_correctable_t": 16,
+      "within_limit": true,
+      "status": "SUCCESS",
+      "corrected_symbols": 16,
+      "exact_match": true,
+      "error_msg": "",
+      "test_passed": true
+    },
+    {
+      "error_symbols_injected": 17,
+      "max_correctable_t": 16,
+      "within_limit": false,
+      "status": "FAILED_FAIL_CLOSED",
+      "corrected_symbols": 0,
+      "exact_match": false,
+      "error_msg": "Reed-Solomon decoding failed in final block 1/1: uncorrectable symbol errors exceed capacity",
+      "test_passed": true
+    },
+    {
+      "error_symbols_injected": 18,
+      "max_correctable_t": 16,
+      "within_limit": false,
+      "status": "FAILED_FAIL_CLOSED",
+      "corrected_symbols": 0,
+      "exact_match": false,
+      "error_msg": "Reed-Solomon decoding failed in final block 1/1: uncorrectable symbol errors exceed capacity",
+      "test_passed": true
+    },
+    {
+      "error_symbols_injected": 20,
+      "max_correctable_t": 16,
+      "within_limit": false,
+      "status": "FAILED_FAIL_CLOSED",
+      "corrected_symbols": 0,
+      "exact_match": false,
+      "error_msg": "Reed-Solomon decoding failed in final block 1/1: uncorrectable symbol errors exceed capacity",
+      "test_passed": true
+    },
+    {
+      "test_name": "framing_prefix_tamper",
+      "status": "REJECTED_FAIL_CLOSED",
+      "test_passed": true
+    }
+  ],
+  "task3_real_payload_roundtrip": [
+    {
+      "carrier": "0001.png",
+      "payload_plaintext_bytes": 500,
+      "protected_bytes": 699,
+      "payload_bits": 5592,
+      "mask_occupancy": 0.0853271484375,
+      "pre_ecc_bit_errors": 0,
+      "pre_ecc_ber": 0.0,
+      "codeword_errors": [
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 0,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 0,
+      "rs_blocks_count": 3,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 55.303056381378504,
+      "ssim": 0.9999628823049995,
+      "mae": 0.057337443033854164,
+      "num_clipped_total": 0
+    },
+    {
+      "carrier": "0001.png",
+      "payload_plaintext_bytes": 1500,
+      "protected_bytes": 1860,
+      "payload_bits": 14880,
+      "mask_occupancy": 0.22705078125,
+      "pre_ecc_bit_errors": 0,
+      "pre_ecc_ber": 0.0,
+      "codeword_errors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 0,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 0,
+      "rs_blocks_count": 8,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 50.914643432722244,
+      "ssim": 0.9998980412995923,
+      "mae": 0.15552775065104166,
+      "num_clipped_total": 0
+    },
+    {
+      "carrier": "0001.png",
+      "payload_plaintext_bytes": 3500,
+      "protected_bytes": 4148,
+      "payload_bits": 33184,
+      "mask_occupancy": 0.50634765625,
+      "pre_ecc_bit_errors": 0,
+      "pre_ecc_ber": 0.0,
+      "codeword_errors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 0,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 0,
+      "rs_blocks_count": 17,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 47.22417760488469,
+      "ssim": 0.9997615066098047,
+      "mae": 0.3561503092447917,
+      "num_clipped_total": 0
+    },
+    {
+      "carrier": "0001.png",
+      "payload_plaintext_bytes": 6000,
+      "protected_bytes": 7000,
+      "payload_bits": 56000,
+      "mask_occupancy": 0.8544921875,
+      "pre_ecc_bit_errors": 0,
+      "pre_ecc_ber": 0.0,
+      "codeword_errors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 0,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 0,
+      "rs_blocks_count": 28,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 44.91112326378317,
+      "ssim": 0.9995937557390977,
+      "mae": 0.605499267578125,
+      "num_clipped_total": 0
+    },
+    {
+      "carrier": "0002.png",
+      "payload_plaintext_bytes": 500,
+      "protected_bytes": 699,
+      "payload_bits": 5592,
+      "mask_occupancy": 0.0853271484375,
+      "pre_ecc_bit_errors": 0,
+      "pre_ecc_ber": 0.0,
+      "codeword_errors": [
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 0,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 0,
+      "rs_blocks_count": 3,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 46.76155007530631,
+      "ssim": 0.9996584512797707,
+      "mae": 0.14432779947916666,
+      "num_clipped_total": 0
+    },
+    {
+      "carrier": "0002.png",
+      "payload_plaintext_bytes": 1500,
+      "protected_bytes": 1860,
+      "payload_bits": 14880,
+      "mask_occupancy": 0.22705078125,
+      "pre_ecc_bit_errors": 0,
+      "pre_ecc_ber": 0.0,
+      "codeword_errors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 0,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 0,
+      "rs_blocks_count": 8,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 40.892396820724315,
+      "ssim": 0.9986801479526926,
+      "mae": 0.46903355916341144,
+      "num_clipped_total": 3
+    },
+    {
+      "carrier": "0002.png",
+      "payload_plaintext_bytes": 3500,
+      "protected_bytes": 4148,
+      "payload_bits": 33184,
+      "mask_occupancy": 0.50634765625,
+      "pre_ecc_bit_errors": 7,
+      "pre_ecc_ber": 0.0002109450337512054,
+      "codeword_errors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        2,
+        2,
+        0
+      ],
+      "worst_codeword_errors": 2,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 6,
+      "rs_blocks_count": 17,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 38.1572020448816,
+      "ssim": 0.9975212967114799,
+      "mae": 0.9197820027669271,
+      "num_clipped_total": 34
+    },
+    {
+      "carrier": "0002.png",
+      "payload_plaintext_bytes": 6000,
+      "protected_bytes": 7000,
+      "payload_bits": 56000,
+      "mask_occupancy": 0.8544921875,
+      "pre_ecc_bit_errors": 19,
+      "pre_ecc_ber": 0.0003392857142857143,
+      "codeword_errors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        4,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        1,
+        0,
+        0,
+        0,
+        4,
+        1
+      ],
+      "worst_codeword_errors": 4,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 19,
+      "rs_blocks_count": 28,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 36.38774716231106,
+      "ssim": 0.9962728742462862,
+      "mae": 1.4559122721354167,
+      "num_clipped_total": 82
+    },
+    {
+      "carrier": "0004.png",
+      "payload_plaintext_bytes": 500,
+      "protected_bytes": 699,
+      "payload_bits": 5592,
+      "mask_occupancy": 0.0853271484375,
+      "pre_ecc_bit_errors": 0,
+      "pre_ecc_ber": 0.0,
+      "codeword_errors": [
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 0,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 0,
+      "rs_blocks_count": 3,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 63.90928829388413,
+      "ssim": 0.999994057065816,
+      "mae": 0.024805704752604168,
+      "num_clipped_total": 0
+    },
+    {
+      "carrier": "0004.png",
+      "payload_plaintext_bytes": 1500,
+      "protected_bytes": 1860,
+      "payload_bits": 14880,
+      "mask_occupancy": 0.22705078125,
+      "pre_ecc_bit_errors": 0,
+      "pre_ecc_ber": 0.0,
+      "codeword_errors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 0,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 0,
+      "rs_blocks_count": 8,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 58.873852482679325,
+      "ssim": 0.9999810529458738,
+      "mae": 0.06637064615885417,
+      "num_clipped_total": 0
+    },
+    {
+      "carrier": "0004.png",
+      "payload_plaintext_bytes": 3500,
+      "protected_bytes": 4148,
+      "payload_bits": 33184,
+      "mask_occupancy": 0.50634765625,
+      "pre_ecc_bit_errors": 0,
+      "pre_ecc_ber": 0.0,
+      "codeword_errors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 0,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 0,
+      "rs_blocks_count": 17,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 49.93269694562463,
+      "ssim": 0.9998515185294871,
+      "mae": 0.18381245930989584,
+      "num_clipped_total": 0
+    },
+    {
+      "carrier": "0004.png",
+      "payload_plaintext_bytes": 6000,
+      "protected_bytes": 7000,
+      "payload_bits": 56000,
+      "mask_occupancy": 0.8544921875,
+      "pre_ecc_bit_errors": 5,
+      "pre_ecc_ber": 8.928571428571429e-05,
+      "codeword_errors": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        4,
+        0,
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 4,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 5,
+      "rs_blocks_count": 28,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 44.645827193231185,
+      "ssim": 0.9994983322451071,
+      "mae": 0.43614959716796875,
+      "num_clipped_total": 88
+    },
+    {
+      "carrier": "0005.png",
+      "payload_plaintext_bytes": 500,
+      "protected_bytes": 699,
+      "payload_bits": 5592,
+      "mask_occupancy": 0.0853271484375,
+      "pre_ecc_bit_errors": 7,
+      "pre_ecc_ber": 0.001251788268955651,
+      "codeword_errors": [
+        0,
+        1,
+        4
+      ],
+      "worst_codeword_errors": 4,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 5,
+      "rs_blocks_count": 3,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 54.22244649297353,
+      "ssim": 0.999958700138751,
+      "mae": 0.0614776611328125,
+      "num_clipped_total": 11
+    },
+    {
+      "carrier": "0005.png",
+      "payload_plaintext_bytes": 1500,
+      "protected_bytes": 1860,
+      "payload_bits": 14880,
+      "mask_occupancy": 0.22705078125,
+      "pre_ecc_bit_errors": 11,
+      "pre_ecc_ber": 0.000739247311827957,
+      "codeword_errors": [
+        0,
+        0,
+        3,
+        0,
+        0,
+        4,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 4,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 7,
+      "rs_blocks_count": 8,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 49.811230252555,
+      "ssim": 0.9998859546182906,
+      "mae": 0.16622797648111978,
+      "num_clipped_total": 24
+    },
+    {
+      "carrier": "0005.png",
+      "payload_plaintext_bytes": 3500,
+      "protected_bytes": 4148,
+      "payload_bits": 33184,
+      "mask_occupancy": 0.50634765625,
+      "pre_ecc_bit_errors": 15,
+      "pre_ecc_ber": 0.0004520250723240116,
+      "codeword_errors": [
+        0,
+        1,
+        3,
+        0,
+        0,
+        2,
+        0,
+        1,
+        1,
+        0,
+        0,
+        1,
+        2,
+        0,
+        0,
+        0,
+        0
+      ],
+      "worst_codeword_errors": 3,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 11,
+      "rs_blocks_count": 17,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 46.26068883061188,
+      "ssim": 0.9997416879998104,
+      "mae": 0.3763834635416667,
+      "num_clipped_total": 47
+    },
+    {
+      "carrier": "0005.png",
+      "payload_plaintext_bytes": 6000,
+      "protected_bytes": 7000,
+      "payload_bits": 56000,
+      "mask_occupancy": 0.8544921875,
+      "pre_ecc_bit_errors": 19,
+      "pre_ecc_ber": 0.0003392857142857143,
+      "codeword_errors": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1,
+        0,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        5,
+        0,
+        1,
+        2,
+        0,
+        0,
+        2,
+        0,
+        1,
+        0
+      ],
+      "worst_codeword_errors": 5,
+      "rs_decode_status": "SUCCESS",
+      "rs_corrected_symbols": 16,
+      "rs_blocks_count": 28,
+      "aes_gcm_status": "VALID",
+      "exact_plaintext_match": true,
+      "psnr_db": 44.05672546046389,
+      "ssim": 0.9995709024441866,
+      "mae": 0.6299870808919271,
+      "num_clipped_total": 82
+    }
+  ],
+  "task4_clipping_causality": [
+    {
+      "carrier": "0001.png",
+      "min_raw_float": 0.0,
+      "max_raw_float": 252.0,
+      "clipped_pixels_count": 0,
+      "clipped_fraction": 0.0,
+      "total_bit_errors": 0,
+      "errors_in_clipped_blocks": 0,
+      "errors_in_unclipped_blocks": 0,
+      "clipping_causality_ratio": 1.0,
+      "control_max_pixel_diff": 0,
+      "sample_error_details": []
+    },
+    {
+      "carrier": "0002.png",
+      "min_raw_float": -24.4412841796875,
+      "max_raw_float": 268.8917236328125,
+      "clipped_pixels_count": 119,
+      "clipped_fraction": 0.00015131632486979166,
+      "total_bit_errors": 27,
+      "errors_in_clipped_blocks": 27,
+      "errors_in_unclipped_blocks": 0,
+      "clipping_causality_ratio": 1.0,
+      "control_max_pixel_diff": 0,
+      "sample_error_details": [
+        {
+          "subband_coord": [
+            86,
+            155
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              144.79429626464844,
+              50.205711364746094
+            ],
+            [
+              116.2057113647461,
+              -11.205709457397461
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            89,
+            28
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              47.905826568603516,
+              49.094173431396484
+            ],
+            [
+              69.09417724609375,
+              -5.094173431396484
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            93,
+            197
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -2.4541807174682617,
+              50.45418167114258
+            ],
+            [
+              73.45417785644531,
+              102.54582214355469
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            111,
+            116
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              176.4049835205078,
+              266.59503173828125
+            ],
+            [
+              179.5950164794922,
+              241.4049835205078
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            113,
+            116
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              172.082275390625,
+              264.917724609375
+            ],
+            [
+              208.917724609375,
+              245.082275390625
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            119,
+            15
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              138.9023895263672,
+              263.09759521484375
+            ],
+            [
+              58.09761047363281,
+              178.9023895263672
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            120,
+            18
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              217.83624267578125,
+              265.16375732421875
+            ],
+            [
+              183.16375732421875,
+              193.83624267578125
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            126,
+            96
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              138.9662322998047,
+              52.03376770019531
+            ],
+            [
+              71.03376770019531,
+              -13.033768653869629
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            167,
+            79
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              66.68205261230469,
+              41.31794738769531
+            ],
+            [
+              34.31794738769531,
+              -7.317949295043945
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            169,
+            227
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -4.228549480438232,
+              37.22854995727539
+            ],
+            [
+              69.22854614257812,
+              116.77145385742188
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "carrier": "0004.png",
+      "min_raw_float": -4.402683258056641,
+      "max_raw_float": 242.6111297607422,
+      "clipped_pixels_count": 130,
+      "clipped_fraction": 0.00016530354817708334,
+      "total_bit_errors": 11,
+      "errors_in_clipped_blocks": 11,
+      "errors_in_unclipped_blocks": 0,
+      "clipping_causality_ratio": 1.0,
+      "control_max_pixel_diff": 0,
+      "sample_error_details": [
+        {
+          "subband_coord": [
+            179,
+            207
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -1.428145408630371,
+              5.428145408630371
+            ],
+            [
+              4.428145408630371,
+              -3.428145408630371
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            179,
+            209
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -1.5898034572601318,
+              4.589803695678711
+            ],
+            [
+              4.589803695678711,
+              -2.589803457260132
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            179,
+            222
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -3.2319788932800293,
+              19.231979370117188
+            ],
+            [
+              8.231979370117188,
+              23.768020629882812
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            182,
+            222
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -3.0239386558532715,
+              20.02393913269043
+            ],
+            [
+              4.0239386558532715,
+              11.97606086730957
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            183,
+            219
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -1.392059087753296,
+              4.392059326171875
+            ],
+            [
+              2.392059087753296,
+              -2.392059087753296
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            183,
+            220
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -3.411189556121826,
+              3.411189556121826
+            ],
+            [
+              3.411189556121826,
+              -2.411189556121826
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            184,
+            208
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -4.402683258056641,
+              5.402683258056641
+            ],
+            [
+              4.402683258056641,
+              -3.4026832580566406
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            185,
+            209
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -3.2635955810546875,
+              5.2635955810546875
+            ],
+            [
+              5.2635955810546875,
+              -3.2635955810546875
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            185,
+            219
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -2.6214442253112793,
+              3.6214442253112793
+            ],
+            [
+              3.6214442253112793,
+              -1.6214442253112793
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            187,
+            220
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -3.0861618518829346,
+              4.0861616134643555
+            ],
+            [
+              4.0861616134643555,
+              -2.0861618518829346
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "carrier": "0005.png",
+      "min_raw_float": -16.593961715698242,
+      "max_raw_float": 251.4001007080078,
+      "clipped_pixels_count": 101,
+      "clipped_fraction": 0.00012842814127604166,
+      "total_bit_errors": 22,
+      "errors_in_clipped_blocks": 22,
+      "errors_in_unclipped_blocks": 0,
+      "clipping_causality_ratio": 1.0,
+      "control_max_pixel_diff": 0,
+      "sample_error_details": [
+        {
+          "subband_coord": [
+            18,
+            156
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -7.778251647949219,
+              31.77825164794922
+            ],
+            [
+              27.77825164794922,
+              -7.778251647949219
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            19,
+            157
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -7.190954208374023,
+              45.190956115722656
+            ],
+            [
+              25.190954208374023,
+              -1.1909542083740234
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            41,
+            132
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -4.530198097229004,
+              34.53019714355469
+            ],
+            [
+              91.53019714355469,
+              106.46980285644531
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            41,
+            178
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -16.593961715698242,
+              21.593961715698242
+            ],
+            [
+              17.593961715698242,
+              -15.593961715698242
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            42,
+            178
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              19.404335021972656,
+              -7.40433406829834
+            ],
+            [
+              37.595664978027344,
+              19.404335021972656
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            42,
+            179
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -6.686716079711914,
+              13.686716079711914
+            ],
+            [
+              11.686716079711914,
+              -7.686716079711914
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            68,
+            132
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -10.189489364624023,
+              10.189489364624023
+            ],
+            [
+              48.189491271972656,
+              46.810508728027344
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            68,
+            133
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -3.294426918029785,
+              12.294426918029785
+            ],
+            [
+              51.29442596435547,
+              30.70557403564453
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            92,
+            133
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -4.7561116218566895,
+              4.7561116218566895
+            ],
+            [
+              11.756111145019531,
+              1.2438883781433105
+            ]
+          ]
+        },
+        {
+          "subband_coord": [
+            99,
+            199
+          ],
+          "block_clipped": true,
+          "spatial_raw_2x2": [
+            [
+              -2.401651382446289,
+              6.401651382446289
+            ],
+            [
+              15.401651382446289,
+              -1.401651382446289
+            ]
+          ]
+        }
+      ]
+    }
+  ]
+}

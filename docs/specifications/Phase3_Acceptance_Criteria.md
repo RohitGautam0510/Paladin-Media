@@ -84,7 +84,7 @@ To justify the computational and deployment overhead of a neural network over th
   - **LPIPS (AlexNet/VGG):** $\le 0.050$.
 
 ### Gate 3: Channel Robustness (The Justification Gate - P1)
-*The classical integer-parity baseline fails completely under lossy channels (JPEG compression at all quality factors $Q \le 100$, spatial downsampling, or additive noise). Neural steganography is justified only if it confers demonstrable channel resilience or statistical undetectability:*
+*The classical integer-parity baseline fails completely under the lossy channels evaluated in E14 (JPEG compression at quality factors $Q \in [70, 100]$ and additive Gaussian noise $\sigma \ge 0.5$; spatial downsampling remains untested). Neural steganography is justified only if it confers demonstrable channel resilience or statistical undetectability:*
 - **JPEG Resistance (Primary Target):** Verbatim payload recovery ($\text{BER}_{\text{post-ECC}} = 0.0$) through lossy JPEG recompression down to Quality factor $Q = 80$.
 - **Statistical Undetectability (Secondary / Dual Target):** If evaluated under uncompressed/lossless channels, the neural approach must demonstrate a statistically significant ($p < 0.01$) advantage in steganalytic undetectability (e.g., lower ROC-AUC under Spatial Rich Models / SRM or SPAM classifiers) compared to the classical baseline at matched payload capacity.
 

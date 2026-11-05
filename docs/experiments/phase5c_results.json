@@ -1,0 +1,148 @@
+{
+  "phase": "Phase 5C Deployment Hardening",
+  "timestamp": "2026-10-25T06:37:18Z",
+  "total_runtime_seconds": 2.13,
+  "gates": {
+    "gate_preflight": "PASS",
+    "gate_operational_entry_point": "PASS",
+    "gate_carrier_format_hardening": "PASS",
+    "gate_capacity_enforcement": "PASS",
+    "overall_verdict": "PASS_WITH_LIMITATIONS"
+  },
+  "preflight": {
+    "status": "PASS",
+    "checkpoint": {
+      "path": "E:\\Paladin_media\\checkpoints\\phase4c_extended_30ep\\best_model.pt",
+      "parameter_digest": "ec11dce74832c0fa0ef599ea7185248dfd3a16a10d83a5ebceddc9e267160d92",
+      "epoch": 30,
+      "verified": true
+    },
+    "manifest": {
+      "file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+      "composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+      "partition_counts": {
+        "train": 600,
+        "val": 100,
+        "test": 100
+      },
+      "verified": true
+    },
+    "onnx_models": {
+      "acs_sub_inn_embedding_opset14.onnx": {
+        "sha256": "3cd22ba35e55d4addfb89e59cdc695f1086383bef5d507f39a3c91dd4917c173",
+        "verified": true
+      },
+      "acs_sub_inn_extraction_opset14.onnx": {
+        "sha256": "ab696814635b39dec34b432b78e80bb949c5fcd68517a3cec5890102152ff8ba",
+        "verified": true
+      },
+      "neural_spatial_embedding_opset14.onnx": {
+        "sha256": "7cda5a3becb8283c6b84572e7adb6d64ea29ecbf9f1e667cf34dcd0324e2d784",
+        "verified": true
+      },
+      "neural_spatial_extraction_opset14.onnx": {
+        "sha256": "bf85d8404469d90c08aa50282db582e3c82b2c6ea2159293423ae6e846b82be2",
+        "verified": true
+      }
+    }
+  },
+  "workstream_a_entry_point": {
+    "status": "PASS",
+    "qualified_pipeline": {
+      "factory": "MediaStegoPipeline.create_qualified_deployment()",
+      "backend": "onnx",
+      "ecc_profile": "rs_2t_48",
+      "ecc_parity_symbols": 48,
+      "is_qualified": true
+    },
+    "legacy_pipeline": {
+      "constructor": "MediaStegoPipeline()",
+      "engine": "ParityModulationEngine",
+      "ecc_profile": "rs_2t_32",
+      "ecc_parity_symbols": 32,
+      "preserved": true
+    },
+    "observable_configuration": {
+      "status": "OPERATIONAL",
+      "inference_backend": "onnx",
+      "ecc_profile": "rs_2t_48",
+      "ecc_parity_symbols": 48,
+      "carrier_format_policy": "Lossless 8-bit RGB PNG only. Lossy transcoded carriers (e.g. JPEG) are strictly unsupported.",
+      "carrier_dimensions": "512x512",
+      "raw_secret_capacity_bytes": 6578,
+      "reference_metadata_capacity_bytes": 6576,
+      "max_protected_payload_bytes": 8176,
+      "is_qualified_deployment": true,
+      "onnx_models_verified": true,
+      "onnx_models": {
+        "acs_sub_inn_embedding_opset14.onnx": true,
+        "acs_sub_inn_extraction_opset14.onnx": true,
+        "neural_spatial_embedding_opset14.onnx": true,
+        "neural_spatial_extraction_opset14.onnx": true
+      },
+      "sessions_initialized": true,
+      "operational_qualification_note": "Primary qualified deployment profile rs_2t_48 with native ONNX Runtime backend. Reliable 100% exact recovery across 100B-5000B lossless payloads and robust up to Gaussian noise sigma<=0.5."
+    }
+  },
+  "workstream_b_carrier_format": {
+    "status": "PASS",
+    "lossless_png_recovery": {
+      "exact_match": true,
+      "carrier_format": "PNG",
+      "output_format_policy": "Lossless 8-bit RGB PNG only. Do not transcode or compress to JPEG."
+    },
+    "jpeg_carrier_rejection": {
+      "rejected_fail_closed": true,
+      "exception_type": "UnsupportedCarrierFormatError",
+      "actionable_message": "JPEG-transcoded carriers are not qualified for the current deployment. PaladinMedia requires the original lossless 8-bit RGB PNG carrier."
+    },
+    "tampered_carrier_fail_closed": {
+      "failed_closed": true,
+      "exception_message": "Invalid carrier header magic: expected b'PLDH', got b'\\x89\\xccDH'. The carrier is invalid, corrupted, or stored in an unsupported format; please use the original lossless 8-bit RGB PNG carrier.",
+      "zero_plaintext_leak": true
+    }
+  },
+  "workstream_c_capacity_transparency": {
+    "status": "PASS",
+    "capacity_accounting": {
+      "rs_2t_48": {
+        "raw_secret_capacity_bytes": 6578,
+        "reference_metadata_capacity_bytes": 6576,
+        "max_protected_payload_bytes": 8176
+      },
+      "rs_2t_32": {
+        "raw_secret_capacity_bytes": 7090,
+        "reference_metadata_capacity_bytes": 7088,
+        "max_protected_payload_bytes": 8176
+      },
+      "rs_2t_64": {
+        "raw_secret_capacity_bytes": 6066,
+        "reference_metadata_capacity_bytes": 6064,
+        "max_protected_payload_bytes": 8176
+      }
+    },
+    "boundary_checks": {
+      "at_limit_payload_bytes": 6578,
+      "at_limit_exact_recovery": true,
+      "one_above_rejected_fail_closed": true,
+      "carrier_pixels_unmodified": true,
+      "sample_metadata_bytes": 7,
+      "sample_metadata_limit_bytes": 6571,
+      "sample_metadata_exact_recovery": true,
+      "sample_metadata_over_rejected": true,
+      "sample_metadata_carrier_unmodified": true,
+      "minimal_6b_metadata_bytes": 6,
+      "minimal_6b_metadata_limit_bytes": 6572,
+      "minimal_6b_metadata_exact_recovery": true,
+      "minimal_6b_metadata_over_rejected": true,
+      "minimal_6b_metadata_carrier_unmodified": true
+    }
+  },
+  "deployment_safeguard_contract": {
+    "qualified_path": "ONNX Runtime + rs_2t_48 (RS(255, 207), 48 parity symbols)",
+    "carrier_format": "Lossless 8-bit RGB PNG (512x512)",
+    "raw_payload_limit": "6,578 bytes",
+    "reference_metadata_limit": "6,576 bytes",
+    "unsupported_channels": "Lossy JPEG (Q=75,85,95) and high noise (sigma>=1.0) fail closed without plaintext leakage."
+  }
+}

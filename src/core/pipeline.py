@@ -83,6 +83,7 @@ class SecurityPipeline:
         protected_bytes: bytes,
         key: bytes,
         aad: Optional[bytes] = None,
+        ecc_encoder: Optional[ECCEncoder] = None,
     ) -> SecretPayload:
         """Reverses protection through ECC Decoding -> Decryption -> Deserialization.
 
@@ -95,6 +96,7 @@ class SecurityPipeline:
             protected_bytes: Protected byte stream extracted from carrier or channel.
             key: Exactly 32 bytes (256-bit symmetric key).
             aad: Optional Associated Authenticated Data matching encryption context.
+            ecc_encoder: Optional ECCEncoder instance to override default decoder.
 
         Returns:
             Recovered SecretPayload with verbatim original data, media type, and metadata.
@@ -104,8 +106,9 @@ class SecurityPipeline:
             AuthenticationError: If ciphertext, tag, nonce, key, or AAD is tampered or invalid.
             SerializationError: If framing, version, or CRC-32 checksum is invalid.
         """
-        # Step 1: ECC Decode
-        ecc_decoded = self.ecc_encoder.decode(protected_bytes)
+        # Step 1: ECC Decode using matching or specified decoder
+        decoder = ecc_encoder if ecc_encoder is not None else self.ecc_encoder
+        ecc_decoded = decoder.decode(protected_bytes)
 
         # Step 2: Decrypt
         decrypted = self.crypto_provider.decrypt(ecc_decoded, key, aad=aad)

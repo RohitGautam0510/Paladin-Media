@@ -43,10 +43,13 @@ class ECCResult:
         data: The exact recovered payload bytes.
         corrected_symbols: Total count of symbol errors corrected across all blocks.
         blocks_count: Total number of RS blocks processed during decoding.
+        prefix_recovered: True if the 4-byte length prefix was corrupted and recovered
+                          via mathematical length derivation from valid stream framing.
     """
     data: bytes
     corrected_symbols: int = 0
     blocks_count: int = 0
+    prefix_recovered: bool = False
 
 
 class ECCEncoder(ABC):
@@ -190,11 +193,64 @@ class ReedSolomonEncoder(ECCEncoder):
 
         return header + b"".join(blocks)
 
-    def decode(self, encoded_data: bytes) -> bytes:
+    @classmethod
+    def derive_payload_length(
+        cls,
+        encoded_stream_len: int,
+        k: int = 223,
+        ecc_symbols: int = 32,
+        block_size: int = 255,
+    ) -> int:
+        """Mathematically derives the unique decoded payload length from a valid encoded stream length.
+
+        In systematic chunked RS(block_size, k) with ecc_symbols parity:
+        Every full block has size block_size = k + ecc_symbols.
+        Any shortened final block with R data bytes (1 <= R < k) has size R + ecc_symbols.
+        Because 1 <= R < k, the final block size is strictly bounded by
+        (ecc_symbols + 1) <= size < block_size.
+        Consequently, M = encoded_stream_len - 4 uniquely determines:
+        - full_blocks = M // block_size
+        - remainder = M % block_size
+        and is bijectively invertible to payload data length L.
+
+        Args:
+            encoded_stream_len: Total length of the RS-encoded stream including 4-byte prefix.
+            k: Data symbols per full block (default 223).
+            ecc_symbols: Parity symbols per block (default 32).
+            block_size: Total symbols per full block (default 255).
+
+        Returns:
+            The exact decoded data length in bytes.
+
+        Raises:
+            ECCDecodeError: If encoded_stream_len cannot represent any valid set of RS codewords.
+        """
+        if encoded_stream_len < 4:
+            raise ECCDecodeError(
+                f"Encoded data length ({encoded_stream_len} bytes) is too short to contain 4-byte header"
+            )
+        M = encoded_stream_len - 4
+        if M == 0:
+            return 0
+        rem = M % block_size
+        full_blocks = M // block_size
+        if rem == 0:
+            return full_blocks * k
+        elif rem > ecc_symbols:
+            return full_blocks * k + (rem - ecc_symbols)
+        else:
+            raise ECCDecodeError(
+                f"Invalid encoded stream length ({encoded_stream_len} bytes): final block of {rem} bytes "
+                f"is too short to contain {ecc_symbols} parity symbols plus at least 1 payload byte"
+            )
+
+    def decode(self, encoded_data: bytes, strict_prefix: bool = False) -> bytes:
         """Decodes Reed-Solomon encoded data, correcting up to t symbol errors per block.
 
         Args:
             encoded_data: Length-prefixed RS-encoded bitstream.
+            strict_prefix: If True, raises ECCDecodeError on length-prefix mismatch rather
+                           than falling back to mathematical length derivation.
 
         Returns:
             Exact original payload bytes.
@@ -204,17 +260,23 @@ class ReedSolomonEncoder(ECCEncoder):
             ECCDecodeError: If uncorrectable errors exceed correction capacity t,
                             or wire framing/length is corrupted.
         """
-        return self.decode_with_result(encoded_data).data
+        return self.decode_with_result(encoded_data, strict_prefix=strict_prefix).data
 
-    def decode_with_result(self, encoded_data: bytes) -> ECCResult:
+    def decode_with_result(self, encoded_data: bytes, strict_prefix: bool = False) -> ECCResult:
         """Decodes Reed-Solomon encoded data and returns detailed result with error statistics.
+
+        Sprint 3.3.3: Supports backward-compatible mathematical length derivation fallback.
+        When the 4-byte prefix suffers bit corruption in transmission but the stream length
+        is structurally valid, decoding succeeds using the derived length.
 
         Args:
             encoded_data: Length-prefixed RS-encoded bitstream.
+            strict_prefix: If True, strictly enforces that raw_enc[:4] matches the derived length.
+                           Defaults to False (safe prefix-recovery enabled).
 
         Returns:
             ECCResult containing recovered payload bytes, total corrected symbol count,
-            and total blocks count.
+            total blocks count, and prefix_recovered flag.
 
         Raises:
             TypeError: If encoded_data is not bytes-like.
@@ -230,18 +292,33 @@ class ReedSolomonEncoder(ECCEncoder):
                 f"Encoded data length ({len(raw_enc)} bytes) is too short to contain 4-byte header"
             )
 
-        (total_length,) = struct.unpack(">I", raw_enc[:4])
+        (declared_length,) = struct.unpack(">I", raw_enc[:4])
+        derived_length = self.derive_payload_length(
+            len(raw_enc), k=self.k, ecc_symbols=self.ecc_symbols, block_size=self.block_size
+        )
+
+        if declared_length == derived_length:
+            total_length = declared_length
+            prefix_recovered = False
+        else:
+            if strict_prefix:
+                raise ECCDecodeError(
+                    f"Encoded data length mismatch: declared length {declared_length} requires "
+                    f"different stream length than actual {len(raw_enc)} bytes"
+                )
+            total_length = derived_length
+            prefix_recovered = True
 
         # Handle 0-byte payload edge case
         if total_length == 0:
             if len(raw_enc) == 4:
-                return ECCResult(data=b"", corrected_symbols=0, blocks_count=0)
+                return ECCResult(data=b"", corrected_symbols=0, blocks_count=0, prefix_recovered=prefix_recovered)
             if len(raw_enc) == 4 + self.ecc_symbols:
                 # Tolerates an encoded empty block with parity
                 try:
                     res = self._rsc.decode(raw_enc[4:])
                     corrected = len(res[2]) if len(res) > 2 and res[2] is not None else 0
-                    return ECCResult(data=bytes(res[0]), corrected_symbols=corrected, blocks_count=1)
+                    return ECCResult(data=bytes(res[0]), corrected_symbols=corrected, blocks_count=1, prefix_recovered=prefix_recovered)
                 except reedsolo.ReedSolomonError as exc:
                     raise ECCDecodeError(
                         "Reed-Solomon decoding failed: uncorrectable symbol errors exceed capacity"
@@ -256,16 +333,6 @@ class ReedSolomonEncoder(ECCEncoder):
         num_full_blocks = total_length // k
         remainder = total_length % k
         total_blocks = num_full_blocks + (1 if remainder > 0 else 0)
-
-        expected_len = 4 + num_full_blocks * (k + self.ecc_symbols)
-        if remainder > 0:
-            expected_len += remainder + self.ecc_symbols
-
-        if len(raw_enc) != expected_len:
-            raise ECCDecodeError(
-                f"Encoded data length mismatch: expected {expected_len} bytes for payload length "
-                f"{total_length}, got {len(raw_enc)} bytes"
-            )
 
         offset = 4
         decoded_chunks: list[bytes] = []
@@ -333,6 +400,7 @@ class ReedSolomonEncoder(ECCEncoder):
             data=reassembled,
             corrected_symbols=total_corrected,
             blocks_count=total_blocks,
+            prefix_recovered=prefix_recovered,
         )
 
     def encode_block(self, chunk: bytes) -> bytes:

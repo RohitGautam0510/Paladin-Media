@@ -20,8 +20,16 @@ except ImportError:
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DOCS_DIR = os.path.join(REPO_ROOT, "docs", "specifications")
-DATASET_DIR = os.path.join(REPO_ROOT, "MVP 0 Dataset")
 MANIFEST_PATH = os.path.join(REPO_ROOT, "docs", "project", "mvp0_manifest.json")
+
+# Default to canonical dataset/MVP 0 Dataset, preserving CLI override or legacy fallback
+if len(sys.argv) > 1 and sys.argv[1].strip() and not sys.argv[1].startswith("-"):
+    DATASET_DIR = os.path.abspath(sys.argv[1])
+else:
+    canonical_dir = os.path.join(REPO_ROOT, "dataset", "MVP 0 Dataset")
+    legacy_dir = os.path.join(REPO_ROOT, "MVP 0 Dataset")
+    DATASET_DIR = canonical_dir if os.path.exists(canonical_dir) else legacy_dir
+
 
 # 1. Inspect docx
 def extract_text_from_docx(docx_path: str) -> str:

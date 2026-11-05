@@ -10,13 +10,19 @@ def test_t014_mask_determinism():
     session_counter = 0x12345678
     payload_len = 1024  # 1024 bytes = 8192 bits
 
+    # Wire Protocol v2 (default)
     mask1 = DeterministicMaskGenerator.generate_mask(session_counter, payload_len)
     mask2 = DeterministicMaskGenerator.generate_mask(session_counter, payload_len)
 
     assert mask1.header_positions == mask2.header_positions
     assert mask1.payload_positions == mask2.payload_positions
-    assert len(mask1.header_positions) == 128
+    assert len(mask1.header_positions) == 192  # 24 bytes * 8 bits
     assert len(mask1.payload_positions) == 8192
+
+    # Wire Protocol v1 (legacy compatibility)
+    mask_v1 = DeterministicMaskGenerator.generate_mask(session_counter, payload_len, version=1)
+    assert len(mask_v1.header_positions) == 128  # 16 bytes * 8 bits
+    assert len(mask_v1.payload_positions) == 8192
 
 
 def test_t014_mask_different_context_yields_different_positions():
@@ -37,12 +43,20 @@ def test_t014_mask_non_overlapping_and_within_bounds():
         assert 0 <= r < 256
         assert 0 <= c < 256
 
-    # Header and payload positions must be disjoint
+    # Header and payload positions must be disjoint (v2 default: 192 header bits)
     header_set = set(mask.header_positions)
     payload_set = set(mask.payload_positions)
-    assert len(header_set) == 128
+    assert len(header_set) == 192
     assert len(payload_set) == 8000
     assert len(header_set.intersection(payload_set)) == 0
+
+    # Test v1 backward compatibility (128 header bits)
+    mask_v1 = DeterministicMaskGenerator.generate_mask(99, 1000, version=1)
+    header_set_v1 = set(mask_v1.header_positions)
+    payload_set_v1 = set(mask_v1.payload_positions)
+    assert len(header_set_v1) == 128
+    assert len(payload_set_v1) == 8000
+    assert len(header_set_v1.intersection(payload_set_v1)) == 0
 
 
 def test_t014_mask_capacity_exceeded():

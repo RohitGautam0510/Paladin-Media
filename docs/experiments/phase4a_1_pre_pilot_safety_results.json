@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-10-20T16:36:20Z",
+  "phase": "4A.1",
+  "training_authorized": false,
+  "optimizer_steps_executed": 0,
+  "training_epochs_executed": 0,
+  "initial_model_parameter_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+  "manifest_verification": {
+    "manifest_file_sha256": "db6058872c3756094124da6656eee2f276c7df6652d2ead5bce0ddd1de6a3eff",
+    "composite_sha256": "d0f5f4ee0912d007f0a8695fe1713d9cf5a75cf97bc9c52d601ea862271b31ed",
+    "counts": {
+      "train": 600,
+      "val": 100,
+      "test": 100
+    },
+    "status": "PASS"
+  },
+  "split_isolation": {
+    "missing_loader_split": "FAIL_CLOSED",
+    "missing_batch_split": "FAIL_CLOSED",
+    "missing_batch_image_id": "FAIL_CLOSED",
+    "val_id_mislabeled_as_train": "FAIL_CLOSED",
+    "test_id_mislabeled_as_train": "FAIL_CLOSED",
+    "test_id_mislabeled_as_val": "FAIL_CLOSED",
+    "train_id_mislabeled_as_val": "FAIL_CLOSED",
+    "valid_samples_accepted": "PASS"
+  },
+  "gradient_accumulation_and_dry_run": {
+    "sample_weighting_grad_max_diff": 0.0,
+    "dry_run_optimizer_steps_taken": 0,
+    "dry_run_global_step": 0,
+    "dry_run_accumulation_windows_completed": 2
+  },
+  "epoch_boundary_resumption": {
+    "restored_epoch": 2,
+    "next_epoch_to_run": 3,
+    "restored_global_step": 80,
+    "restored_best_val_metric": 0.45,
+    "restored_early_stop_counter": 1
+  },
+  "validation_and_loss_consistency": {
+    "rng_preserved_pass1": true,
+    "rng_preserved_pass2": true,
+    "total_loss_pass1": 28.159897804260254,
+    "total_loss_pass2": 28.159897804260254,
+    "deterministic_match": true,
+    "mismatch_detection": "FAIL_CLOSED_CONFIRMED"
+  },
+  "authorization_scope_enforcement": {
+    "exact_scope_PHASE4B_PILOT": true,
+    "prefix_only_scope_PHASE4B": false,
+    "extended_scope": false
+  },
+  "final_model_parameter_digest": "fe7462957b0194d109ec32a78834d7bf44b9d1aa86510a40625f2e485fa40369",
+  "parameter_digest_invariant": true,
+  "final_safety_status": "ALL_GATES_PASSED_ZERO_TRAINING_EXECUTED"
+}

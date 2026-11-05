@@ -23,16 +23,20 @@ from __future__ import annotations
 
 import io
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, Optional, Tuple, Union
 
 import numpy as np
 from PIL import Image
 
 from src.carrier.capacity import CapacityCalculator, CapacityReport, PayloadCapacityExceededError
-from src.carrier.dwt import DWTSubbands, HaarDWT2D, visualize_subbands
+from src.carrier.dwt import DWTSubbands, HaarDWT2D, subband_to_image, visualize_subbands
 from src.carrier.embedding import BaselineEmbedder, EmbeddingResult
 from src.carrier.extraction import Extractor
 from src.carrier.header import CarrierHeader
+from src.carrier.mask import DeterministicMaskGenerator
+from src.carrier.modulation import CarrierModulationEngine, ParityModulationEngine
+from src.core.exceptions import UnsupportedCarrierFormatError
 from src.core.pipeline import SecurityPipeline
 from src.core.serialization.serializer import MediaType, SecretPayload, SecretSerializer
 from src.security.crypto.provider import AESGCMProvider, CryptoProvider
@@ -42,6 +46,7 @@ __all__ = [
     "MediaStegoPipeline",
     "MediaStegoResult",
     "MediaRecoveryResult",
+    "UnsupportedCarrierFormatError",
     "calculate_psnr",
     "calculate_ssim",
 ]
@@ -86,6 +91,8 @@ class MediaStegoResult:
     ssim: float
     session_counter: int
     header: CarrierHeader
+    carrier_format: str = "PNG"
+    output_format_policy: str = "Lossless 8-bit RGB PNG only. Do not transcode or compress to JPEG."
 
 
 @dataclass(frozen=True)
@@ -105,10 +112,60 @@ class MediaStegoPipeline:
         self,
         crypto_provider: Optional[CryptoProvider] = None,
         ecc_encoder: Optional[ECCEncoder] = None,
+        modulation_engine: Optional[CarrierModulationEngine] = None,
+        backend: Optional[str] = None,
+        onnx_dir: Optional[Union[str, Path]] = None,
+        checkpoint_path: Optional[Union[str, Path]] = None,
+        spatial_bridge: Optional[Any] = None,
     ) -> None:
         self.security_pipeline = SecurityPipeline(
             crypto_provider=crypto_provider,
             ecc_encoder=ecc_encoder,
+        )
+        if modulation_engine is not None:
+            self.modulation_engine = modulation_engine
+        elif backend is not None:
+            from src.carrier.modulation import create_modulation_engine
+
+            self.modulation_engine = create_modulation_engine(
+                engine_name=backend,
+                spatial_bridge=spatial_bridge,
+                onnx_dir=onnx_dir,
+                checkpoint_path=checkpoint_path,
+            )
+        else:
+            self.modulation_engine = ParityModulationEngine()
+
+    @classmethod
+    def create_qualified_deployment(
+        cls,
+        backend: str = "onnx",
+        onnx_dir: Optional[Union[str, Path]] = None,
+        checkpoint_path: Optional[Union[str, Path]] = None,
+        spatial_bridge: Optional[Any] = None,
+        crypto_provider: Optional[CryptoProvider] = None,
+    ) -> MediaStegoPipeline:
+        """Factory creating the primary qualified Phase 5B deployment pipeline.
+
+        Explicitly configures the primary qualified Error Correction profile:
+        Reed-Solomon RS(255, 207) with 2t=48 parity symbols, backed by native
+        ONNX Runtime session pooling for spatial carrier modulation.
+
+        Preserves:
+            - Standard __init__ retains the legacy default (RS(255, 223), 2t=32).
+            - Wire-level CarrierHeader.flags (0x01) encodes the 2t=48 profile.
+            - Receiver instances dynamically adapt via header flags regardless of constructor defaults.
+        """
+        from src.security.ecc.encoder import ReedSolomonEncoder
+
+        ecc = ReedSolomonEncoder(parity_symbols=48)
+        return cls(
+            crypto_provider=crypto_provider,
+            ecc_encoder=ecc,
+            backend=backend,
+            onnx_dir=onnx_dir,
+            checkpoint_path=checkpoint_path,
+            spatial_bridge=spatial_bridge,
         )
 
     def protect_and_embed(
@@ -118,14 +175,15 @@ class MediaStegoPipeline:
         key: bytes,
         aad: Optional[bytes] = None,
         session_counter: int = 1,
+        version: int = CarrierHeader.VERSION_2,
     ) -> MediaStegoResult:
         """Executes sender-side protection, transform, and carrier embedding.
 
         Sequence:
             1. SecurityPipeline.protect: Serialize -> AES-256-GCM -> Reed-Solomon.
-            2. Capacity hard-gate: Abort if protected payload > 8,176 bytes.
-            3. DWT on 512x512 RGB cover.
-            4. Embed 16B header + protected payload into HH channel 0.
+            2. Capacity hard-gate: Abort if protected payload exceeds usable capacity.
+            3. Wire framing & deterministic mask generation (Wire Protocol v2 default).
+            4. Embed header (24B RS(24, 16) in v2; 16B in v1) + protected payload into HH channel 0.
             5. IDWT & serialize to lossless 8-bit RGB PNG.
             6. Compute fidelity metrics (PSNR, SSIM).
         """
@@ -137,43 +195,89 @@ class MediaStegoPipeline:
             cover_pil = cover_image.convert("RGB")
             cover_arr = np.array(cover_pil, dtype=np.uint8)
 
-        subband_dim = cover_arr.shape[0] // 2
+        subband_dim = (cover_arr.shape[0] // 2, cover_arr.shape[1] // 2)
+        ecc_parity = getattr(self.security_pipeline.ecc_encoder, "parity_symbols", 32)
+
+        # Preflight usable capacity check
+        meta_len = 0
+        if secret_payload.metadata:
+            try:
+                import json
+                meta_json = json.dumps(
+                    secret_payload.metadata, sort_keys=True, separators=(",", ":")
+                ).encode("utf-8")
+                meta_len = len(meta_json)
+            except Exception:
+                meta_len = 0
+
+        usable_cap = CapacityCalculator.calculate_usable_secret_capacity(
+            metadata_len=meta_len, subband_dim=subband_dim, rs_parity=ecc_parity, version=version
+        )
+        if len(secret_payload.data) > usable_cap:
+            raise PayloadCapacityExceededError(
+                f"PAYLOAD_CAPACITY_EXCEEDED: Secret payload data ({len(secret_payload.data)} B) "
+                f"exceeds maximum usable capacity ({usable_cap} B with {meta_len}B metadata) "
+                f"for ECC parity {ecc_parity} under Wire Protocol v{version}."
+            )
 
         # Step 1: Cryptographic protection & ECC
         protected_payload = self.security_pipeline.protect(secret_payload, key, aad=aad)
 
         # Step 2: Capacity check (Hard gate)
         capacity_report = CapacityCalculator.check_capacity(
-            len(protected_payload), subband_dim=subband_dim
+            len(protected_payload), subband_dim=subband_dim, rs_parity=ecc_parity, version=version
         )
 
-        # Step 3 & 4: DWT and transform-domain embedding
-        embed_result = BaselineEmbedder.embed(
-            cover_image=cover_arr,
-            protected_payload=protected_payload,
+        # Step 3: Wire framing & deterministic mask generation
+        header = CarrierHeader.create(
             session_counter=session_counter,
+            payload_length=len(protected_payload),
+            ecc_parity=ecc_parity,
+            version=version,
         )
+        header_bytes = header.pack()
+        mask = DeterministicMaskGenerator.generate_mask(
+            session_counter=session_counter,
+            payload_length_bytes=len(protected_payload),
+            subband_dim=subband_dim,
+            version=version,
+        )
+
+        header_bits = BaselineEmbedder.bytes_to_bits(header_bytes)
+        payload_bits = BaselineEmbedder.bytes_to_bits(protected_payload)
+
+        # Step 4: Modulate via selected engine
+        stego_arr = self.modulation_engine.embed_bits(
+            cover_array=cover_arr,
+            header_bits=header_bits,
+            payload_bits=payload_bits,
+            mask=mask,
+        )
+        stego_pil = Image.fromarray(stego_arr, mode="RGB")
 
         # Step 5: Serialize to PNG bytes
         png_buffer = io.BytesIO()
-        embed_result.stego_image.save(png_buffer, format="PNG")
+        stego_pil.save(png_buffer, format="PNG")
         stego_png_bytes = png_buffer.getvalue()
 
         # Step 6: Generate visual artifacts and metrics
-        dwt_visuals = visualize_subbands(embed_result.original_subbands)
-        psnr_val = calculate_psnr(cover_arr, embed_result.stego_array)
-        ssim_val = calculate_ssim(cover_arr, embed_result.stego_array)
+        original_subbands = HaarDWT2D.forward(cover_arr)
+        modified_subbands = HaarDWT2D.forward(stego_arr)
+        modified_hh_img = subband_to_image(modified_subbands.hh, is_ll=False)
+        dwt_visuals = visualize_subbands(original_subbands)
+        psnr_val = calculate_psnr(cover_arr, stego_arr)
+        ssim_val = calculate_ssim(cover_arr, stego_arr)
 
         return MediaStegoResult(
-            stego_image=embed_result.stego_image,
+            stego_image=stego_pil,
             stego_png_bytes=stego_png_bytes,
             capacity_report=capacity_report,
             dwt_visualizations=dwt_visuals,
-            modified_hh_image=embed_result.modified_hh_image,
+            modified_hh_image=modified_hh_img,
             psnr_db=psnr_val,
             ssim=ssim_val,
             session_counter=session_counter,
-            header=embed_result.header,
+            header=header,
         )
 
     def extract_and_unprotect(
@@ -187,26 +291,97 @@ class MediaStegoPipeline:
 
         Sequence:
             1. Decode PNG carrier into 8-bit RGB array.
-            2. Compute DWT and extract 16B header from anchor positions.
-            3. Reconstruct deterministic mask and extract protected payload bits.
-            4. SecurityPipeline.unprotect: Reed-Solomon decode -> AES-GCM decrypt -> Deserialize.
-            5. Verify exact byte equality against reference if provided.
+            2. Prepare extraction via selected modulation engine.
+            3. Extract 16B header from fixed anchor positions.
+            4. Reconstruct deterministic mask and extract protected payload bits.
+            5. SecurityPipeline.unprotect: Reed-Solomon decode -> AES-GCM decrypt -> Deserialize.
+            6. Verify exact byte equality against reference if provided.
         """
+        format_detected: Optional[str] = None
         if isinstance(stego_carrier, bytes):
+            if stego_carrier.startswith(b"\xff\xd8\xff"):
+                format_detected = "JPEG"
+            else:
+                try:
+                    with Image.open(io.BytesIO(stego_carrier)) as probed:
+                        format_detected = probed.format
+                except Exception:
+                    pass
             carrier_img = Image.open(io.BytesIO(stego_carrier)).convert("RGB")
         elif isinstance(stego_carrier, Image.Image):
+            format_detected = getattr(stego_carrier, "format", None)
             carrier_img = stego_carrier.convert("RGB")
+        elif isinstance(stego_carrier, (str, Path)):
+            p = Path(stego_carrier)
+            if p.suffix.lower() in (".jpg", ".jpeg"):
+                format_detected = "JPEG"
+            with open(p, "rb") as f:
+                raw_bytes = f.read()
+            return self.extract_and_unprotect(
+                stego_carrier=raw_bytes,
+                key=key,
+                aad=aad,
+                reference_payload=reference_payload,
+            )
         elif isinstance(stego_carrier, np.ndarray):
             carrier_img = Image.fromarray(stego_carrier, mode="RGB")
         else:
             raise TypeError(f"Unsupported stego carrier type: {type(stego_carrier).__name__}")
 
-        # Step 1 & 2: Extract header and protected bytes
-        header, extracted_protected = Extractor.extract(carrier_img)
+        if format_detected and format_detected.upper() in ("JPEG", "JPG"):
+            raise UnsupportedCarrierFormatError(
+                "JPEG-transcoded carriers are not qualified for the current deployment. "
+                "PaladinMedia requires the original lossless 8-bit RGB PNG carrier."
+            )
 
-        # Step 3: Unprotect payload (RS decode -> AES decrypt -> Deserialize)
+        arr = np.array(carrier_img, dtype=np.uint8)
+        subband_dim = (arr.shape[0] // 2, arr.shape[1] // 2)
+
+        # Step 2: Initialize extraction via selected modulation engine
+        bit_extractor = self.modulation_engine.begin_extraction(arr, subband_dim=subband_dim)
+
+        # Step 3: Extract header bits from fixed anchor positions (192 bits for v2, with fallback to 128 for v1)
+        header_positions = DeterministicMaskGenerator.generate_header_positions(
+            subband_dim=subband_dim, version=CarrierHeader.VERSION_2
+        )
+        extracted_hdr_bits = bit_extractor.extract_bits(header_positions)
+        extracted_hdr_bytes = Extractor.bits_to_bytes(extracted_hdr_bits)
+        header = CarrierHeader.unpack(extracted_hdr_bytes)
+
+        # Hard-gate capacity check before allocation or mask generation
+        CapacityCalculator.check_capacity(
+            protected_payload_bytes=header.payload_length,
+            subband_dim=subband_dim,
+            rs_parity=header.ecc_parity,
+            version=header.version,
+        )
+
+        # Step 4: Extract protected payload bits using regenerated deterministic mask
+        if header.payload_length == 0:
+            extracted_protected = b""
+        else:
+            payload_positions = DeterministicMaskGenerator.generate_payload_positions(
+                session_counter=header.session_counter,
+                payload_length_bytes=header.payload_length,
+                subband_dim=subband_dim,
+                version=header.version,
+            )
+            extracted_payload_bits = bit_extractor.extract_bits(payload_positions)
+            extracted_protected = Extractor.bits_to_bytes(extracted_payload_bits)
+
+        # Step 5: Unprotect payload (RS decode -> AES decrypt -> Deserialize)
+        # Adapt decoder to matching ECC profile from carrier header flags
+        header_parity = header.ecc_parity
+        if (
+            isinstance(self.security_pipeline.ecc_encoder, ReedSolomonEncoder)
+            and self.security_pipeline.ecc_encoder.parity_symbols == header_parity
+        ):
+            decoder = self.security_pipeline.ecc_encoder
+        else:
+            decoder = ReedSolomonEncoder(parity_symbols=header_parity)
+
         recovered_payload = self.security_pipeline.unprotect(
-            extracted_protected, key, aad=aad
+            extracted_protected, key, aad=aad, ecc_encoder=decoder
         )
 
         # Reconstruct PIL Image if payload is MediaType.IMAGE
@@ -220,11 +395,7 @@ class MediaStegoPipeline:
         # Step 4: Verify exact match
         exact_match = False
         if reference_payload is not None:
-            exact_match = (
-                recovered_payload.data == reference_payload.data
-                and recovered_payload.media_type == reference_payload.media_type
-                and recovered_payload.metadata == reference_payload.metadata
-            )
+            exact_match = (recovered_payload == reference_payload)
 
         return MediaRecoveryResult(
             recovered_payload=recovered_payload,
@@ -240,6 +411,7 @@ class MediaStegoPipeline:
         key: bytes,
         aad: Optional[bytes] = None,
         session_counter: int = 1,
+        version: int = CarrierHeader.VERSION_2,
     ) -> Tuple[MediaStegoResult, MediaRecoveryResult]:
         """Convenience method running the complete sender-to-receiver media pipeline."""
         stego_result = self.protect_and_embed(
@@ -248,6 +420,7 @@ class MediaStegoPipeline:
             key=key,
             aad=aad,
             session_counter=session_counter,
+            version=version,
         )
 
         recovery_result = self.extract_and_unprotect(
@@ -258,3 +431,56 @@ class MediaStegoPipeline:
         )
 
         return stego_result, recovery_result
+
+    def get_capacity_limits(
+        self,
+        subband_dim: Union[int, Tuple[int, int], Sequence[int]] = 256,
+        version: int = CarrierHeader.VERSION_2,
+    ) -> Dict[str, Any]:
+        """Returns non-sensitive operational capacity limits, ceilings, and format policies."""
+        ecc_parity = getattr(self.security_pipeline.ecc_encoder, "parity_symbols", 32)
+        raw_cap = CapacityCalculator.calculate_usable_secret_capacity(
+            metadata_len=0, subband_dim=subband_dim, rs_parity=ecc_parity, version=version
+        )
+        ref_cap = CapacityCalculator.calculate_usable_secret_capacity(
+            metadata_len=2, subband_dim=subband_dim, rs_parity=ecc_parity, version=version
+        )
+        sub_h, sub_w = (subband_dim[0], subband_dim[1]) if isinstance(subband_dim, (tuple, list)) else (subband_dim, subband_dim)
+        hdr_bytes = CapacityCalculator.get_header_bytes(version=version)
+        max_prot = (sub_h * sub_w // 8) - hdr_bytes
+        engine_backend = getattr(self.modulation_engine, "backend", "")
+        is_qualified = (ecc_parity == 48 and engine_backend == "onnx")
+        return {
+            "wire_protocol_version": version,
+            "header_wire_bytes": hdr_bytes,
+            "ecc_profile": f"rs_2t_{ecc_parity}",
+            "ecc_parity_symbols": ecc_parity,
+            "raw_secret_capacity_bytes": raw_cap,
+            "reference_metadata_capacity_bytes": ref_cap,
+            "max_protected_bytes": max_prot,
+            "is_qualified_deployment": is_qualified,
+            "carrier_format_policy": "Lossless 8-bit RGB PNG only. Lossy transcoded carriers (e.g. JPEG) are strictly unsupported.",
+            "operational_qualification_note": (
+                "Primary qualified deployment profile rs_2t_48 with native ONNX Runtime backend and Wire Protocol v2 Header ECC. "
+                "Reliable exact recovery across lossless payloads and robust against transform-domain quantization."
+                if is_qualified
+                else f"Legacy/unqualified profile (rs_2t_{ecc_parity}). Use create_qualified_deployment() for production."
+            ),
+        }
+
+
+def create_qualified_deployment_pipeline(
+    backend: str = "onnx",
+    onnx_dir: Optional[Union[str, Path]] = None,
+    checkpoint_path: Optional[Union[str, Path]] = None,
+    spatial_bridge: Optional[Any] = None,
+    crypto_provider: Optional[CryptoProvider] = None,
+) -> MediaStegoPipeline:
+    """Convenience factory creating the Phase 5B qualified deployment pipeline (rs_2t_48 + ONNX)."""
+    return MediaStegoPipeline.create_qualified_deployment(
+        backend=backend,
+        onnx_dir=onnx_dir,
+        checkpoint_path=checkpoint_path,
+        spatial_bridge=spatial_bridge,
+        crypto_provider=crypto_provider,
+    )

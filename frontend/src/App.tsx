@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { PipelineEvent, PipelineStage, StageStatus, DefaultFixtures } from './services/backendAdapter';
+import type {
+  PipelineEvent,
+  PipelineStage,
+  StageStatus,
+  DefaultFixtures,
+  BackendCapabilities,
+  SustainabilityMetrics,
+} from './services/backendAdapter';
 import { backend } from './services/backendAdapter';
 import { 
   Shield, 
@@ -11,9 +18,17 @@ import {
   CheckCircle2, 
   XCircle, 
   Lock, 
-  Layers, 
-  Zap
+  Zap,
+  Eye,
+  AlertTriangle,
+  Loader2,
+  Cpu,
+  Layers
 } from 'lucide-react';
+import { StegoInspectorModal, type DiagnosticsMetadata, type PixelDiffMetrics } from './components/StegoInspectorModal';
+import { DwtSubbandInspector } from './components/DwtSubbandInspector';
+import { SecretRecoveryModal } from './components/SecretRecoveryModal';
+import { SustainabilityWidget } from './components/SustainabilityWidget';
 
 type StageState = {
   status: StageStatus;
@@ -56,9 +71,11 @@ const STAGE_LABELS: Record<PipelineStage, string> = {
   "ERROR": "Pipeline Error",
 };
 
+export type RunLifecycleStatus = "IDLE" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+
 export default function App() {
   const [running, setRunning] = useState(false);
-  const [runStatus, setRunStatus] = useState<"IDLE" | "PROCESSING" | "SUCCESS" | "FAILED">("IDLE");
+  const [runStatus, setRunStatus] = useState<RunLifecycleStatus>("IDLE");
   const [stages, setStages] = useState<Record<PipelineStage, StageState>>(
     STAGES.reduce((acc, s) => ({ ...acc, [s]: { status: "waiting" } }), {} as any)
   );
@@ -69,10 +86,26 @@ export default function App() {
   const [secretPreview, setSecretPreview] = useState<string | null>(null);
   const [secretFilename, setSecretFilename] = useState<string>("No file chosen");
   const [secretBytesSize, setSecretBytesSize] = useState<number>(0);
+  const [secretDims, setSecretDims] = useState<{ width: number; height: number; format?: string } | null>(null);
 
   const [coverSessionId, setCoverSessionId] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFilename, setCoverFilename] = useState<string>("No file chosen");
+  const [coverDims, setCoverDims] = useState<{ width: number; height: number; format?: string; mode?: string } | null>(null);
+  const [isDatasetCustom, setIsDatasetCustom] = useState<boolean>(false);
+
+  // Dynamic capacity limits
+  const [capacityLimits, setCapacityLimits] = useState<{
+    raw_secret_capacity_bytes: number;
+    max_protected_bytes: number;
+    subband_width: number;
+    subband_height: number;
+  }>({
+    raw_secret_capacity_bytes: 8192,
+    max_protected_bytes: 8176,
+    subband_width: 256,
+    subband_height: 256,
+  });
 
   // Output artifacts
   const [stegoImage, setStegoImage] = useState<string | null>(null);
@@ -83,13 +116,52 @@ export default function App() {
   const [ssim, setSsim] = useState<number | null>(null);
   const [exactMatch, setExactMatch] = useState<boolean | null>(null);
 
+  // Diagnostic metadata & Run isolation
+  const [diagnostics, setDiagnostics] = useState<DiagnosticsMetadata | null>(null);
+  const [pixelDiffMetrics, setPixelDiffMetrics] = useState<PixelDiffMetrics | null>(null);
+  const [recoveredBytes, setRecoveredBytes] = useState<number>(0);
+  const [recoveredDims, setRecoveredDims] = useState<[number, number] | null>(null);
+  const [originalDims, setOriginalDims] = useState<[number, number] | null>(null);
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+
+  // Inspection Modals
+  const [isStegoInspectorOpen, setIsStegoInspectorOpen] = useState<boolean>(false);
+  const [isSecretRecoveryOpen, setIsSecretRecoveryOpen] = useState<boolean>(false);
+
   // Capacity metadata
   const [capacityInfo, setCapacityInfo] = useState<any>(null);
 
+  // Runtime Capabilities, Model Selection & Telemetry
+  const [capabilities, setCapabilities] = useState<BackendCapabilities | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>("neural_spatial_onnx");
+  const [selectedProtocolVersion, setSelectedProtocolVersion] = useState<number>(2);
+  const [telemetry, setTelemetry] = useState<SustainabilityMetrics | null>(null);
+
   const logRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Automatically load default verified fixtures on start
+  const addLog = (msg: string) => {
+    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+    setLogs(prev => [...prev, `[${timestamp}] ${msg}`]);
+  };
+
+  const loadCapabilities = () => {
+    backend.fetchCapabilities()
+      .then((caps: BackendCapabilities) => {
+        setCapabilities(caps);
+        if (caps.active_engine) {
+          setSelectedModel(caps.active_engine);
+        }
+        if (caps.default_protocol_version) {
+          setSelectedProtocolVersion(caps.default_protocol_version);
+        }
+        addLog(`Loaded backend capabilities: Model=${caps.active_engine}, Telemetry=${caps.telemetry.source} (${caps.telemetry.is_estimated ? "Estimated" : "Direct"})`);
+      })
+      .catch((err) => {
+        console.warn("Could not load backend capabilities:", err);
+      });
+  };
+
+  const loadBaselineFixtures = () => {
     backend.fetchDefaultFixtures()
       .then((fixtures: DefaultFixtures) => {
         if (fixtures.secret && fixtures.secret.data_url) {
@@ -97,17 +169,39 @@ export default function App() {
           setSecretPreview(fixtures.secret.data_url);
           setSecretFilename(fixtures.secret.name);
           setSecretBytesSize(fixtures.secret.size);
+          setSecretDims({
+            width: fixtures.secret.width || 24,
+            height: fixtures.secret.height || 24,
+            format: fixtures.secret.format || "PNG",
+          });
         }
         if (fixtures.cover && fixtures.cover.data_url) {
           setCoverSessionId(fixtures.cover.session_id);
           setCoverPreview(fixtures.cover.data_url);
           setCoverFilename(fixtures.cover.name);
+          const cW = fixtures.cover.width || 512;
+          const cH = fixtures.cover.height || 512;
+          setCoverDims({
+            width: cW,
+            height: cH,
+            format: fixtures.cover.format || "PNG",
+            mode: fixtures.cover.mode || "RGB",
+          });
+          setIsDatasetCustom(false);
+          backend.fetchCarrierCapacity(cW, cH)
+            .then(cap => setCapacityLimits(cap))
+            .catch(() => {});
         }
         addLog("Preloaded baseline fixtures: secret_small.png (24x24) & 0001x2.png (512x512)");
       })
       .catch((err) => {
         console.warn("Could not load default fixtures automatically:", err);
       });
+  };
+
+  useEffect(() => {
+    loadCapabilities();
+    loadBaselineFixtures();
   }, []);
 
   useEffect(() => {
@@ -116,22 +210,33 @@ export default function App() {
     }
   }, [logs]);
 
-  const addLog = (msg: string) => {
-    const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-    setLogs(prev => [...prev, `[${timestamp}] ${msg}`]);
-  };
-
   const handleSecretUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const maxUploadBytes = capabilities?.max_upload_size_bytes || (2 * 1024 * 1024);
+      if (file.size > maxUploadBytes) {
+        addLog(`ERROR: Secret file size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum upload limit of ${(maxUploadBytes / 1024 / 1024).toFixed(2)} MB.`);
+        return;
+      }
       setSecretFilename(file.name);
       setSecretBytesSize(file.size);
-      setSecretPreview(URL.createObjectURL(file));
+      const url = URL.createObjectURL(file);
+      setSecretPreview(url);
       addLog(`Selected secret media file: ${file.name} (${file.size} bytes)`);
+
+      const sImg = new Image();
+      sImg.onload = () => {
+        setSecretDims({ width: sImg.naturalWidth, height: sImg.naturalHeight });
+        addLog(`Secret image dimensions: ${sImg.naturalWidth}×${sImg.naturalHeight}`);
+      };
+      sImg.src = url;
 
       try {
         const uploadRes = await backend.uploadMedia(file);
         setSecretSessionId(uploadRes.session_id);
+        if (uploadRes.width && uploadRes.height) {
+          setSecretDims({ width: uploadRes.width, height: uploadRes.height, format: uploadRes.format });
+        }
         addLog(`Secret file uploaded to session ${uploadRes.session_id}`);
       } catch (err: any) {
         addLog(`ERROR: Failed to upload secret file: ${err.message}`);
@@ -142,13 +247,54 @@ export default function App() {
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const maxUploadBytes = capabilities?.max_upload_size_bytes || (2 * 1024 * 1024);
+      if (file.size > maxUploadBytes) {
+        addLog(`ERROR: Carrier file size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum upload limit of ${(maxUploadBytes / 1024 / 1024).toFixed(2)} MB.`);
+        return;
+      }
       setCoverFilename(file.name);
-      setCoverPreview(URL.createObjectURL(file));
+      const url = URL.createObjectURL(file);
+      setCoverPreview(url);
       addLog(`Selected cover carrier image: ${file.name} (${file.size} bytes)`);
+
+      const cImg = new Image();
+      cImg.onload = () => {
+        const w = cImg.naturalWidth;
+        const h = cImg.naturalHeight;
+        const maxDim = capabilities?.max_carrier_dimension || 512;
+
+        if (w > maxDim || h > maxDim) {
+          addLog(`ERROR: Carrier dimensions ${w}×${h} exceed maximum permitted ${maxDim}×${maxDim} for this deployment.`);
+          return;
+        }
+
+        setCoverDims({ width: w, height: h, format: "PNG", mode: "RGB" });
+        setIsDatasetCustom(true);
+        addLog(`Cover image dimensions: ${w}×${h} RGB`);
+
+        if (w < 32 || h < 32) {
+          addLog(`WARNING: Carrier dimensions ${w}×${h} are below minimum 32×32.`);
+        } else if (w % 2 !== 0 || h % 2 !== 0) {
+          addLog(`WARNING: Carrier dimensions ${w}×${h} are odd. DWT decomposition requires even dimensions.`);
+        } else {
+          backend.fetchCarrierCapacity(w, h)
+            .then(cap => {
+              setCapacityLimits(cap);
+              addLog(`Carrier capacity: ${cap.raw_secret_capacity_bytes.toLocaleString()} B raw, ${cap.max_protected_bytes.toLocaleString()} B max protected.`);
+            })
+            .catch(err => {
+              addLog(`Capacity calculation error: ${err.message}`);
+            });
+        }
+      };
+      cImg.src = url;
 
       try {
         const uploadRes = await backend.uploadMedia(file);
         setCoverSessionId(uploadRes.session_id);
+        if (uploadRes.width && uploadRes.height) {
+          setCoverDims({ width: uploadRes.width, height: uploadRes.height, format: uploadRes.format, mode: uploadRes.mode });
+        }
         addLog(`Cover file uploaded to session ${uploadRes.session_id}`);
       } catch (err: any) {
         addLog(`ERROR: Failed to upload cover file: ${err.message}`);
@@ -165,6 +311,15 @@ export default function App() {
     setSsim(null);
     setExactMatch(null);
     setCapacityInfo(null);
+    setDiagnostics(null);
+    setPixelDiffMetrics(null);
+    setTelemetry(null);
+    setRecoveredBytes(0);
+    setRecoveredDims(null);
+    setOriginalDims(null);
+    setActiveRunId(null);
+    setIsStegoInspectorOpen(false);
+    setIsSecretRecoveryOpen(false);
     setStages(STAGES.reduce((acc, s) => ({ ...acc, [s]: { status: "waiting" } }), {} as any));
   };
 
@@ -175,9 +330,9 @@ export default function App() {
     }
 
     setRunning(true);
-    setRunStatus("PROCESSING");
+    setRunStatus("RUNNING");
     resetOutputs();
-    addLog("--- RUN INITIALIZED: Post-Quantum Media Steganography Pipeline ---");
+    addLog(`--- RUN INITIALIZED: Model=${selectedModel}, Protocol=v${selectedProtocolVersion} ---`);
 
     backend.runMediaExperiment(
       secretSessionId,
@@ -197,63 +352,116 @@ export default function App() {
         }
 
         // Process artifacts from stage metadata
+        if (event.metadata?.run_id) {
+          setActiveRunId(event.metadata.run_id);
+        }
+        if (event.metadata?.telemetry) {
+          setTelemetry(event.metadata.telemetry);
+        }
         if (event.stage === "CAPACITY_CHECK" && event.metadata) {
           setCapacityInfo(event.metadata);
         }
-        if (event.stage === "DWT" && event.metadata?.subbands) {
-          setDwtSubbands(event.metadata.subbands);
+        if (event.stage === "DWT" && event.metadata) {
+          if (event.metadata.subbands) {
+            setDwtSubbands(event.metadata.subbands);
+          } else if (event.metadata.run_id) {
+            backend.fetchRunSubbands(event.metadata.run_id)
+              .then(subbands => setDwtSubbands(subbands))
+              .catch(() => {});
+          }
         }
-        if (event.stage === "EMBED" && event.metadata?.modified_hh) {
-          setModifiedHhImage(event.metadata.modified_hh);
+        if (event.stage === "EMBED" && event.metadata) {
+          if (event.metadata.modified_hh) setModifiedHhImage(event.metadata.modified_hh);
+          if (event.metadata.diagnostics) setDiagnostics(event.metadata.diagnostics);
         }
         if (event.stage === "IDWT" && event.metadata) {
-          if (event.metadata.stego_image) setStegoImage(event.metadata.stego_image);
-          if (event.metadata.psnr_db) setPsnr(event.metadata.psnr_db);
-          if (event.metadata.ssim) setSsim(event.metadata.ssim);
+          if (event.metadata.stego_image) {
+            setStegoImage(event.metadata.stego_image);
+          }
+          if (event.metadata.stego_session_id) {
+            backend.fetchSessionMedia(event.metadata.stego_session_id)
+              .then(url => setStegoImage(url))
+              .catch(() => {});
+          }
+          if (event.metadata.psnr_db !== undefined) setPsnr(event.metadata.psnr_db);
+          if (event.metadata.ssim !== undefined) setSsim(event.metadata.ssim);
+          if (event.metadata.pixel_diff_metrics) setPixelDiffMetrics(event.metadata.pixel_diff_metrics);
         }
-        if (event.stage === "SECRET_RECOVER" && event.metadata?.recovered_image) {
-          setRecoveredImage(event.metadata.recovered_image);
+        if (event.stage === "SECRET_RECOVER" && event.metadata) {
+          if (event.metadata.recovered_image) setRecoveredImage(event.metadata.recovered_image);
+          if (event.metadata.recovered_bytes) setRecoveredBytes(event.metadata.recovered_bytes);
+          if (event.metadata.recovered_dims) setRecoveredDims(event.metadata.recovered_dims);
+          if (event.metadata.original_dims) setOriginalDims(event.metadata.original_dims);
         }
         if (event.stage === "EXACT_MATCH_VERIFY" && event.metadata) {
-          setExactMatch(Boolean(event.metadata.exact_match));
+          const matched = Boolean(event.metadata.exact_match);
+          setExactMatch(matched);
+          if (event.metadata.telemetry) {
+            setTelemetry(event.metadata.telemetry);
+          }
+          setDiagnostics(prev => prev ? {
+            ...prev,
+            verification_status: matched ? "VERIFIED" : "FAILED",
+            exact_match: matched,
+          } : null);
+          if (matched) {
+            setRunStatus("COMPLETED");
+          }
         }
 
         if (event.status === "failed") {
+          setRunning(false);
           setRunStatus("FAILED");
+          setExactMatch(false);
           addLog(`PIPELINE TERMINATED: ${event.error || "Stage execution failed"}`);
+          setDiagnostics(prev => prev ? {
+            ...prev,
+            verification_status: "FAILED",
+            exact_match: false,
+          } : null);
+          // Invalidate stale outputs on failure to enforce run isolation
+          setStegoImage(null);
+          setRecoveredImage(null);
+          setPsnr(null);
+          setSsim(null);
+          setModifiedHhImage(null);
         }
       },
       () => {
         setRunning(false);
         setStages(prev => {
-          const isVerified = prev["EXACT_MATCH_VERIFY"].status === "complete";
+          const isVerified = prev["EXACT_MATCH_VERIFY"]?.status === "complete";
           const isFailed = Object.values(prev).some(s => s.status === "failed");
           if (isVerified) {
-            setRunStatus("SUCCESS");
+            setRunStatus("COMPLETED");
           } else if (isFailed) {
             setRunStatus("FAILED");
           } else {
-            setRunStatus("IDLE");
+            setRunStatus(r => (r === "FAILED" || r === "CANCELLED" ? r : "COMPLETED"));
           }
           return prev;
         });
         addLog("Execution cycle concluded.");
-      }
+      },
+      undefined,
+      selectedModel,
+      selectedProtocolVersion
     );
   };
 
   const handleCancel = () => {
     backend.cancel();
     setRunning(false);
-    setRunStatus("IDLE");
-    addLog("Run cancelled by operator.");
+    setRunStatus("CANCELLED");
+    resetOutputs();
+    addLog("Run cancelled by operator. Overlays and state cleared.");
   };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#ededed] flex flex-col font-sans select-none">
       
       {/* HEADER */}
-      <header className="border-b border-[#262626] bg-[#121212] px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-[#262626] bg-[#121212] px-6 py-4 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
         <div className="flex items-center space-x-3">
           <div className="w-8 h-8 rounded bg-primary/20 border border-primary/40 flex items-center justify-center">
             <Shield className="text-primary w-5 h-5" />
@@ -262,31 +470,84 @@ export default function App() {
             <div className="flex items-center space-x-2">
               <h1 className="text-lg font-bold tracking-wider font-mono">PALADINMEDIA</h1>
               <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-mono font-semibold">
-                PHASE 2
+                POST-QUANTUM NEURAL STEGANOGRAPHY
               </span>
             </div>
-            <p className="text-xs text-muted font-mono">SIGNAL PROCESSING + CARRIER INFRASTRUCTURE</p>
+            <p className="text-xs text-muted font-mono">ACS-Sub-INN v3 + Wavelet Core + Reed-Solomon GF(2^8)</p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-8 text-xs font-mono">
+        <div className="flex flex-wrap items-center gap-6 text-xs font-mono">
+          {/* Engine Selector */}
           <div className="flex flex-col">
-            <span className="text-muted text-[10px] uppercase">Dataset</span>
-            <span className="text-[#ededed] font-medium">MVP 0 Dataset v0.1 (512x512)</span>
+            <span className="text-muted text-[10px] uppercase flex items-center">
+              <Cpu className="w-3 h-3 mr-1 text-primary" /> Modulation Engine
+            </span>
+            <select
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              disabled={running}
+              aria-label="Modulation Engine"
+              className="bg-[#1a1a1a] border border-[#333] text-[#ededed] px-2 py-1 rounded text-xs font-mono focus:border-primary focus:outline-none"
+            >
+              <option value="neural_spatial_onnx">Neural Spatial ONNX (Qualified)</option>
+              <option value="acs_sub_inn_onnx">ACS-Sub-INN Subband ONNX</option>
+              <option value="acs_sub_inn_pytorch">ACS-Sub-INN PyTorch Ref</option>
+              <option value="parity_classical">Deterministic Parity (Phase 2)</option>
+            </select>
           </div>
+
+          {/* Protocol Version */}
           <div className="flex flex-col">
-            <span className="text-muted text-[10px] uppercase">Backend Host</span>
-            <span className="text-green-500 font-medium flex items-center">
-              <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>
-              PORT 8000 CONNECTED
+            <span className="text-muted text-[10px] uppercase flex items-center">
+              <Layers className="w-3 h-3 mr-1 text-cyan-400" /> Wire Protocol
+            </span>
+            <select
+              value={selectedProtocolVersion}
+              onChange={(e) => setSelectedProtocolVersion(Number(e.target.value))}
+              disabled={running || (capabilities?.supported_protocol_versions?.length ?? 1) <= 1}
+              aria-label="Wire Protocol"
+              className="bg-[#1a1a1a] border border-[#333] text-[#ededed] px-2 py-1 rounded text-xs font-mono focus:border-cyan-400 focus:outline-none"
+            >
+              {(capabilities?.supported_protocol_versions || [2]).map((v) => (
+                <option key={v} value={v}>
+                  Protocol v{v} {v === 2 ? "(RS(24,16) Qualified)" : "(Legacy)"}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col">
+            <span className="text-muted text-[10px] uppercase">Carrier Source</span>
+            <span className="text-[#ededed] font-medium">
+              {isDatasetCustom
+                ? `Custom Carrier (${coverDims ? `${coverDims.width}×${coverDims.height}` : "Dynamic"})`
+                : `Baseline Fixture (0001x2.png, 512×512)`}
             </span>
           </div>
+
+          {activeRunId && (
+            <div className="flex flex-col">
+              <span className="text-muted text-[10px] uppercase">Active Run</span>
+              <span className="text-primary font-medium truncate max-w-[120px]">{activeRunId}</span>
+            </div>
+          )}
+
+          <div className="flex flex-col">
+            <span className="text-muted text-[10px] uppercase">Backend Status</span>
+            <span className="text-green-500 font-medium flex items-center">
+              <span className="w-2 h-2 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>
+              {capabilities?.status === "OPERATIONAL" ? "OPERATIONAL (PORT 8000)" : "CONNECTED"}
+            </span>
+          </div>
+
           <div className="flex flex-col">
             <span className="text-muted text-[10px] uppercase">Run Status</span>
-            <span className={`font-semibold uppercase px-2 py-0.5 rounded text-center ${
-              runStatus === "SUCCESS" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
-              runStatus === "PROCESSING" ? "bg-primary/20 text-primary border border-primary/30 animate-pulse" :
+            <span className={`font-semibold uppercase px-2 py-0.5 rounded text-center text-xs ${
+              runStatus === "COMPLETED" ? "bg-green-500/20 text-green-400 border border-green-500/30" :
+              runStatus === "RUNNING" ? "bg-primary/20 text-primary border border-primary/30 animate-pulse" :
               runStatus === "FAILED" ? "bg-red-500/20 text-red-400 border border-red-500/30" :
+              runStatus === "CANCELLED" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
               "bg-[#1f1f1f] text-muted"
             }`}>
               {runStatus}
@@ -310,18 +571,10 @@ export default function App() {
               </h2>
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => {
-                    backend.fetchDefaultFixtures().then(fixtures => {
-                      setSecretSessionId(fixtures.secret.session_id);
-                      setSecretPreview(fixtures.secret.data_url);
-                      setSecretFilename(fixtures.secret.name);
-                      setSecretBytesSize(fixtures.secret.size);
-                      addLog("Loaded verified baseline test fixture (secret_small.png)");
-                    });
-                  }}
+                  onClick={loadBaselineFixtures}
                   className="text-[11px] bg-[#1a1a1a] hover:bg-[#262626] border border-[#333] px-2.5 py-1 rounded font-mono text-muted hover:text-[#ededed] transition-colors"
                 >
-                  Load Small Fixture (Fits)
+                  Reset Baseline Fixture (512×512)
                 </button>
               </div>
             </div>
@@ -333,9 +586,16 @@ export default function App() {
               <div className="border border-[#262626] rounded-lg p-3 bg-[#0d0d0d] flex flex-col relative group">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-mono font-semibold text-primary">1. SECRET MEDIA (PAYLOAD)</span>
-                  <span className="text-[10px] font-mono text-muted bg-[#1c1c1c] px-1.5 py-0.5 rounded">
-                    {secretBytesSize > 0 ? `${secretBytesSize} B` : "No media"}
-                  </span>
+                  <div className="flex items-center space-x-1.5">
+                    {secretDims && (
+                      <span className="text-[10px] font-mono text-primary bg-primary/10 border border-primary/20 px-1.5 py-0.5 rounded">
+                        {secretDims.width}×{secretDims.height}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-mono text-muted bg-[#1c1c1c] px-1.5 py-0.5 rounded">
+                      {secretBytesSize > 0 ? `${secretBytesSize} B` : "No media"}
+                    </span>
+                  </div>
                 </div>
                 <div className="h-44 border border-dashed border-[#2b2b2b] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707]">
                   {secretPreview ? (
@@ -358,7 +618,7 @@ export default function App() {
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-xs font-mono font-semibold text-[#888]">2. COVER MEDIA (CARRIER)</span>
                   <span className="text-[10px] font-mono text-muted bg-[#1c1c1c] px-1.5 py-0.5 rounded">
-                    512×512 RGB
+                    {coverDims ? `${coverDims.width}×${coverDims.height} ${coverDims.mode || "RGB"}` : "Dynamic RGB"}
                   </span>
                 </div>
                 <div className="h-44 border border-dashed border-[#2b2b2b] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707]">
@@ -367,7 +627,7 @@ export default function App() {
                   ) : (
                     <div className="text-center p-4">
                       <Upload className="w-6 h-6 text-muted mx-auto mb-1 group-hover:text-[#888] transition-colors" />
-                      <span className="text-xs text-muted block">Click to upload 512x512 carrier</span>
+                      <span className="text-xs text-muted block">Click to upload carrier (PNG, even dims)</span>
                     </div>
                   )}
                   <input type="file" onChange={handleCoverUpload} disabled={running} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
@@ -378,9 +638,26 @@ export default function App() {
               </div>
 
               {/* CARD 3: STEGO MEDIA */}
-              <div className="border border-[#262626] rounded-lg p-3 bg-[#0d0d0d] flex flex-col">
+              <div
+                onClick={() => {
+                  if (stegoImage) setIsStegoInspectorOpen(true);
+                }}
+                className={`border rounded-lg p-3 bg-[#0d0d0d] flex flex-col transition-all group ${
+                  stegoImage
+                    ? "border-green-500/40 hover:border-green-400 cursor-pointer shadow-sm hover:shadow-green-500/10"
+                    : "border-[#262626]"
+                }`}
+                title={stegoImage ? "Click to inspect actual embedding locations and pixel differences" : "Awaiting embedding"}
+              >
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-mono font-semibold text-green-400">3. STEGO MEDIA (RECONSTRUCTED)</span>
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-xs font-mono font-semibold text-green-400">3. STEGO MEDIA (RECONSTRUCTED)</span>
+                    {stegoImage && (
+                      <span className="text-[9px] bg-green-500/20 text-green-300 border border-green-500/30 px-1 py-0.2 rounded flex items-center font-mono">
+                        <Eye className="w-2.5 h-2.5 mr-0.5" /> INSPECT
+                      </span>
+                    )}
+                  </div>
                   {psnr !== null && (
                     <span className="text-[10px] font-mono text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded">
                       PSNR: {psnr} dB
@@ -389,7 +666,34 @@ export default function App() {
                 </div>
                 <div className="h-44 border border-[#2b2b2b] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707]">
                   {stegoImage ? (
-                    <img src={stegoImage} alt="Stego" className="max-h-full max-w-full object-contain p-2" />
+                    <>
+                      <img src={stegoImage} alt="Stego" className="max-h-full max-w-full object-contain p-2" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity backdrop-blur-[1px]">
+                        <span className="text-xs font-mono bg-black/85 border border-primary/50 text-primary px-3 py-1.5 rounded flex items-center shadow-lg font-bold">
+                          <Eye className="w-3.5 h-3.5 mr-1.5" /> Open Stego Inspector (5 Views)
+                        </span>
+                      </div>
+                    </>
+                  ) : runStatus === "RUNNING" ? (
+                    <div className="text-center p-4 text-muted">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto mb-1 text-primary" />
+                      <span className="text-xs block font-mono">Generating stego container...</span>
+                    </div>
+                  ) : runStatus === "COMPLETED" || psnr !== null ? (
+                    <div className="text-center p-4 text-green-400 font-mono">
+                      <CheckCircle2 className="w-6 h-6 mx-auto mb-1 text-green-400" />
+                      <span className="text-xs block">Stego Container Ready ({coverDims?.width || 512}×{coverDims?.height || 512})</span>
+                    </div>
+                  ) : runStatus === "FAILED" ? (
+                    <div className="text-center p-4 text-red-400 font-mono">
+                      <AlertTriangle className="w-6 h-6 mx-auto mb-1 text-red-500 opacity-60" />
+                      <span className="text-xs block">Embedding Failed</span>
+                    </div>
+                  ) : runStatus === "CANCELLED" ? (
+                    <div className="text-center p-4 text-muted font-mono">
+                      <Lock className="w-6 h-6 mx-auto mb-1 opacity-40" />
+                      <span className="text-xs block">Run Cancelled</span>
+                    </div>
                   ) : (
                     <div className="text-center p-4 text-muted">
                       <Lock className="w-6 h-6 mx-auto mb-1 opacity-40" />
@@ -421,6 +725,21 @@ export default function App() {
                 <div className="h-44 border border-[#2b2b2b] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707]">
                   {recoveredImage ? (
                     <img src={recoveredImage} alt="Recovered Secret" className="max-h-full max-w-full object-contain p-2" />
+                  ) : runStatus === "RUNNING" ? (
+                    <div className="text-center p-4 text-muted">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto mb-1 text-cyan-400" />
+                      <span className="text-xs block font-mono">Extracting & verifying secret...</span>
+                    </div>
+                  ) : runStatus === "FAILED" ? (
+                    <div className="text-center p-4 text-red-400 font-mono">
+                      <XCircle className="w-6 h-6 mx-auto mb-1 text-red-500 opacity-60" />
+                      <span className="text-xs block">Recovery Incomplete / Failed</span>
+                    </div>
+                  ) : runStatus === "CANCELLED" ? (
+                    <div className="text-center p-4 text-muted font-mono">
+                      <Zap className="w-6 h-6 mx-auto mb-1 opacity-40" />
+                      <span className="text-xs block">Run Cancelled</span>
+                    </div>
                   ) : (
                     <div className="text-center p-4 text-muted">
                       <Zap className="w-6 h-6 mx-auto mb-1 opacity-40" />
@@ -428,14 +747,37 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                <div className="mt-2 text-[11px] font-mono text-muted">
-                  Status: <span className={exactMatch ? "text-green-400 font-semibold" : "text-[#ededed]"}>
-                    {exactMatch === true ? "VERBATIM EQUALITY VERIFIED" : exactMatch === false ? "VERIFICATION FAILED" : "STANDBY"}
+                <div className="mt-2 flex items-center justify-between text-[11px] font-mono text-muted">
+                  <span>
+                    Status: <span className={exactMatch ? "text-green-400 font-semibold" : "text-[#ededed]"}>
+                      {exactMatch === true ? "100% BYTE EQUALITY" : exactMatch === false ? "VERIFICATION FAILED" : "STANDBY"}
+                    </span>
                   </span>
+                  {recoveredImage && (
+                    <button
+                      onClick={() => setIsSecretRecoveryOpen(true)}
+                      className="text-[10px] text-primary hover:text-primary/80 font-semibold underline flex items-center"
+                    >
+                      Compare Side-by-Side
+                    </button>
+                  )}
                 </div>
               </div>
 
             </div>
+
+            {/* CAPACITY WARNING IF PAYLOAD EXCEEDS CARRIER LIMIT */}
+            {secretBytesSize > capacityLimits.max_protected_bytes && (
+              <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start space-x-2.5 font-mono text-xs text-red-400">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0 text-red-400 mt-0.5" />
+                <div>
+                  <strong className="block text-red-300">Payload Exceeds Carrier Capacity</strong>
+                  <span>
+                    Selected secret payload ({secretBytesSize.toLocaleString()} B) exceeds maximum protected capacity ({capacityLimits.max_protected_bytes.toLocaleString()} B) for this {coverDims?.width || 512}×{coverDims?.height || 512} carrier. Pipeline embedding will be rejected by the hard capacity gate. Select a larger carrier or smaller secret payload.
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* ACTION CONTROLS */}
             <div className="mt-5 pt-4 border-t border-[#262626] flex items-center justify-between">
@@ -455,49 +797,24 @@ export default function App() {
                   disabled={running}
                   className="px-5 py-2 text-xs font-mono font-semibold bg-primary hover:bg-primary/90 text-white rounded disabled:opacity-40 flex items-center shadow-sm"
                 >
-                  <Play className="w-3.5 h-3.5 mr-1.5 fill-current" /> RUN PHASE 2 PIPELINE
+                  <Play className="w-3.5 h-3.5 mr-1.5 fill-current" /> RUN STEGANOGRAPHY PIPELINE
                 </button>
               </div>
             </div>
           </div>
 
-          {/* REAL DWT SUBBAND VISUALIZER */}
-          <div className="bg-[#121212] border border-[#262626] rounded-xl p-5 shadow-sm">
-            <div className="flex justify-between items-center mb-3">
-              <h2 className="text-sm font-semibold tracking-wide flex items-center text-muted uppercase font-mono">
-                <Layers className="w-4 h-4 mr-2 text-primary" />
-                DWT Subband Transform Inspection (Actual Coefficients)
-              </h2>
-              <span className="text-[10px] font-mono text-muted">1-Level 2D Haar (256x256 per band)</span>
-            </div>
+          {/* REAL DWT SUBBAND VISUALIZER & TRANSFORM INSPECTOR */}
+          <DwtSubbandInspector
+            dwtSubbands={dwtSubbands}
+            modifiedHhImage={modifiedHhImage}
+            coverImageUrl={coverPreview}
+            stegoImageUrl={stegoImage}
+            diagnostics={diagnostics}
+            activeRunId={activeRunId}
+          />
 
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-              {["LL", "LH", "HL", "HH"].map((band) => (
-                <div key={band} className="border border-[#262626] rounded bg-[#0a0a0a] p-2 flex flex-col items-center">
-                  <span className="text-[11px] font-mono font-semibold mb-1 text-muted">Subband: {band}</span>
-                  <div className="w-full aspect-square bg-[#050505] rounded border border-[#1f1f1f] flex items-center justify-center overflow-hidden">
-                    {dwtSubbands && dwtSubbands[band] ? (
-                      <img src={dwtSubbands[band]} alt={band} className="w-full h-full object-cover" />
-                    ) : (
-                      <span className="text-[10px] font-mono text-[#333]">NOT LOADED</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {/* MODIFIED HH' */}
-              <div className="border border-primary/30 rounded bg-[#0a0a0a] p-2 flex flex-col items-center">
-                <span className="text-[11px] font-mono font-semibold mb-1 text-primary">Modified HH' (Stego)</span>
-                <div className="w-full aspect-square bg-[#050505] rounded border border-primary/20 flex items-center justify-center overflow-hidden">
-                  {modifiedHhImage ? (
-                    <img src={modifiedHhImage} alt="Modified HH" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-[10px] font-mono text-[#333]">NOT EMBEDDED</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* SUSTAINABILITY & GREEN COMPUTING TELEMETRY */}
+          <SustainabilityWidget telemetry={telemetry} isRunning={running} />
 
           {/* CAPACITY HARD GATE INSPECTOR */}
           <div className="bg-[#121212] border border-[#262626] rounded-xl p-5 shadow-sm">
@@ -520,17 +837,27 @@ export default function App() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 font-mono text-xs mb-3">
               <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
                 <span className="text-[10px] text-muted block uppercase">Raw Bit Budget</span>
-                <span className="text-sm font-bold text-[#ededed]">8,192 B</span>
-                <span className="text-[9px] text-muted block mt-0.5">256×256 bits = 1 HH channel</span>
+                <span className="text-sm font-bold text-[#ededed]">
+                  {capacityLimits.raw_secret_capacity_bytes.toLocaleString()} B
+                </span>
+                <span className="text-[9px] text-muted block mt-0.5">
+                  {capacityLimits.subband_width}×{capacityLimits.subband_height} bits = 1 HH channel
+                </span>
               </div>
               <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
                 <span className="text-[10px] text-muted block uppercase">Max Protected</span>
-                <span className="text-sm font-bold text-[#ededed]">8,176 B</span>
-                <span className="text-[9px] text-muted block mt-0.5">8,192 B - 16B Carrier Header</span>
+                <span className="text-sm font-bold text-[#ededed]">
+                  {capacityLimits.max_protected_bytes.toLocaleString()} B
+                </span>
+                <span className="text-[9px] text-muted block mt-0.5">
+                  {capacityLimits.raw_secret_capacity_bytes.toLocaleString()} B - 16B Carrier Header
+                </span>
               </div>
               <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
                 <span className="text-[10px] text-muted block uppercase">Usable Plaintext</span>
-                <span className="text-sm font-bold text-primary">~7,088 B</span>
+                <span className="text-sm font-bold text-primary">
+                  ~{Math.max(0, capacityLimits.max_protected_bytes - 48 - 28 - 100).toLocaleString()} B
+                </span>
                 <span className="text-[9px] text-muted block mt-0.5">After RS parity + AES + Wire</span>
               </div>
               <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
@@ -538,23 +865,29 @@ export default function App() {
                 <span className={`text-sm font-bold ${
                   capacityInfo && !capacityInfo.fits ? "text-red-400" : "text-[#ededed]"
                 }`}>
-                  {capacityInfo ? `${capacityInfo.protected_payload_bytes} B` : "-- B"}
+                  {capacityInfo ? `${capacityInfo.protected_payload_bytes} B` : (secretBytesSize > 0 ? `${secretBytesSize} B (raw)` : "-- B")}
                 </span>
                 <span className="text-[9px] text-muted block mt-0.5">
-                  {capacityInfo ? `Remaining: ${capacityInfo.remaining_capacity_bytes} B` : "Awaiting check"}
+                  {capacityInfo ? `Remaining: ${capacityInfo.remaining_capacity_bytes} B` : (secretBytesSize > 0 ? `Max: ${capacityLimits.max_protected_bytes.toLocaleString()} B` : "Awaiting check")}
                 </span>
               </div>
             </div>
 
             {/* Capacity Visual Progress Bar */}
             <div className="w-full bg-[#1c1c1c] h-2 rounded-full overflow-hidden border border-[#2b2b2b]">
-              <div 
+              <div
                 className={`h-full transition-all duration-500 ${
-                  capacityInfo && !capacityInfo.fits ? "bg-red-500" : "bg-primary"
+                  capacityInfo && !capacityInfo.fits
+                    ? "bg-red-500"
+                    : secretBytesSize > capacityLimits.max_protected_bytes
+                    ? "bg-red-500"
+                    : "bg-primary"
                 }`}
                 style={{
-                  width: capacityInfo 
-                    ? `${Math.min(100, (capacityInfo.protected_payload_bytes / capacityInfo.max_protected_bytes) * 100)}%` 
+                  width: capacityInfo
+                    ? `${Math.min(100, (capacityInfo.protected_payload_bytes / capacityInfo.max_protected_bytes) * 100)}%`
+                    : secretBytesSize > 0
+                    ? `${Math.min(100, (secretBytesSize / capacityLimits.max_protected_bytes) * 100)}%`
                     : "0%"
                 }}
               />
@@ -600,7 +933,15 @@ export default function App() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
-                        <span className={`font-semibold ${textCol}`}>{idx + 1}. {STAGE_LABELS[s]}</span>
+                        <span className={`font-semibold ${textCol}`}>
+                          {idx + 1}. {
+                            s === "EMBED"
+                              ? (selectedModel === "parity_classical" ? "Deterministic Parity Embedding" : "ACS-Sub-INN Neural Modulation")
+                              : s === "EXTRACT"
+                              ? (selectedModel === "parity_classical" ? "Header & Payload Extraction" : "ACS-Sub-INN Neural Extraction")
+                              : STAGE_LABELS[s]
+                          }
+                        </span>
                         <span className={`text-[10px] uppercase font-bold ${textCol}`}>{state.status}</span>
                       </div>
                       {state.message && (
@@ -631,6 +972,33 @@ export default function App() {
         </div>
 
       </main>
+
+      {/* STEGO-MEDIA EMBEDDING INSPECTOR MODAL */}
+      <StegoInspectorModal
+        isOpen={isStegoInspectorOpen}
+        onClose={() => setIsStegoInspectorOpen(false)}
+        stegoImageUrl={stegoImage}
+        coverImageUrl={coverPreview}
+        diagnostics={diagnostics}
+        pixelDiffMetrics={pixelDiffMetrics}
+        psnr={psnr}
+        ssim={ssim}
+      />
+
+      {/* SECRET RECOVERY VERIFICATION MODAL */}
+      <SecretRecoveryModal
+        isOpen={isSecretRecoveryOpen}
+        onClose={() => setIsSecretRecoveryOpen(false)}
+        originalImageUrl={secretPreview}
+        recoveredImageUrl={recoveredImage}
+        originalFilename={secretFilename}
+        originalBytes={secretBytesSize}
+        recoveredBytes={recoveredBytes}
+        originalDims={originalDims}
+        recoveredDims={recoveredDims}
+        exactMatch={exactMatch}
+      />
+
     </div>
   );
 }

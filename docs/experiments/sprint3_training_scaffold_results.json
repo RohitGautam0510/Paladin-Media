@@ -1,0 +1,146 @@
+{
+  "metadata": {
+    "sprint": "Phase 3 Sprint 3 \u2014 Loss Function and Training Scaffold",
+    "date": "2026-10-19",
+    "training_authorized": false,
+    "training_step_executed": true,
+    "optimizer_step_executed": false,
+    "model_architecture": "ACS-Sub-INN v3 (Frozen)",
+    "gamma_min": 1.0,
+    "device": "cuda",
+    "cuda_available": true
+  },
+  "reproducibility": {
+    "seed": 42,
+    "deterministic": true,
+    "cuda_configured": true,
+    "python_seeded": true,
+    "numpy_seeded": true,
+    "torch_seeded": true
+  },
+  "dataset_split_boundary_audit": {
+    "train_images": 600,
+    "val_images": 100,
+    "test_images": 100,
+    "held_out_test_protection_verified": true
+  },
+  "loss_and_gradient_verification": {
+    "loss_breakdown": {
+      "total_loss": 27.35245704650879,
+      "loss_bit": 0.2025868445634842,
+      "loss_ctx": 53.388038635253906,
+      "loss_gain": 1.269608497619629,
+      "loss_img": 4.4315595626831055,
+      "lambda_bit": 1.0,
+      "lambda_ctx": 0.5,
+      "lambda_gain": 0.01,
+      "lambda_img": 0.1
+    },
+    "total_grad_norm": 129.42257690429688,
+    "context_predictor_mean_grad_norm": 0.07700480310347757,
+    "adaptive_gain_mean_grad_norm": 0.04566841460714007,
+    "max_param_grad": 23.82339859008789,
+    "all_gradients_finite": true,
+    "parameters_unmodified_verified": true
+  },
+  "clipping_diagnostic": {
+    "min_val_raw": -23.989063262939453,
+    "max_val_raw": 275.03558349609375,
+    "num_clipped_total": 16,
+    "clip_fraction": 0.0013020833333333333,
+    "boundary_pixel_fraction": 0.0013834635416666667,
+    "saturation_penalty_l1": 0.011103476397693157
+  },
+  "checkpoint_verification": {
+    "checkpoint_path": "checkpoints\\sprint3_smoke\\synthetic_smoke_checkpoint.pt",
+    "checkpoint_type": "SYNTHETIC_SMOKE_TEST_ARTIFACT",
+    "training_authorized": false,
+    "reloaded_and_verified": true
+  },
+  "gate_governance_catalog": {
+    "pre_ecc_ber_png": {
+      "name": "Pre-ECC Bit Error Rate (Lossless PNG)",
+      "target_threshold": "BER <= 1.0e-3 (0.1%)",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Permissible pre-ECC demodulation bit error rate through lossless PNG roundtrip."
+    },
+    "post_ecc_ber": {
+      "name": "Post-ECC Bit Error Rate",
+      "target_threshold": "BER == 0.000000 (100% exact)",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Verbatim payload recovery after Reed-Solomon RS(255, 223) decoding."
+    },
+    "exact_plaintext_match": {
+      "name": "Verbatim Plaintext Match",
+      "target_threshold": "recovered_payload.data == secret.data (100%)",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Exact byte-for-byte identity of decrypted payload after AES-GCM tag verification."
+    },
+    "rs_codeword_headroom": {
+      "name": "Reed-Solomon Codeword Error Headroom",
+      "target_threshold": "symbol_errors <= 16 per 255-byte block",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Maximum observed symbol errors per RS block must remain strictly within t=16 limit."
+    },
+    "aes_gcm_tag_validity": {
+      "name": "AES-GCM Authentication Tag Validity",
+      "target_threshold": "100% valid tags (0 verification failures)",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Fail-closed security property ensuring zero plaintext leakage on any tampering."
+    },
+    "stego_psnr_png": {
+      "name": "Stego Visual Fidelity (PSNR, Lossless PNG)",
+      "target_threshold": "PSNR >= 60.0 dB",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Peak signal-to-noise ratio of stego carrier against original cover."
+    },
+    "stego_ssim_png": {
+      "name": "Stego Structural Similarity (SSIM, Lossless PNG)",
+      "target_threshold": "SSIM >= 0.9995",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Structural similarity index of stego carrier against cover."
+    },
+    "capacity_usable_512": {
+      "name": "Usable Payload Capacity (512x512 Carrier)",
+      "target_threshold": ">= 6,000 B plaintext (7,000 B protected)",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Minimum secret payload capacity supported on single 512x512 carrier."
+    },
+    "capacity_fail_closed": {
+      "name": "Fail-Closed Capacity Gate",
+      "target_threshold": "Strict rejection above 8,176 B protected",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Hard gate preventing buffer overflows or unmodulated carrier truncation."
+    },
+    "gpu_vram_peak": {
+      "name": "Peak GPU VRAM Usage",
+      "target_threshold": "<= 512 MB for 1024x1024 carrier",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Maximum working set memory during inference."
+    },
+    "inference_latency": {
+      "name": "Inference Latency",
+      "target_threshold": "<= 250 ms on target desktop GPU",
+      "classification": "EXISTING_PROJECT_GATE",
+      "description": "Total forward embedding time (DWT + INN + IDWT)."
+    },
+    "loss_composition_weights": {
+      "name": "Composite Loss Weighting",
+      "target_threshold": "lambda_bit=1.0, ctx=0.5, gain=0.01, img=0.1",
+      "classification": "PROPOSED_UNVALIDATED",
+      "description": "Candidate hyperparameter weights requiring empirical calibration in future sprints."
+    },
+    "clipping_diagnostic_metric": {
+      "name": "Pre-Clamp Out-of-Range Fraction",
+      "target_threshold": "Monitored (Diagnostic Only)",
+      "classification": "DIAGNOSTIC_ONLY",
+      "description": "Diagnostic metric monitoring fraction of pixels exceeding [0, 255]."
+    },
+    "lossy_jpeg_channel": {
+      "name": "Lossy Channel Robustness (JPEG Q=80)",
+      "target_threshold": "Post-ECC BER == 0.0 at Q=80",
+      "classification": "PROPOSED_UNVALIDATED",
+      "description": "Target robustness capability to be trained with differentiable channel surrogates."
+    }
+  }
+}

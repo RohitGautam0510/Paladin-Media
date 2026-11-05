@@ -1,25 +1,32 @@
-"""Carrier capacity accounting and hard-gate verification for PaladinMedia Phase 2.
+"""Carrier capacity accounting and hard-gate verification for PaladinMedia.
 
-Implements explicit capacity accounting per Architecture §10.2 and Sprint-0 IRS §6.4:
+Implements explicit capacity accounting per Architecture §10.2 and Wire Protocol v2:
 - 512x512 RGB carrier with 1-level 2D Haar DWT has 256x256 HH subband per channel.
-- MVP 0 allocation: exactly 1 HH channel (Red channel) at 1 bit per coefficient position.
+- Allocation: 1 HH channel (Red channel) at 1 bit per coefficient position.
 - Raw capacity: 256 * 256 = 65,536 bits = 8,192 bytes.
-- Carrier Header: 16 bytes.
-- Maximum Protected Payload Capacity: 8,192 - 16 = 8,176 bytes.
-- Maximum Usable Plaintext Capacity: ~7,088 bytes after RS parity (32 blocks), AES-GCM (28B),
-  and SecretSerializer framing (18B).
+- Wire Protocol v2 Carrier Header: 24 bytes (16 data + 8 RS parity).
+- Maximum Protected Payload Capacity (v2): 8,192 - 24 = 8,168 bytes.
+- Legacy Wire Protocol v1 Carrier Header: 16 bytes.
+- Maximum Protected Payload Capacity (v1): 8,192 - 16 = 8,176 bytes.
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Sequence, Tuple, Union
 
 try:
     from src.core.exceptions import PaladinSecurityError
 except ImportError:
     from core.exceptions import PaladinSecurityError  # type: ignore[no-redef]
+
+
+def resolve_subband_dims(subband_dim: Union[int, Tuple[int, int], Sequence[int]]) -> Tuple[int, int]:
+    """Resolves subband dimensions into a (subband_h, subband_w) tuple."""
+    if isinstance(subband_dim, (tuple, list)):
+        return int(subband_dim[0]), int(subband_dim[1])
+    return int(subband_dim), int(subband_dim)
 
 
 class PayloadCapacityExceededError(PaladinSecurityError, ValueError):
@@ -33,13 +40,14 @@ class CapacityReport:
 
     Attributes:
         raw_capacity_bytes: Total bit budget in bytes for 1 HH channel (8,192).
-        carrier_header_bytes: Fixed steganographic carrier header size in bytes (16).
-        max_protected_bytes: Maximum allowed Reed-Solomon protected payload (8,176).
+        carrier_header_bytes: Steganographic carrier header size in bytes (24 for v2, 16 for v1).
+        max_protected_bytes: Maximum allowed Reed-Solomon protected payload (8,168 for v2, 8,176 for v1).
         protected_payload_bytes: Actual size of the protected payload to be embedded.
-        usable_capacity_bytes: Estimated maximum secret plaintext capacity (~7,088).
+        usable_capacity_bytes: Maximum application secret plaintext data capacity with 0 metadata bytes.
         remaining_capacity_bytes: Remaining space in the carrier in bytes.
         fits: True if protected payload fits within carrier capacity; False otherwise.
         status: "FITS" or "EXCEEDS_CAPACITY".
+        reference_metadata_capacity_bytes: Reference usable application secret capacity with 2-byte minimal metadata.
     """
     raw_capacity_bytes: int
     carrier_header_bytes: int
@@ -49,6 +57,7 @@ class CapacityReport:
     remaining_capacity_bytes: int
     fits: bool
     status: str
+    reference_metadata_capacity_bytes: Optional[int] = None
 
     def to_dict(self) -> dict:
         return {
@@ -57,6 +66,7 @@ class CapacityReport:
             "max_protected_bytes": self.max_protected_bytes,
             "protected_payload_bytes": self.protected_payload_bytes,
             "usable_capacity_bytes": self.usable_capacity_bytes,
+            "reference_metadata_capacity_bytes": self.reference_metadata_capacity_bytes,
             "remaining_capacity_bytes": self.remaining_capacity_bytes,
             "fits": self.fits,
             "status": self.status,
@@ -64,133 +74,150 @@ class CapacityReport:
 
 
 class CapacityCalculator:
-    """Calculates and enforces transform-domain carrier capacity."""
+    """Calculates and enforces transform-domain carrier capacity across wire versions."""
 
     # 256 * 256 positions at 1 bit per coefficient
     RAW_CAPACITY_BITS: int = 256 * 256  # 65,536 bits
     RAW_CAPACITY_BYTES: int = RAW_CAPACITY_BITS // 8  # 8,192 bytes
-    CARRIER_HEADER_BYTES: int = 16  # 16 bytes = 128 bits
-    MAX_PROTECTED_BYTES: int = RAW_CAPACITY_BYTES - CARRIER_HEADER_BYTES  # 8,176 bytes
+
+    # Header sizing
+    CARRIER_HEADER_BYTES_V1: int = 16  # 16 bytes = 128 bits
+    CARRIER_HEADER_BYTES_V2: int = 24  # 24 bytes = 192 bits (16 data + 8 RS parity)
+    CARRIER_HEADER_BYTES: int = 24     # Wire Protocol v2 default
+
+    MAX_PROTECTED_BYTES_V1: int = RAW_CAPACITY_BYTES - CARRIER_HEADER_BYTES_V1  # 8,176 bytes
+    MAX_PROTECTED_BYTES_V2: int = RAW_CAPACITY_BYTES - CARRIER_HEADER_BYTES_V2  # 8,168 bytes
+    MAX_PROTECTED_BYTES: int = MAX_PROTECTED_BYTES_V2                          # 8,168 bytes
 
     # Baseline reference constants for 1 HH channel
-    RS_K: int = 223  # RS data symbols per block
+    RS_K: int = 223  # RS data symbols per block (2t=32)
     RS_PARITY: int = 32  # RS parity symbols per block
     RS_LENGTH_PREFIX: int = 4  # RS 4-byte length prefix
     AES_OVERHEAD: int = 12 + 16  # 12B nonce + 16B GHASH tag = 28 bytes
     SERIALIZER_BASE_FRAMING: int = 18  # 10B prefix + 4B len + 4B CRC32 = 18 bytes
+    resolve_subband_dims = staticmethod(resolve_subband_dims)
+
+    @classmethod
+    def get_header_bytes(cls, version: int = 2) -> int:
+        """Returns header wire byte allocation for the requested wire version."""
+        return cls.CARRIER_HEADER_BYTES_V2 if version == 2 else cls.CARRIER_HEADER_BYTES_V1
 
     @classmethod
     def calculate_usable_secret_capacity(
         cls,
         metadata_len: Optional[int] = None,
-        subband_dim: int = 256,
+        subband_dim: Union[int, Tuple[int, int], Sequence[int]] = 256,
         include_shortened_blocks: bool = True,
+        rs_parity: int = 32,
+        version: int = 2,
+        header_bytes: Optional[int] = None,
     ) -> int:
         """Derives the maximum usable secret plaintext capacity.
-
-        Accounting:
-            raw_positions = subband_dim * subband_dim
-            raw_bytes = raw_positions // 8 (8,192 B for 512x512; 32,768 B for 1024x1024)
-            max_protected = raw_bytes - 16 (8,176 B for 512x512; 32,752 B for 1024x1024)
-            avail_for_blocks = max_protected - 4 (8,172 B for 512x512; 32,748 B for 1024x1024)
-            full_blocks = avail_for_blocks // 255 (32 for 512x512; 128 for 1024x1024)
-            remainder = avail_for_blocks % 255 (12 for 512x512; 108 for 1024x1024)
-
-            In systematic RS(255, 223), parity is 32 bytes per block.
-            Shortened blocks require d data bytes + 32 parity bytes (1 <= d <= 222).
-            - At 512x512: remainder = 12 < 33, so 0 data bytes can fit in a partial block.
-            - At 1024x1024: remainder = 108 >= 33, so 108 - 32 = 76 data bytes can fit in a 129th partial block.
-
-            If include_shortened_blocks is True (actual shortened RS encoder capability, default):
-                max_encrypted = full_blocks * 223 + max(0, remainder - 32)
-                    512x512: 32 * 223 + 0 = 7,136 B
-                    1024x1024: 128 * 223 + 76 = 28,620 B
-                max_serialized = max_encrypted - 28
-                    512x512: 7,108 B
-                    1024x1024: 28,592 B
-                usable_secret (metadata_len=0):
-                    512x512: 7,090 B
-                    1024x1024: 28,574 B
-                usable_secret (metadata_len=2):
-                    512x512: 7,088 B
-                    1024x1024: 28,572 B
-
-            If include_shortened_blocks is False (conservative full-block floor baseline):
-                max_encrypted = full_blocks * 223
-                    512x512: 32 * 223 = 7,136 B
-                    1024x1024: 128 * 223 = 28,544 B
-                max_serialized = max_encrypted - 28
-                    512x512: 7,108 B
-                    1024x1024: 28,516 B
-                usable_secret (metadata_len=0):
-                    512x512: 7,090 B
-                    1024x1024: 28,498 B
-                usable_secret (metadata_len=2, reference minimal JSON):
-                    512x512: 7,088 B
-                    1024x1024: 28,496 B
 
         Args:
             metadata_len: Length in bytes of the JSON metadata string. If None, defaults to 2
                           (reference metadata baseline).
-            subband_dim: Subband dimension (256 for 512x512, 512 for 1024x1024).
+            subband_dim: Subband dimension (int for square, or (sub_h, sub_w) tuple).
             include_shortened_blocks: If True (default), accounts for shortened RS blocks fitting in
-                                      the carrier remainder. If False, counts full blocks only
-                                      for conservative baseline parity.
+                                      the carrier remainder. If False, counts full blocks only.
+            rs_parity: Reed-Solomon parity symbol count per block (2t; default 32).
+            version: Wire protocol version (2 for v2; 1 for v1).
+            header_bytes: Optional explicit header byte size override.
         """
-        # Default to 2 bytes (standard reference metadata) to match Sprint-0 baseline (7,088 B)
         meta_len = 2 if metadata_len is None else metadata_len
-        raw_bits = subband_dim * subband_dim
+        sub_h, sub_w = resolve_subband_dims(subband_dim)
+        raw_bits = sub_h * sub_w
         raw_bytes = raw_bits // 8
-        max_protected = raw_bytes - cls.CARRIER_HEADER_BYTES
+        hdr_bytes = cls.get_header_bytes(version=version) if header_bytes is None else header_bytes
+        max_protected = max(0, raw_bytes - hdr_bytes)
         avail_for_blocks = max_protected - cls.RS_LENGTH_PREFIX
+        if avail_for_blocks <= 0:
+            return 0
         num_full_blocks = avail_for_blocks // 255
         remainder = avail_for_blocks % 255
 
-        partial_data = max(0, remainder - cls.RS_PARITY) if include_shortened_blocks else 0
-        max_encrypted = num_full_blocks * cls.RS_K + partial_data
+        rs_k = 255 - rs_parity
+        partial_data = max(0, remainder - rs_parity) if include_shortened_blocks else 0
+        max_encrypted = num_full_blocks * rs_k + partial_data
         max_serialized = max_encrypted - cls.AES_OVERHEAD
         usable_secret = max_serialized - cls.SERIALIZER_BASE_FRAMING - meta_len
         return max(0, usable_secret)
 
     @classmethod
-    def evaluate(cls, protected_payload_bytes: int, subband_dim: int = 256) -> CapacityReport:
+    def evaluate(
+        cls,
+        protected_payload_bytes: int,
+        subband_dim: Union[int, Tuple[int, int], Sequence[int]] = 256,
+        rs_parity: int = 32,
+        version: int = 2,
+        header_bytes: Optional[int] = None,
+    ) -> CapacityReport:
         """Evaluates capacity without throwing an exception.
 
         Args:
             protected_payload_bytes: Total byte length of the Reed-Solomon protected stream.
-            subband_dim: Subband dimension (256 for 512x512, 512 for 1024x1024).
+            subband_dim: Subband dimension (int for square or (sub_h, sub_w) tuple).
+            rs_parity: RS parity symbols per block (2t; default 32).
+            version: Wire protocol version (2 for v2; 1 for v1).
+            header_bytes: Optional explicit header byte size override.
 
         Returns:
             CapacityReport detailing allocation and whether it fits.
         """
-        raw_bits = subband_dim * subband_dim
+        sub_h, sub_w = resolve_subband_dims(subband_dim)
+        raw_bits = sub_h * sub_w
         raw_bytes = raw_bits // 8
-        max_protected = raw_bytes - cls.CARRIER_HEADER_BYTES
-        total_required = protected_payload_bytes + cls.CARRIER_HEADER_BYTES
+        hdr_bytes = cls.get_header_bytes(version=version) if header_bytes is None else header_bytes
+        max_protected = max(0, raw_bytes - hdr_bytes)
+        total_required = protected_payload_bytes + hdr_bytes
         remaining = raw_bytes - total_required
         fits = protected_payload_bytes <= max_protected
         usable_capacity = cls.calculate_usable_secret_capacity(
-            metadata_len=0, subband_dim=subband_dim, include_shortened_blocks=True
+            metadata_len=0,
+            subband_dim=subband_dim,
+            include_shortened_blocks=True,
+            rs_parity=rs_parity,
+            version=version,
+            header_bytes=hdr_bytes,
+        )
+        reference_capacity = cls.calculate_usable_secret_capacity(
+            metadata_len=2,
+            subband_dim=subband_dim,
+            include_shortened_blocks=True,
+            rs_parity=rs_parity,
+            version=version,
+            header_bytes=hdr_bytes,
         )
 
         return CapacityReport(
             raw_capacity_bytes=raw_bytes,
-            carrier_header_bytes=cls.CARRIER_HEADER_BYTES,
+            carrier_header_bytes=hdr_bytes,
             max_protected_bytes=max_protected,
             protected_payload_bytes=protected_payload_bytes,
             usable_capacity_bytes=usable_capacity,
             remaining_capacity_bytes=remaining if fits else 0,
             fits=fits,
             status="FITS" if fits else "EXCEEDS_CAPACITY",
+            reference_metadata_capacity_bytes=reference_capacity,
         )
 
     @classmethod
-    def check_capacity(cls, protected_payload_bytes: int, subband_dim: int = 256) -> CapacityReport:
+    def check_capacity(
+        cls,
+        protected_payload_bytes: int,
+        subband_dim: Union[int, Tuple[int, int], Sequence[int]] = 256,
+        rs_parity: int = 32,
+        version: int = 2,
+        header_bytes: Optional[int] = None,
+    ) -> CapacityReport:
         """Enforces capacity as a hard gate, raising PayloadCapacityExceededError on failure.
 
         Args:
             protected_payload_bytes: Total byte length of the Reed-Solomon protected stream.
-            subband_dim: Subband dimension (256 for 512x512, 512 for 1024x1024).
+            subband_dim: Subband dimension (int for square or (sub_h, sub_w) tuple).
+            rs_parity: RS parity symbols per block (2t; default 32).
+            version: Wire protocol version (2 for v2; 1 for v1).
+            header_bytes: Optional explicit header byte size override.
 
         Returns:
             CapacityReport if capacity check passes.
@@ -198,13 +225,19 @@ class CapacityCalculator:
         Raises:
             PayloadCapacityExceededError: If protected payload exceeds maximum carrier capacity.
         """
-        report = cls.evaluate(protected_payload_bytes, subband_dim=subband_dim)
+        report = cls.evaluate(
+            protected_payload_bytes,
+            subband_dim=subband_dim,
+            rs_parity=rs_parity,
+            version=version,
+            header_bytes=header_bytes,
+        )
         if not report.fits:
             usable_ref = max(0, report.usable_capacity_bytes - 2)
             raise PayloadCapacityExceededError(
                 f"PAYLOAD_CAPACITY_EXCEEDED: Protected payload ({protected_payload_bytes} B) "
                 f"exceeds maximum carrier capacity ({report.max_protected_bytes} B). "
                 f"Usable capacity is {report.usable_capacity_bytes} B (with 0 metadata bytes, or "
-                f"{usable_ref} B with 2B reference metadata). Embedding aborted."
+                f"{usable_ref} B with 2B reference metadata) under RS parity {rs_parity} and Wire Protocol v{version}. Embedding aborted."
             )
         return report

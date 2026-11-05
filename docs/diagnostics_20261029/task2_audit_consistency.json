@@ -1,0 +1,183 @@
+{
+  "count_checks": {
+    "total_records": 100,
+    "onnx_q_exact_matches": {
+      "sum_from_records": 95,
+      "summary_reported": 95,
+      "summary_pct": 95.0,
+      "consistent": true
+    },
+    "onnx_q_aes_authenticated": {
+      "sum_from_records": 95,
+      "summary_reported_pct": 95.0,
+      "consistent": true
+    },
+    "onnx_q_payload_rs_success": {
+      "sum_from_records": 99,
+      "summary_reported_pct": 99.0,
+      "consistent": true
+    },
+    "onnx_q_header_intact": {
+      "sum_from_records": 95,
+      "summary_reported_pct": 95.0,
+      "consistent": true
+    },
+    "baseline_exact_matches": {
+      "sum_from_records": 95,
+      "summary_reported": 95,
+      "consistent": true
+    },
+    "baseline_rs_success": {
+      "sum_from_records": 99,
+      "summary_reported_pct": 99.0,
+      "consistent": true
+    },
+    "pytorch_exact_matches": {
+      "sum_from_records": 95,
+      "summary_reported_pct": 95.0,
+      "consistent": true
+    }
+  },
+  "failed_reconciliation": {
+    "0715.png": {
+      "image_id": 715,
+      "filename": "0715.png",
+      "psnr_db": 53.57534864790498,
+      "ssim": 0.9999671245566196,
+      "payload_ber": 0.004086709310589908,
+      "header_bit_errors": 5,
+      "header_intact": false,
+      "header_error_msg": null,
+      "rs_max_codeword_error": 11,
+      "rs_per_codeword_errors": [
+        6,
+        9,
+        10,
+        7,
+        11,
+        3
+      ],
+      "exceeded_t24_budget": false,
+      "exceeded_t16_budget": false,
+      "payload_rs_decode_success_rs48": true,
+      "payload_rs_decode_success_rs32": true,
+      "receiver_error": "CarrierHeaderError: Unsupported ECC profile in carrier header flags: 0x05",
+      "receiver_exact_byte_match": false,
+      "receiver_aes_authenticated": false,
+      "earliest_failure_point": "HEADER_CORRUPTION",
+      "compound_category": "HEADER_ONLY_FAILURE (Header Corrupted; Payload Within t=24 Budget)"
+    },
+    "0774.png": {
+      "image_id": 774,
+      "filename": "0774.png",
+      "psnr_db": 54.08146053649271,
+      "ssim": 0.9999786815189465,
+      "payload_ber": 0.01003909026297086,
+      "header_bit_errors": 3,
+      "header_intact": false,
+      "header_error_msg": null,
+      "rs_max_codeword_error": 26,
+      "rs_per_codeword_errors": [
+        26,
+        21,
+        23,
+        13,
+        17,
+        8
+      ],
+      "exceeded_t24_budget": true,
+      "exceeded_t16_budget": true,
+      "payload_rs_decode_success_rs48": false,
+      "payload_rs_decode_success_rs32": false,
+      "receiver_error": "MaskGenerationError: Requested payload bits (41954280) exceeds available positions (65408)",
+      "receiver_exact_byte_match": false,
+      "receiver_aes_authenticated": false,
+      "earliest_failure_point": "HEADER_CORRUPTION",
+      "compound_category": "DUAL_FAILURE (Header Corrupted AND Payload Exceeded t=24)"
+    },
+    "0777.png": {
+      "image_id": 777,
+      "filename": "0777.png",
+      "psnr_db": 54.233350201485536,
+      "ssim": 0.9999744446491726,
+      "payload_ber": 0.00550817341862118,
+      "header_bit_errors": 1,
+      "header_intact": false,
+      "header_error_msg": null,
+      "rs_max_codeword_error": 14,
+      "rs_per_codeword_errors": [
+        14,
+        6,
+        13,
+        13,
+        8,
+        5
+      ],
+      "exceeded_t24_budget": false,
+      "exceeded_t16_budget": false,
+      "payload_rs_decode_success_rs48": true,
+      "payload_rs_decode_success_rs32": true,
+      "receiver_error": "ECCDecodeError: Reed-Solomon decoding failed in block 1/6: uncorrectable symbol errors exceed capacity",
+      "receiver_exact_byte_match": false,
+      "receiver_aes_authenticated": false,
+      "earliest_failure_point": "HEADER_CORRUPTION",
+      "compound_category": "HEADER_ONLY_FAILURE (Header Corrupted; Payload Within t=24 Budget)"
+    },
+    "0785.png": {
+      "image_id": 785,
+      "filename": "0785.png",
+      "psnr_db": 52.65042127415005,
+      "ssim": 0.999927023222108,
+      "payload_ber": 0.007995735607675906,
+      "header_bit_errors": 1,
+      "header_intact": false,
+      "header_error_msg": null,
+      "rs_max_codeword_error": 18,
+      "rs_per_codeword_errors": [
+        12,
+        15,
+        11,
+        13,
+        16,
+        18
+      ],
+      "exceeded_t24_budget": false,
+      "exceeded_t16_budget": true,
+      "payload_rs_decode_success_rs48": true,
+      "payload_rs_decode_success_rs32": true,
+      "receiver_error": "ECCDecodeError: Reed-Solomon decoding failed in block 1/6: uncorrectable symbol errors exceed capacity",
+      "receiver_exact_byte_match": false,
+      "receiver_aes_authenticated": false,
+      "earliest_failure_point": "HEADER_CORRUPTION",
+      "compound_category": "HEADER_ONLY_FAILURE (Header Corrupted; Payload Within t=24 Budget)"
+    },
+    "0795.png": {
+      "image_id": 795,
+      "filename": "0795.png",
+      "psnr_db": 52.394911051899726,
+      "ssim": 0.9999730608203027,
+      "payload_ber": 0.00017768301350390902,
+      "header_bit_errors": 3,
+      "header_intact": false,
+      "header_error_msg": null,
+      "rs_max_codeword_error": 1,
+      "rs_per_codeword_errors": [
+        0,
+        0,
+        1,
+        0,
+        0,
+        1
+      ],
+      "exceeded_t24_budget": false,
+      "exceeded_t16_budget": false,
+      "payload_rs_decode_success_rs48": true,
+      "payload_rs_decode_success_rs32": true,
+      "receiver_error": "ECCDecodeError: Reed-Solomon decoding failed in block 1/6: uncorrectable symbol errors exceed capacity",
+      "receiver_exact_byte_match": false,
+      "receiver_aes_authenticated": false,
+      "earliest_failure_point": "HEADER_CORRUPTION",
+      "compound_category": "HEADER_ONLY_FAILURE (Header Corrupted; Payload Within t=24 Budget)"
+    }
+  }
+}

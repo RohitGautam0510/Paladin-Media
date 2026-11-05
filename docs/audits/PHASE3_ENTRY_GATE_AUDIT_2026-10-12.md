@@ -79,8 +79,9 @@ An exhaustive, repository-grounded Phase 3 Entry-Gate Audit was conducted across
 | **E11** | Combined Capacity Frontier | Multi-dataset synthesis | Mapped 5 defensible operating configurations | **VERIFIED** | `docs/experiments/e11_results.json`<br>`docs/experiments/E11_combined_capacity_frontier.md` |
 | **E12** | Continuous Payload Sweep | DIV2K HR `0001.png` (512 & 1024) | Monotonic logarithmic decay; 99.85% & 100.0%; hard gate | **VERIFIED** | `docs/experiments/e12_results.json`<br>`docs/experiments/E12_payload_distortion_sweep.md` |
 | **E13** | Multi-Carrier Repeatability | 5 HR images, 2 sizes, 3 tiers, 3 seeds | 90 runs; $\text{BER}=0.0$, $\text{std}<0.06\text{ dB}$, exact recovery 90/90 | **VERIFIED** | `docs/experiments/e13_results.json`<br>`docs/experiments/E13_carrier_repeatability_generalization.md` |
-| **Gap A** | Lossy Channel Robustness | JPEG $Q \in [70, 95]$, Resize, Noise | No empirical tests executed | **OPEN / UNEXECUTED** | *None (Pending E14)* |
-| **Gap B** | Steganalysis Detectability | Cover/stego classification (SRM) | No empirical tests executed | **OPEN / UNEXECUTED** | *None (Pending E15)* |
+| **E14** | Classical Channel Degradation Baseline | 11 Channels (PNG, JPEG $Q \in [70, 100]$, Noise $\sigma \in [0.5, 2.0]$) | 220 runs; PNG: 100% exact; JPEG/Noise: 0.0% recovery (header corrupted) | **VERIFIED (Narrow Scope)** | `docs/experiments/e14_results.json`<br>`docs/experiments/E14_lossy_channel_degradation.md` |
+| **Gap A** | Geometric & Resizing Transformations | Spatial downscaling/upscaling, cropping, rotation | No empirical tests executed | **OPEN / UNEXECUTED** | *Untested in Phase 2* |
+| **Gap B** | Steganalysis Detectability Baseline | Cover/stego classification (SRM, SPAM) | No empirical tests executed | **OPEN / UNEXECUTED** | *Untested in Phase 2 (Future E15)* |
 
 ---
 
@@ -100,6 +101,7 @@ An exhaustive, repository-grounded Phase 3 Entry-Gate Audit was conducted across
 | **E11** | `scripts/experiments/run_e11.py` | `docs/experiments/e11_results.json` | `docs/experiments/E11_combined_capacity_frontier.md` | `tests/integration/test_pipeline.py` |
 | **E12** | `scripts/experiments/run_e12.py` | `docs/experiments/e12_results.json` | `docs/experiments/E12_payload_distortion_sweep.md` | `tests/unit/test_carrier_capacity.py` |
 | **E13** | `scripts/experiments/run_e13.py` | `docs/experiments/e13_results.json` | `docs/experiments/E13_carrier_repeatability_generalization.md` | `tests/unit/test_carrier_capacity.py` |
+| **E14** | `scripts/experiments/run_e14.py` | `docs/experiments/e14_results.json` | `docs/experiments/E14_lossy_channel_degradation.md` | `tests/integration/test_media_pipeline.py` |
 | **Capacity Core** | `src/carrier/capacity.py` | N/A | Documented in `capacity.py` docstrings | `tests/unit/test_carrier_capacity.py` |
 | **ECC Core** | `src/security/ecc/encoder.py` | N/A | Architecture §10.2 | `tests/unit/test_ecc.py` |
 | **Crypto Core** | `src/security/crypto/provider.py` | N/A | Architecture §6.2 | `tests/unit/test_crypto.py` |
@@ -185,26 +187,28 @@ $$\begin{aligned}
 
 ---
 
-## 7. Open Classical-Baseline Gaps
+## 7. Classical-Baseline Channel Status & Open Gaps
 
-Prior to beginning neural training, the classical baseline program has two unexecuted empirical gaps:
+### 7.1 E14 Baseline Characterization — Lossy JPEG & Gaussian Noise (CLOSED Within Documented Scope)
+- **Status:** **VERIFIED & CLOSED (Within Documented Scope, 2026-10-12).**
+- **Empirical Scope:** 220 experimental runs across 5 DIV2K HR images (`0001.png`–`0005.png`), 2 spatial resolutions ($512\times512, 1024\times1024$), 2 payload tiers (Low, Medium), and 11 channel conditions:
+  - Lossless PNG control: 20/20 exact recoveries ($100\%$, $\text{BER}=0.0$).
+  - JPEG recompression ($Q \in \{100, 95, 90, 85, 80, 75, 70\}$): 0/140 recoveries ($0.0\%$, raw parity BER $\approx 47.6\% - 49.9\%$).
+  - Additive Gaussian noise ($\sigma \in \{0.5, 1.0, 2.0\}$, deterministic seed 42): 0/60 recoveries ($0.0\%$, raw parity BER $\approx 49.1\% - 50.2\%$).
+- **Subsystem Finding:** In 100% of lossy and noisy runs (200/200), extraction failed at the uncorrected 16-byte carrier header (`CarrierHeaderError`), halting before downstream Reed-Solomon decoding or AES-GCM decryption could be exercised.
+- **Canonical Artifacts:** [`scripts/experiments/run_e14.py`](file:///E:/Paladin_media/scripts/experiments/run_e14.py), [`docs/experiments/e14_results.json`](file:///E:/Paladin_media/docs/experiments/e14_results.json), [`docs/experiments/E14_lossy_channel_degradation.md`](file:///E:/Paladin_media/docs/experiments/E14_lossy_channel_degradation.md).
 
-### 7.1 Gap A — Lossy-Channel & Container Degradation (Pending E14)
-- **Status:** **OPEN / UNEXECUTED.**
-- **Problem:** Classical 1 bpc integer-parity embedding operates on algebraic coefficient parities in the uncompressed integer spatial domain. Any lossy compression (such as JPEG DCT quantization), spatial downsampling, or additive channel noise perturbs spatial pixel values, causing high-frequency parity desynchronization and symbol corruption.
-- **Why It Matters:** The fundamental justification for introducing Phase 3 ACS-Sub-INN neural steganography is to provide robustness against lossy distribution channels. Without a quantified failure frontier for the classical baseline, the project cannot prove that the neural network provides superior resilience.
-- **Recommended Experimental Protocol:**
-  - *Cover Carriers:* Native center crops of DIV2K HR images (`0001.png`–`0005.png`) at $512\times512$ and $1024\times1024$.
-  - *Transformations:*
-    1. Controlled JPEG recompression sweep: $Q \in \{100, 95, 90, 85, 80, 75, 70\}$.
-    2. Spatial resizing: downscale by factor $s \in \{0.9, 0.75, 0.5\}$ with bilinear/bicubic interpolation, then restore.
-    3. Additive Gaussian noise: zero-mean Gaussian noise $\sigma \in \{1, 2, 5, 10\}$.
-  - *Metrics to Record:* Carrier BER, symbol error count per RS block, Reed-Solomon decoding outcome (`Success` vs. `ECCDecodeError`), AES-GCM tag verification (`Valid` vs. `InvalidTag`), end-to-end exact byte match, PSNR, SSIM.
-  - *Control:* Lossless PNG save and reload.
+### 7.2 Gap A — Geometric Transformations & Spatial Resizing (OPEN / UNEXECUTED)
+- **Status:** **OPEN / UNEXECUTED (Untested in Phase 2 / E14).**
+- **Problem:** E14 evaluated only JPEG compression and additive Gaussian noise. It did not test spatial resizing (downscaling, upscaling, interpolation), geometric transformations (cropping, rotation, shearing, translation), screenshot/screen-capture pipelines, or social-media re-encoding.
+- **Why It Matters:** Coordinate synchronization and spatial interpolation remain unquantified failure modes for classical wavelet carrier embedding.
+- **Future Protocol:**
+  - *Spatial resizing:* downscale by factor $s \in \{0.9, 0.75, 0.5\}$ with bilinear/bicubic interpolation, then restore.
+  - *Geometric:* center cropping, $\pm 1^\circ$ rotation, translation.
 
-### 7.2 Gap B — Steganalysis Detectability Baseline (Pending E15)
-- **Status:** **OPEN / UNEXECUTED.**
-- **Problem:** Neither Phase 2 synthesis nor E13 evaluated statistical detectability. High PSNR ($> 62\text{ dB}$) proves low visual distortion, but does not prove resistance against statistical feature extraction (e.g., Spatial Rich Models / SRM, SPAM, or histogram variance).
+### 7.3 Gap B — Steganalysis Detectability Baseline (OPEN / UNEXECUTED)
+- **Status:** **OPEN / UNEXECUTED (Untested in Phase 2).**
+- **Problem:** Neither Phase 2 synthesis, E13, nor E14 evaluated statistical detectability. High PSNR ($> 62\text{ dB}$) proves low visual distortion, but does not prove resistance against statistical feature extraction (e.g., Spatial Rich Models / SRM, SPAM, or histogram variance).
 - **Why It Matters:** A neural steganography system could achieve higher capacity or JPEG robustness while severely increasing statistical detectability due to non-sparse residual artifacts. A baseline detectability score for classical parity embedding is required.
 - **Recommended Experimental Protocol:**
   - *Dataset:* Balanced 100 cover images vs. 100 stego images from DIV2K HR.

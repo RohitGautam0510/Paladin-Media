@@ -1,0 +1,33 @@
+{
+  "metadata": {
+    "experiment": "Phase 6 Experiment 3 \u2014 Boundary-Aware Training Objective and Texture Weighting Assessment",
+    "timestamp": "2026-10-30 16:22:43 UTC",
+    "checkpoint_sha256": "32bfad806dbfcf057359c5f2f84a716832b88d43e9566ec331d0566ad446c4ee"
+  },
+  "train_subset_metrics": {
+    "split": "train_subset_0001_0020",
+    "carrier_count": 20,
+    "mean_boundary_loss": 0.0071,
+    "mean_clipped_low": 367.0,
+    "mean_clipped_high": 1182.9,
+    "mean_min_raw": -2.72,
+    "mean_max_raw": 256.41,
+    "mean_context_loss": 0.5722,
+    "mean_texture_weighted_context_loss": 13.4058,
+    "mean_boundary_grad_norm_context": 0.0888,
+    "mean_boundary_grad_norm_gain": 0.1105
+  },
+  "val_subset_metrics": {
+    "split": "val_subset_0601_0620",
+    "carrier_count": 20,
+    "mean_boundary_loss": 0.0475,
+    "mean_clipped_low": 4531.4,
+    "mean_clipped_high": 2003.8,
+    "mean_min_raw": -9.1,
+    "mean_max_raw": 266.43,
+    "mean_context_loss": 0.8824,
+    "mean_texture_weighted_context_loss": 35.0177,
+    "mean_boundary_grad_norm_context": 0.6178,
+    "mean_boundary_grad_norm_gain": 0.5021
+  }
+}

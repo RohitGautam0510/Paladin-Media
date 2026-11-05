@@ -21,8 +21,55 @@ export interface PipelineEvent {
   stage: PipelineStage;
   status: StageStatus;
   message?: string;
-  metadata?: any;
+  metadata?: any & {
+    telemetry?: SustainabilityMetrics;
+  };
   error?: string;
+}
+
+export interface SustainabilityMetrics {
+  run_id: string;
+  execution_time_ms: number;
+  cpu_utilization_percent: number;
+  memory_rss_mb: number;
+  memory_delta_mb: number;
+  estimated_power_watts: number;
+  energy_kwh: number;
+  co2_emissions_grams: number;
+  is_estimated: boolean;
+  telemetry_source: string;
+  timestamp: number;
+}
+
+export interface EngineCapability {
+  id: string;
+  name: string;
+  description: string;
+  status: string;
+  is_default: boolean;
+}
+
+export interface BackendCapabilities {
+  status: string;
+  system_title: string;
+  subtitle: string;
+  active_engine: string;
+  available_engines: EngineCapability[];
+  default_protocol_version: number;
+  supported_protocol_versions: number[];
+  ecc_profile: string;
+  supported_ecc_profiles: string[];
+  telemetry: {
+    available: boolean;
+    source: string;
+    is_estimated: boolean;
+    metrics_tracked: string[];
+  };
+  pipeline_stages: { id: PipelineStage; name: string; domain: string }[];
+  onnx_models_verified: boolean;
+  max_upload_size_bytes: number;
+  max_carrier_dimension: number;
+  max_carrier_pixels: number;
 }
 
 export interface DefaultFixtures {
@@ -31,77 +78,314 @@ export interface DefaultFixtures {
     data_url: string;
     name: string;
     size: number;
+    width?: number;
+    height?: number;
+    format?: string;
+    mode?: string;
   };
   cover: {
     session_id: string;
     data_url: string;
     name: string;
     size: number;
+    width?: number;
+    height?: number;
+    format?: string;
+    mode?: string;
   };
 }
 
+export interface CarrierCapacityInfo {
+  carrier_width: number;
+  carrier_height: number;
+  subband_width: number;
+  subband_height: number;
+  ecc_profile: string;
+  ecc_parity_symbols: number;
+  carrier_format_policy: string;
+  raw_secret_capacity_bytes: number;
+  reference_metadata_capacity_bytes: number;
+  max_protected_bytes: number;
+  is_qualified_deployment: boolean;
+  operational_qualification_note: string;
+}
+
+const getDefaultBaseUrl = (): string => {
+  try {
+    if (typeof import.meta !== "undefined" && (import.meta as any).env && (import.meta as any).env.VITE_API_BASE_URL) {
+      return (import.meta as any).env.VITE_API_BASE_URL;
+    }
+  } catch {
+    // Ignore environments where import.meta is unavailable
+  }
+
+  if (typeof window !== "undefined" && window.location) {
+    const { protocol, hostname, port } = window.location;
+    if (port !== "5173" && port !== "3000") {
+      return `${protocol}//${hostname}${port ? `:${port}` : ""}`;
+    }
+  }
+
+  return "http://localhost:8000";
+};
+
 export class BackendAdapter {
-  private eventSource: EventSource | null = null;
+  private baseUrl: string = getDefaultBaseUrl();
+  private abortController: AbortController | null = null;
+  private apiToken: string | null = null;
+
+  setBaseUrl(url: string) {
+    this.baseUrl = url.replace(/\/+$/, "");
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
+  setApiToken(token: string | null) {
+    this.apiToken = token;
+  }
+
+  private getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+    const headers: Record<string, string> = { ...extraHeaders };
+    if (this.apiToken) {
+      headers["Authorization"] = `Bearer ${this.apiToken}`;
+    }
+    return headers;
+  }
 
   async fetchDefaultFixtures(): Promise<DefaultFixtures> {
-    const res = await fetch("http://localhost:8000/api/fixtures/defaults");
+    const res = await fetch(`${this.baseUrl}/api/fixtures/defaults`, {
+      headers: this.getHeaders(),
+    });
     if (!res.ok) throw new Error("Failed to load default fixtures");
     return res.json();
   }
 
-  async uploadMedia(file: File): Promise<{ session_id: string; size: number; filename: string }> {
+  async uploadMedia(file: File): Promise<{
+    session_id: string;
+    size: number;
+    filename: string;
+    width?: number;
+    height?: number;
+    format?: string;
+    mode?: string;
+  }> {
     const formData = new FormData();
     formData.append("file", file);
-    const res = await fetch("http://localhost:8000/api/upload", {
+    const res = await fetch(`${this.baseUrl}/api/upload`, {
       method: "POST",
+      headers: this.getHeaders(),
       body: formData,
     });
     if (!res.ok) throw new Error("Media upload failed");
     return res.json();
   }
 
-  runMediaExperiment(
+  async fetchCarrierCapacity(width: number, height: number): Promise<CarrierCapacityInfo> {
+    const res = await fetch(`${this.baseUrl}/api/carrier/capacity?width=${width}&height=${height}`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) {
+      let msg = "Failed to fetch carrier capacity";
+      try {
+        const j = await res.json();
+        if (j.detail) msg = j.detail;
+      } catch {
+        // ignore
+      }
+      throw new Error(msg);
+    }
+    return res.json();
+  }
+
+  async fetchConfig(width?: number, height?: number): Promise<any> {
+    const params = new URLSearchParams();
+    if (width) params.set("width", width.toString());
+    if (height) params.set("height", height.toString());
+    const query = params.toString() ? `?${params.toString()}` : "";
+    const res = await fetch(`${this.baseUrl}/api/config${query}`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to fetch backend configuration");
+    return res.json();
+  }
+
+  async fetchSessionMedia(sessionId: string): Promise<string> {
+    const res = await fetch(`${this.baseUrl}/api/session/${sessionId}`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to fetch session media: ${res.status}`);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  }
+
+  async fetchRunSubbands(runId: string): Promise<Record<string, string>> {
+    const res = await fetch(`${this.baseUrl}/api/runs/${runId}/subbands`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error(`Failed to fetch run subbands: ${res.status}`);
+    const data = await res.json();
+    return data.subbands;
+  }
+
+  async fetchCapabilities(): Promise<BackendCapabilities> {
+    const res = await fetch(`${this.baseUrl}/api/capabilities`, {
+      headers: this.getHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to fetch backend capabilities");
+    return res.json();
+  }
+
+  async runMediaExperiment(
     secretSessionId: string,
     coverSessionId: string | null,
     onEvent: (event: PipelineEvent) => void,
-    onComplete: () => void
-  ) {
-    if (this.eventSource) {
-      this.eventSource.close();
-    }
+    onComplete: () => void,
+    keyHex?: string,
+    modelName?: string,
+    version?: number
+  ): Promise<void> {
+    this.cancel();
 
-    const coverParam = coverSessionId ? `&cover_session_id=${encodeURIComponent(coverSessionId)}` : "";
-    const url = `http://localhost:8000/api/stream?secret_session_id=${encodeURIComponent(secretSessionId)}${coverParam}`;
-    this.eventSource = new EventSource(url);
+    this.abortController = new AbortController();
+    const signal = this.abortController.signal;
 
-    this.eventSource.onmessage = (e) => {
-      try {
-        const data: PipelineEvent = JSON.parse(e.data);
-        onEvent(data);
-        if (data.status === "failed" || data.stage === "EXACT_MATCH_VERIFY" || data.stage === "ERROR") {
-          this.eventSource?.close();
-          onComplete();
+    try {
+      const res = await fetch(`${this.baseUrl}/api/stream`, {
+        method: "POST",
+        headers: this.getHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          secret_session_id: secretSessionId,
+          cover_session_id: coverSessionId || undefined,
+          key_hex: keyHex || undefined,
+          model_name: modelName || undefined,
+          version: version || 2,
+        }),
+        signal,
+      });
+
+      if (!res.ok) {
+        let errDetail = `Stream request failed with status ${res.status}`;
+        try {
+          const errJson = await res.json();
+          if (errJson.detail) errDetail = errJson.detail;
+        } catch {
+          // Non-JSON error
         }
-      } catch (err) {
-        console.error("Failed to parse event", err);
+        onEvent({
+          stage: "ERROR",
+          status: "failed",
+          error: errDetail,
+        });
+        onComplete();
+        return;
       }
-    };
 
-    this.eventSource.onerror = (e) => {
-      console.error("SSE Connection Error", e);
+      const reader = res.body?.getReader();
+      if (!reader) {
+        throw new Error("Streaming response body is not readable");
+      }
+
+      const onAbort = () => {
+        try {
+          reader.cancel();
+        } catch {
+          // ignore
+        }
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+
+      const decoder = new TextDecoder("utf-8");
+      let buffer = "";
+      let terminalComplete = false;
+      let terminalFailed = false;
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const parts = buffer.split("\n\n");
+          buffer = parts.pop() || "";
+
+          for (const part of parts) {
+            const trimmed = part.trim();
+            if (!trimmed) continue;
+            for (const line of trimmed.split("\n")) {
+              if (line.startsWith("data: ")) {
+                try {
+                  const data: PipelineEvent = JSON.parse(line.slice(6));
+                  onEvent(data);
+
+                  // Only recognize EXACT_MATCH_VERIFY with status "complete" as terminal completion
+                  if (data.stage === "EXACT_MATCH_VERIFY" && data.status === "complete") {
+                    terminalComplete = true;
+                    this.cancel();
+                    onComplete();
+                    return;
+                  }
+
+                  if (data.status === "failed" || data.stage === "ERROR") {
+                    terminalFailed = true;
+                    this.cancel();
+                    onComplete();
+                    return;
+                  }
+                } catch (parseErr) {
+                  terminalFailed = true;
+                  onEvent({
+                    stage: "ERROR",
+                    status: "failed",
+                    error: "Malformed event data received from pipeline stream.",
+                  });
+                  this.cancel();
+                  onComplete();
+                  return;
+                }
+              }
+            }
+          }
+        }
+      } finally {
+        signal.removeEventListener("abort", onAbort);
+      }
+
+      // If user aborted cleanly, do not dispatch error or completion
+      if (signal.aborted) {
+        return;
+      }
+
+      // If EOF arrives without terminal success or explicit failure
+      if (!terminalComplete && !terminalFailed) {
+        onEvent({
+          stage: "ERROR",
+          status: "failed",
+          error: "Stream closed prematurely before terminal pipeline completion (unexpected EOF).",
+        });
+      }
+
+      onComplete();
+    } catch (err: any) {
+      if (err.name === "AbortError") {
+        // Request cleanly aborted
+        return;
+      }
+      console.error("Pipeline streaming error", err);
       onEvent({
         stage: "ERROR",
         status: "failed",
         error: "Backend stream disconnected.",
       });
-      this.eventSource?.close();
       onComplete();
-    };
+    }
   }
 
   cancel() {
-    if (this.eventSource) {
-      this.eventSource.close();
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
     }
   }
 }

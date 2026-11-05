@@ -11,6 +11,7 @@ __all__ = [
     "AuthenticationError",
     "ECCError",
     "ECCDecodeError",
+    "UnsupportedCarrierFormatError",
 ]
 
 
@@ -45,4 +46,9 @@ class ECCError(PaladinSecurityError):
 
 class ECCDecodeError(ECCError):
     """Raised when Reed-Solomon decoding fails due to uncorrectable errors exceeding correction capability t."""
+    pass
+
+
+class UnsupportedCarrierFormatError(PaladinSecurityError, ValueError):
+    """Raised when an unsupported or unqualified carrier format (such as lossy JPEG) is provided."""
     pass

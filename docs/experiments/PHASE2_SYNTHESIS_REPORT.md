@@ -10,9 +10,9 @@
 
 ## 1. Executive Summary
 
-In accordance with the governing Phase 2 experimental mandate, the **Phase 2 Experiment Program (E03 through E11)** has been executed to establish the empirical operating limits, capacity boundaries, and distortion profiles of the PaladinMedia carrier architecture prior to Phase 3 neural engine (ACS-Sub-INN) integration.
+In accordance with the governing Phase 2 experimental mandate, the **Phase 2 Experiment Program (E03 through E14)** has been executed to establish the empirical operating limits, capacity boundaries, distortion profiles, and classical degradation baseline of the PaladinMedia carrier architecture prior to Phase 3 neural engine (ACS-Sub-INN) integration.
 
-Every experiment was conducted using programmatic execution harnesses on actual local datasets (`MVP 0 Dataset` and `DIV2K_train_LR_bicubic_X2`). No results or metrics were fabricated or simulated.
+Every experiment was conducted using programmatic execution harnesses on actual local datasets (`MVP 0 Dataset`, `DIV2K_train_LR_bicubic_X2`, and `DIV2K_train_HR`). No results or metrics were fabricated or simulated.
 
 ### Key Milestones Achieved:
 1. **Preflight Audit:** Established dataset parameters and uncovered that local DIV2K images have a maximum native dimension of $1020\text{ px}$, correctly ruling out unsupported high-resolution targets ($\ge 1024\text{ px}$) per anti-upscaling rules.
@@ -25,6 +25,9 @@ Every experiment was conducted using programmatic execution harnesses on actual 
 8. **E09 Multi-Carrier Transport (MCPP):** Engineered and validated a transport protocol that distributes large payloads ($15,000\text{ B}$) across 3 carriers, handling out-of-order presentation and enforcing strict fail-closed rejection on missing or tampered partitions.
 9. **E10 Compression Before Encryption:** Evaluated lossless zlib compression applied before AES-GCM, demonstrating up to $149.85\times$ compression on redundant secret media and enabling oversized graphics to fit seamlessly.
 10. **E11 Combined Capacity Frontier:** Mapped the multi-dimensional operating envelope, establishing 5 defensible operational configurations.
+11. **E12 Continuous Payload Sweep:** Characterized continuous monotonic distortion decay ($73.3\text{ dB} \to 61.9\text{ dB}$) from $7\%$ to $100\%$ capacity load on $512\times512$ and $1024\times1024$ DIV2K HR crops, confirming strict fail-closed gating on capacity overflow.
+12. **E13 Multi-Carrier Repeatability:** Demonstrated consistent high fidelity (std dev $< 0.06\text{ dB}$) and $100\%$ exact recovery across 90 runs covering 5 diverse DIV2K HR images, 2 resolutions, 3 payload tiers, and 3 seeds in lossless PNG workflow.
+13. **E14 Classical Degradation Baseline:** Evaluated 220 runs across 11 channel conditions, demonstrating 100% exact recovery under lossless PNG control, and establishing the empirical failure boundary under JPEG recompression ($Q \in [70, 100]$) and additive Gaussian noise ($\sigma \in [0.5, 2.0]$), where extraction halted at the uncorrected carrier header.
 
 ---
 
@@ -57,7 +60,7 @@ Every experiment was conducted using programmatic execution harnesses on actual 
 | **E04-HR** | HR Spatial Scaling | DIV2K HR Dataset & Crops | DIV2K HR (`0001`–`0800`) | Native 1024 crops validated; 7 native $2040\times2040$; zero $\ge 2048$ | **Exact Byte Match** | `docs/experiments/E04_hr_audit_remediation.md` |
 | **E12** | Continuous Payload Sweep | Operating Density (7% to 100%) | DIV2K HR `0001.png` | Logarithmic decay ($73.3 \to 61.9\text{ dB}$); 99.85% & 100.0% boundary; fail-closed | **Exact Byte Match** | `docs/experiments/E12_payload_distortion_sweep.md` |
 | **E13** | Multi-Carrier Repeatability | 5 Images × 2 Sizes × 3 Tiers × 3 Seeds | DIV2K HR (`0001`–`0005`) | 90 runs; BER = 0.000000; std dev < 0.06 dB; exact recovery (90/90) | **ACCEPTED (In Scope)** | `docs/experiments/E13_carrier_repeatability_generalization.md` |
-| **E14** | Channel Degradation & Lossy Baseline | 11 Channels (PNG, JPEG Q=70..100, Gaussian Noise) | DIV2K HR (`0001`–`0005`) | 220 runs; PNG: 100% exact; JPEG/Noise: 0.0% recovery, raw BER ~ 50% | **Exact Empirical Boundary** | `docs/experiments/E14_lossy_channel_degradation.md` |
+| **E14** | Channel Degradation & Lossy Baseline | 11 Channels (PNG, JPEG $Q \in [70, 100]$, Noise $\sigma \in [0.5, 2.0]$) | DIV2K HR (`0001`–`0005`) | 220 runs; PNG: 100% exact; JPEG/Noise: 0.0% recovery (header corrupted, raw BER ~ 50%) | **ACCEPTED (Scoped Baseline)** | `docs/experiments/E14_lossy_channel_degradation.md` |
 
 ---
 
@@ -130,9 +133,10 @@ Hardware: AuthenticAMD AMD64 Family 25 Model 80, Python 3.10.11, Windows 10.0.26
 
 ## 8. Unresolved Questions & Boundary Conditions
 
-1. **Robustness to Lossy Compression (JPEG):** The current integer-parity modulation relies strictly on lossless container storage (PNG). Lossy DCT compression (JPEG quality $< 95$) or spatial downsampling destroys high-frequency parity bits.
-2. **Carrier Synchronization in Lossy Channels:** The current fixed 16-byte carrier header anchor depends on exact pixel indexing. Geometric transformations (cropping, rotation) desynchronize anchor coordinates.
-3. **Capacity Ceiling for Megabyte Payloads:** Uncompressed large media (e.g. 791 KB) requires either high-volume multi-carrier partitioning ($> 100$ carriers) or advanced neural generative steganography.
+1. **Lossy Channel & Noise Degradation (E14 Baseline Established):** Experiment E14 established an empirical failure baseline for the classical integer-parity carrier method under the specified JPEG recompression ($Q \in \{70, 75, 80, 85, 90, 95, 100\}$) and additive Gaussian noise ($\sigma \in \{0.5, 1.0, 2.0\}$) channels (0/200 recoveries, carrier header corrupted).
+2. **Untested Geometric & Channel Transformations (Open Gap):** Resizing/downscaling, spatial interpolation, cropping, rotation, screen capture, and social media transcoding pipelines were not tested in E14 and remain unexecuted classical-baseline gaps.
+3. **Steganalysis Detectability Baseline (Open Gap):** Statistical detectability (e.g., Spatial Rich Models / SRM, SPAM, or histogram variance) was not evaluated in Phase 2. High PSNR/SSIM confirms low mathematical distortion, but does not establish steganographic undetectability.
+4. **Capacity Ceiling for Megabyte Payloads:** Uncompressed large media (e.g. 791 KB) requires either high-volume multi-carrier partitioning ($> 100$ carriers) or advanced neural generative steganography.
 
 ---
 
@@ -142,7 +146,7 @@ Hardware: AuthenticAMD AMD64 Family 25 Model 80, Python 3.10.11, Windows 10.0.26
 | :--- | :--- | :--- |
 | **R1: Preserve Cryptographic Pipeline** | The `Serialize -> Compress -> Encrypt -> ECC` architecture is provably secure, authenticated, and fail-closed. | Freeze Phase 1 cryptographic contracts; treat protected payload as opaque bitstream. |
 | **R2: Adopt 3-Channel Detail Allocation** | Allocating all 3 RGB detail subbands ($\text{HH}$) expands capacity to $21.36\text{ KB}$ with zero visual penalty ($> 75.7\text{ dB}$). | Use 3-channel input tensors in ACS-Sub-INN. |
-| **R3: Replace Parity Modulator with ACS-Sub-INN** | Integer-parity modulation provides high fidelity in lossless PNG but lacks lossy compression robustness. | Implement ACS-Sub-INN invertible flow to modulate continuous wavelet coefficients robustly against JPEG/STE noise. |
+| **R3: Evaluate ACS-Sub-INN for Robustness** | E14 establishes a failure baseline for the tested classical integer-parity carrier method under the specified JPEG recompression and Gaussian-noise conditions. These results motivate evaluating robustness-aware alternatives, including the planned ACS-Sub-INN v3 architecture. Any improvement must be demonstrated through controlled experiments against the same baseline and channels. | Scaffold and train ACS-Sub-INN invertible flow to evaluate continuous wavelet coefficient modulation against lossy channel conditions. |
 | **R4: Integrate Adaptive Compression** | Pre-encryption zlib compression expands capacity on redundant media by up to $150\times$. | Make pre-encryption compression an automated adaptive standard in `SecretSerializer`. |
 | **R5: Standardize MCPP for Large Media** | Payloads exceeding single-carrier limits are reliably transmitted across multiple carriers. | Retain MCPP framing specification for multi-image container workflows. |
 
@@ -155,6 +159,8 @@ Hardware: AuthenticAMD AMD64 Family 25 Model 80, Python 3.10.11, Windows 10.0.26
   * Usable single-carrier capacity is strictly $7,090\text{ B}$ (1 Ch) and $21,362\text{ B}$ (3 Ch) for $512 \times 512$ carriers.
   * Hard gate enforces fail-closed rejection for oversized payloads.
   * Multi-carrier partitioning (MCPP) functions with out-of-order reassembly and tamper fail-closed.
-- **FUTURE HYPOTHESES (Phase 3 & Beyond):**
-  * Hypothesis that neural invertible flows (ACS-Sub-INN) can survive lossy JPEG compression at $Q=75$ remains to be tested in Phase 3.
+  * The tested classical integer-parity baseline fails completely under the specific JPEG recompression ($Q \in [70, 100]$) and additive Gaussian noise ($\sigma \in [0.5, 2.0]$) conditions evaluated in E14, halting at carrier header extraction.
+- **FUTURE HYPOTHESES & UNTESTED AREAS (Phase 3 & Beyond):**
+  * Hypothesis that neural invertible flows (ACS-Sub-INN) can survive lossy JPEG compression down to $Q=80$ or channel noise remains an untested hypothesis to be empirically evaluated in Phase 3. Continuous-domain embedding alone does not guarantee robustness.
+  * Robustness to geometric transformations (resizing, cropping, rotation) and statistical steganalysis resistance remain open, unexecuted gaps.
   * Hypothesis that Context Predictor CNN can dynamically modulate subband gain remains to be trained and validated in Phase 3.
