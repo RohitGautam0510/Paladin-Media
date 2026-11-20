@@ -13,6 +13,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import copy
+import gc
 import io
 import json
 import logging
@@ -474,6 +475,10 @@ class MediaEventAdapter:
                 k: pil_to_base64_data_url(create_bounded_thumbnail(v, max_dim=256))
                 for k, v in subband_visuals.items()
             }
+            del subband_visuals
+            hh_orig_red = subbands.hh[0].copy()
+            del subbands
+            gc.collect()
 
             if self.session_store is not None:
                 try:
@@ -540,6 +545,7 @@ class MediaEventAdapter:
             header_bits = BaselineEmbedder.bytes_to_bits(header_bytes)
             payload_bits = BaselineEmbedder.bytes_to_bits(payload_to_embed)
 
+            gc.collect()
             stego_arr = self.pipeline.modulation_engine.embed_bits(
                 cover_array=cover_arr,
                 header_bits=header_bits,
@@ -548,8 +554,10 @@ class MediaEventAdapter:
             )
             stego_pil = Image.fromarray(stego_arr, mode="RGB")
             mod_subbands = HaarDWT2D.forward(stego_arr)
+            hh_mod_red = mod_subbands.hh[0].copy()
             mod_hh_img = subband_to_image(mod_subbands.hh, is_ll=False)
             mod_hh_url = pil_to_base64_data_url(create_bounded_thumbnail(mod_hh_img, max_dim=384))
+            del mod_subbands, mod_hh_img
 
             # Extract genuine transform diagnostic coordinates (bounded to 15,000 sample coords to protect container memory)
             header_positions = [(int(p[0]), int(p[1])) for p in mask.header_positions]
@@ -557,14 +565,16 @@ class MediaEventAdapter:
             payload_positions = [(int(p[0]), int(p[1])) for p in mask.payload_positions[:15000]]
             embedded_positions = header_positions + payload_positions
 
-            hh_orig = subbands.hh[0]
-            hh_mod = mod_subbands.hh[0]
-            hh_diff = np.abs(hh_mod - hh_orig)
-            changed_indices = np.argwhere(hh_diff > 1e-4)
-            changed_count = int(len(changed_indices))
-            changed_positions = [(int(c[0]), int(c[1])) for c in changed_indices[:15000]]
+            hh_diff = np.abs(hh_mod_red - hh_orig_red)
+            del hh_orig_red, hh_mod_red
+            changed_count = int(np.count_nonzero(hh_diff > 1e-4))
             max_hh_diff = float(np.max(hh_diff)) if hh_diff.size > 0 else 0.0
-            del hh_diff
+
+            sample_flat = np.flatnonzero(hh_diff > 1e-4)[:15000]
+            r_idx, c_idx = np.unravel_index(sample_flat, hh_diff.shape)
+            changed_positions = [(int(r), int(c)) for r, c in zip(r_idx, c_idx)]
+            del sample_flat, r_idx, c_idx, hh_diff
+            gc.collect()
 
             # Apply single unified diagnostic budgeting policy before SSE emission and store
             bounded_diag = diagnostics_store.create_bounded_record(
@@ -664,6 +674,8 @@ class MediaEventAdapter:
                 "total_pixels": int(cover_arr.shape[0] * cover_arr.shape[1]),
                 "changed_percentage": round((changed_pixels_count / (cover_arr.shape[0] * cover_arr.shape[1])) * 100, 2),
             }
+            del pixel_diff, changed_pixel_mask, cover_arr
+            gc.collect()
 
             # Update existing RunDiagnostics with genuine pixel diff metrics
             diagnostics_store.update_pixel_diff(run_id, pixel_diff_metrics)
@@ -713,6 +725,8 @@ class MediaEventAdapter:
                 )
             reloaded_img = Image.open(io.BytesIO(stego_png_bytes)).convert("RGB")
             reloaded_arr = np.array(reloaded_img, dtype=np.uint8)
+            del reloaded_img
+            gc.collect()
             yield {
                 "stage": "RECEIVER_DWT",
                 "status": "complete",

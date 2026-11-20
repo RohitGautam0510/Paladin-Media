@@ -305,9 +305,9 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
             mask_arr[0, 0, r, c_idx] = 1.0
             payload_arr[0, 0, r, c_idx] = 1.0 if int(bit) == 1 else -1.0
 
-        # 3. Execute ONNX subband modulation
-        stego_hh_drop, ctx, gamma = self.onnx_sess_embed.run(
-            None,
+        # 3. Execute ONNX subband modulation (requesting only required output)
+        (stego_hh_drop,) = self.onnx_sess_embed.run(
+            ["hh_drop_stego"],
             {
                 "hh_drop": hh_drop,
                 "hh_keep": hh_keep,
@@ -315,6 +315,7 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
                 "payload_bipolar": payload_arr,
             },
         )
+        del hh_drop, hh_keep, mask_arr, payload_arr
 
         # 4. Assemble stego HH subband: replace channel 0 (Red)
         stego_hh = np.concatenate(
@@ -355,14 +356,15 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
         hh_drop_rec = subbands.hh[0:1, :, :][None, ...].astype(np.float32)
         hh_keep_rec = subbands.hh[1:3, :, :][None, ...].astype(np.float32)
 
-        # 2. Execute ONNX subband extraction
-        delta_rec, ctx_rec, ext_bin = self.onnx_sess_extract.run(
-            None,
+        # 2. Execute ONNX subband extraction (requesting only required output)
+        (ext_bin,) = self.onnx_sess_extract.run(
+            ["extracted_binary"],
             {
                 "hh_drop_stego": hh_drop_rec,
                 "hh_keep": hh_keep_rec,
             },
         )
+        del hh_drop_rec, hh_keep_rec
         binary_np = ext_bin[0, 0].astype(np.uint8)
         return NeuralBitExtractor(binary_np)
 
@@ -516,14 +518,15 @@ class NeuralModulationEngine(CarrierModulationEngine):
                 mask_arr[0, 0, r, c_idx] = 1.0
                 payload_arr[0, 0, r, c_idx] = 1.0 if int(bit) == 1 else -1.0
 
-            stego_img, ctx, gamma = self.onnx_sess_embed.run(
-                None,
+            (stego_img,) = self.onnx_sess_embed.run(
+                ["stego_image"],
                 {
                     "carrier": carrier_np,
                     "mask": mask_arr,
                     "payload_bipolar": payload_arr,
                 },
             )
+            del carrier_np, mask_arr, payload_arr
 
             stego_uint8 = np.clip(np.round(stego_img), 0.0, 255.0).astype(np.uint8)
             self.last_header_bits = header_bits.copy()
@@ -585,9 +588,10 @@ class NeuralModulationEngine(CarrierModulationEngine):
             carrier_np = np.ascontiguousarray(
                 stego_array.transpose(2, 0, 1)[None, ...], dtype=np.float32
             )
-            ext_bin, delta = self.onnx_sess_extract.run(
-                None, {"stego_carrier": carrier_np}
+            (ext_bin,) = self.onnx_sess_extract.run(
+                ["extracted_binary"], {"stego_carrier": carrier_np}
             )
+            del carrier_np
             binary_np = ext_bin[0, 0].astype(np.uint8)
             return NeuralBitExtractor(binary_np)
 
@@ -604,6 +608,9 @@ class NeuralModulationEngine(CarrierModulationEngine):
 # =============================================================================
 # Modulation Engine Factory
 # =============================================================================
+
+_MODULATION_ENGINE_CACHE: Dict[Tuple[str, str], CarrierModulationEngine] = {}
+
 
 def create_modulation_engine(
     engine_name: str = "neural_spatial_onnx",
@@ -623,34 +630,58 @@ def create_modulation_engine(
     - 'parity_classical': Classical Phase 2 integer parity modulation.
     """
     normalized = engine_name.strip().lower()
+    prec = "int8" if "int8" in normalized or precision.lower() == "int8" else "fp32"
+    cache_key = (normalized, prec)
+
+    # Use cached instance for default configurations to preserve memory and ONNX sessions
+    if (
+        onnx_dir is None
+        and checkpoint_path is None
+        and spatial_bridge is None
+        and session_options is None
+        and providers is None
+        and cache_key in _MODULATION_ENGINE_CACHE
+    ):
+        return _MODULATION_ENGINE_CACHE[cache_key]
+
     if normalized in ("neural_spatial_onnx", "spatial_onnx", "onnx"):
-        return NeuralModulationEngine(
+        engine = NeuralModulationEngine(
             backend="onnx",
             onnx_dir=onnx_dir,
             session_options=session_options,
             providers=providers,
         )
     elif normalized in ("acs_sub_inn_onnx", "subband_onnx", "acs_sub_inn", "acs_sub_inn_int8"):
-        prec = "int8" if "int8" in normalized or precision.lower() == "int8" else "fp32"
-        return ACSSubINNModulationEngine(
+        engine = ACSSubINNModulationEngine(
             onnx_dir=onnx_dir,
             session_options=session_options,
             providers=providers,
             precision=prec,
         )
     elif normalized in ("acs_sub_inn_pytorch", "pytorch"):
-        return NeuralModulationEngine(
+        engine = NeuralModulationEngine(
             backend="pytorch",
             spatial_bridge=spatial_bridge,
             checkpoint_path=checkpoint_path,
         )
     elif normalized in ("parity_classical", "parity", "classical"):
-        return ParityModulationEngine()
+        engine = ParityModulationEngine()
     else:
         raise ValueError(
             f"Unknown modulation engine '{engine_name}'. Must be one of: "
             f"'neural_spatial_onnx', 'acs_sub_inn_onnx', 'acs_sub_inn_pytorch', 'parity_classical'."
         )
+
+    if (
+        onnx_dir is None
+        and checkpoint_path is None
+        and spatial_bridge is None
+        and session_options is None
+        and providers is None
+    ):
+        _MODULATION_ENGINE_CACHE[cache_key] = engine
+
+    return engine
 
 
 __all__ = [

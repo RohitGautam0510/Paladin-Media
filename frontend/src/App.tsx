@@ -284,99 +284,105 @@ export default function App() {
     }
   }, [logs]);
 
+  const processSecretFile = async (file: File) => {
+    const maxUploadBytes = capabilities?.max_upload_size_bytes || (10 * 1024 * 1024);
+    if (file.size > maxUploadBytes) {
+      addLog(`ERROR: Secret file size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum upload limit of ${(maxUploadBytes / 1024 / 1024).toFixed(2)} MB.`);
+      return;
+    }
+    setSecretFilename(file.name);
+    setSecretBytesSize(file.size);
+    const url = URL.createObjectURL(file);
+    setSecretPreview(url);
+    addLog(`Selected secret media file: ${file.name} (${file.size} bytes)`);
+
+    const sImg = new Image();
+    sImg.onload = () => {
+      setSecretDims({ width: sImg.naturalWidth, height: sImg.naturalHeight });
+      addLog(`Secret image dimensions: ${sImg.naturalWidth}×${sImg.naturalHeight}`);
+    };
+    sImg.src = url;
+
+    try {
+      const uploadRes = await backend.uploadMedia(file);
+      setSecretSessionId(uploadRes.session_id);
+      if (uploadRes.width && uploadRes.height) {
+        setSecretDims({ width: uploadRes.width, height: uploadRes.height, format: uploadRes.format });
+      }
+      addLog(`Secret file uploaded to session ${uploadRes.session_id}`);
+    } catch (err: any) {
+      addLog(`ERROR: Failed to upload secret file: ${err.message}`);
+    }
+  };
+
   const handleSecretUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const maxUploadBytes = capabilities?.max_upload_size_bytes || (10 * 1024 * 1024);
-      if (file.size > maxUploadBytes) {
-        addLog(`ERROR: Secret file size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum upload limit of ${(maxUploadBytes / 1024 / 1024).toFixed(2)} MB.`);
+      await processSecretFile(e.target.files[0]);
+    }
+  };
+
+  const processCoverFile = async (file: File) => {
+    const maxUploadBytes = capabilities?.max_upload_size_bytes || (10 * 1024 * 1024);
+    if (file.size > maxUploadBytes) {
+      addLog(`ERROR: Carrier file size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum upload limit of ${(maxUploadBytes / 1024 / 1024).toFixed(2)} MB.`);
+      return;
+    }
+    if (file.type && file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
+      addLog(`ERROR: Unsupported carrier format "${file.type || file.name}". PaladinMedia strictly requires lossless 8-bit RGB PNG carriers. Lossy formats (JPEG/WebP) are not supported.`);
+      return;
+    }
+    setCoverFilename(file.name);
+    const url = URL.createObjectURL(file);
+    setCoverPreview(url);
+    addLog(`Selected cover carrier image: ${file.name} (${file.size} bytes)`);
+
+    const cImg = new Image();
+    cImg.onload = () => {
+      const w = cImg.naturalWidth;
+      const h = cImg.naturalHeight;
+      const maxDim = capabilities?.max_carrier_dimension || 2048;
+
+      if (w > maxDim || h > maxDim) {
+        addLog(`ERROR: Carrier dimensions ${w}×${h} exceed maximum permitted ${maxDim}×${maxDim} for this deployment.`);
         return;
       }
-      setSecretFilename(file.name);
-      setSecretBytesSize(file.size);
-      const url = URL.createObjectURL(file);
-      setSecretPreview(url);
-      addLog(`Selected secret media file: ${file.name} (${file.size} bytes)`);
 
-      const sImg = new Image();
-      sImg.onload = () => {
-        setSecretDims({ width: sImg.naturalWidth, height: sImg.naturalHeight });
-        addLog(`Secret image dimensions: ${sImg.naturalWidth}×${sImg.naturalHeight}`);
-      };
-      sImg.src = url;
+      setCoverDims({ width: w, height: h, format: "PNG", mode: "RGB" });
+      setIsDatasetCustom(true);
+      addLog(`Cover image dimensions: ${w}×${h} RGB`);
 
-      try {
-        const uploadRes = await backend.uploadMedia(file);
-        setSecretSessionId(uploadRes.session_id);
-        if (uploadRes.width && uploadRes.height) {
-          setSecretDims({ width: uploadRes.width, height: uploadRes.height, format: uploadRes.format });
-        }
-        addLog(`Secret file uploaded to session ${uploadRes.session_id}`);
-      } catch (err: any) {
-        addLog(`ERROR: Failed to upload secret file: ${err.message}`);
+      if (w < 32 || h < 32) {
+        addLog(`WARNING: Carrier dimensions ${w}×${h} are below minimum 32×32.`);
+      } else if (w % 2 !== 0 || h % 2 !== 0) {
+        addLog(`WARNING: Carrier dimensions ${w}×${h} are odd. DWT decomposition requires even dimensions.`);
+      } else {
+        backend.fetchCarrierCapacity(w, h, selectedProtocolVersion)
+          .then(cap => {
+            setCapacityLimits(cap);
+            addLog(`Carrier capacity: ${cap.raw_secret_capacity_bytes.toLocaleString()} B raw secret, ${cap.max_protected_bytes.toLocaleString()} B max protected.`);
+          })
+          .catch(err => {
+            addLog(`Capacity calculation error: ${err.message}`);
+          });
       }
+    };
+    cImg.src = url;
+
+    try {
+      const uploadRes = await backend.uploadMedia(file);
+      setCoverSessionId(uploadRes.session_id);
+      if (uploadRes.width && uploadRes.height) {
+        setCoverDims({ width: uploadRes.width, height: uploadRes.height, format: uploadRes.format, mode: uploadRes.mode });
+      }
+      addLog(`Cover file uploaded to session ${uploadRes.session_id}`);
+    } catch (err: any) {
+      addLog(`ERROR: Failed to upload cover file: ${err.message}`);
     }
   };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const maxUploadBytes = capabilities?.max_upload_size_bytes || (10 * 1024 * 1024);
-      if (file.size > maxUploadBytes) {
-        addLog(`ERROR: Carrier file size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum upload limit of ${(maxUploadBytes / 1024 / 1024).toFixed(2)} MB.`);
-        return;
-      }
-      if (file.type && file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
-        addLog(`ERROR: Unsupported carrier format "${file.type || file.name}". PaladinMedia strictly requires lossless 8-bit RGB PNG carriers. Lossy formats (JPEG/WebP) are not supported.`);
-        return;
-      }
-      setCoverFilename(file.name);
-      const url = URL.createObjectURL(file);
-      setCoverPreview(url);
-      addLog(`Selected cover carrier image: ${file.name} (${file.size} bytes)`);
-
-      const cImg = new Image();
-      cImg.onload = () => {
-        const w = cImg.naturalWidth;
-        const h = cImg.naturalHeight;
-        const maxDim = capabilities?.max_carrier_dimension || 2048;
-
-        if (w > maxDim || h > maxDim) {
-          addLog(`ERROR: Carrier dimensions ${w}×${h} exceed maximum permitted ${maxDim}×${maxDim} for this deployment.`);
-          return;
-        }
-
-        setCoverDims({ width: w, height: h, format: "PNG", mode: "RGB" });
-        setIsDatasetCustom(true);
-        addLog(`Cover image dimensions: ${w}×${h} RGB`);
-
-        if (w < 32 || h < 32) {
-          addLog(`WARNING: Carrier dimensions ${w}×${h} are below minimum 32×32.`);
-        } else if (w % 2 !== 0 || h % 2 !== 0) {
-          addLog(`WARNING: Carrier dimensions ${w}×${h} are odd. DWT decomposition requires even dimensions.`);
-        } else {
-          backend.fetchCarrierCapacity(w, h, selectedProtocolVersion)
-            .then(cap => {
-              setCapacityLimits(cap);
-              addLog(`Carrier capacity: ${cap.raw_secret_capacity_bytes.toLocaleString()} B raw secret, ${cap.max_protected_bytes.toLocaleString()} B max protected.`);
-            })
-            .catch(err => {
-              addLog(`Capacity calculation error: ${err.message}`);
-            });
-        }
-      };
-      cImg.src = url;
-
-      try {
-        const uploadRes = await backend.uploadMedia(file);
-        setCoverSessionId(uploadRes.session_id);
-        if (uploadRes.width && uploadRes.height) {
-          setCoverDims({ width: uploadRes.width, height: uploadRes.height, format: uploadRes.format, mode: uploadRes.mode });
-        }
-        addLog(`Cover file uploaded to session ${uploadRes.session_id}`);
-      } catch (err: any) {
-        addLog(`ERROR: Failed to upload cover file: ${err.message}`);
-      }
+      await processCoverFile(e.target.files[0]);
     }
   };
 
@@ -586,28 +592,31 @@ export default function App() {
     }
   };
 
+  const processExtractCarrierFile = (file: File) => {
+    if (file.type && file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
+      addLog(`ERROR: Carrier must be a lossless PNG stego container. Got "${file.type || file.name}".`);
+      setExtractError("Unsupported carrier format: PaladinMedia requires an 8-bit RGB lossless PNG carrier.");
+      return;
+    }
+    setExtractFile(file);
+    setExtractFilename(file.name);
+    setExtractFileSize(file.size);
+    const url = URL.createObjectURL(file);
+    setExtractPreview(url);
+    setExtractResult(null);
+    setExtractError(null);
+    setExtractedMediaUrl(null);
+    const img = new Image();
+    img.onload = () => {
+      setExtractDims({ width: img.naturalWidth, height: img.naturalHeight });
+      addLog(`Carrier for extraction loaded: ${img.naturalWidth}×${img.naturalHeight} (${file.size} bytes)`);
+    };
+    img.src = url;
+  };
+
   const handleExtractCarrierUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.type && file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
-        addLog(`ERROR: Carrier must be a lossless PNG stego container. Got "${file.type || file.name}".`);
-        setExtractError("Unsupported carrier format: PaladinMedia requires an 8-bit RGB lossless PNG carrier.");
-        return;
-      }
-      setExtractFile(file);
-      setExtractFilename(file.name);
-      setExtractFileSize(file.size);
-      const url = URL.createObjectURL(file);
-      setExtractPreview(url);
-      setExtractResult(null);
-      setExtractError(null);
-      setExtractedMediaUrl(null);
-      const img = new Image();
-      img.onload = () => {
-        setExtractDims({ width: img.naturalWidth, height: img.naturalHeight });
-        addLog(`Carrier for extraction loaded: ${img.naturalWidth}×${img.naturalHeight} (${file.size} bytes)`);
-      };
-      img.src = url;
+      processExtractCarrierFile(e.target.files[0]);
     }
   };
 
@@ -884,13 +893,23 @@ export default function App() {
                     </span>
                   </div>
                 </div>
-                <div className="h-44 border border-dashed border-[#2b2b2b] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707]">
+                <div
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!running && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      processSecretFile(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  className="h-44 border border-dashed border-[#2b2b2b] hover:border-primary/60 rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707] transition-colors"
+                >
                   {secretPreview ? (
                     <img src={secretPreview} alt="Secret" className="max-h-full max-w-full object-contain p-2" />
                   ) : (
                     <div className="text-center p-4">
                       <Upload className="w-6 h-6 text-muted mx-auto mb-1 group-hover:text-primary transition-colors" />
-                      <span className="text-xs text-muted block">Click to upload secret payload</span>
+                      <span className="text-xs text-muted block">Click or drag & drop to upload secret payload</span>
                     </div>
                   )}
                   <input type="file" onChange={handleSecretUpload} disabled={running} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
@@ -908,13 +927,23 @@ export default function App() {
                     {coverDims ? `${coverDims.width}×${coverDims.height} ${coverDims.mode || "RGB"}` : "Dynamic RGB"}
                   </span>
                 </div>
-                <div className="h-44 border border-dashed border-[#2b2b2b] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707]">
+                <div
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!running && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                      processCoverFile(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  className="h-44 border border-dashed border-[#2b2b2b] hover:border-[#666] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707] transition-colors"
+                >
                   {coverPreview ? (
                     <img src={coverPreview} alt="Cover" className="max-h-full max-w-full object-contain p-2" />
                   ) : (
                     <div className="text-center p-4">
                       <Upload className="w-6 h-6 text-muted mx-auto mb-1 group-hover:text-[#888] transition-colors" />
-                      <span className="text-xs text-muted block">Click to upload carrier (PNG, even dims)</span>
+                      <span className="text-xs text-muted block">Click or drag & drop to upload carrier (PNG, even dims)</span>
                     </div>
                   )}
                   <input type="file" onChange={handleCoverUpload} disabled={running} accept="image/png" className="absolute inset-0 opacity-0 cursor-pointer" />
@@ -1267,13 +1296,23 @@ export default function App() {
                         </span>
                       </div>
                     </div>
-                    <div className="h-48 border border-dashed border-[#2b2b2b] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707]">
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!extracting && e.dataTransfer.files && e.dataTransfer.files[0]) {
+                          processExtractCarrierFile(e.dataTransfer.files[0]);
+                        }
+                      }}
+                      className="h-48 border border-dashed border-[#2b2b2b] hover:border-cyan-400/60 rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707] transition-colors"
+                    >
                       {extractPreview ? (
                         <img src={extractPreview} alt="Stego Carrier" className="max-h-full max-w-full object-contain p-2" />
                       ) : (
                         <div className="text-center p-4">
                           <Upload className="w-6 h-6 text-muted mx-auto mb-1 group-hover:text-cyan-400 transition-colors" />
-                          <span className="text-xs text-muted block">Click to upload stego carrier (PNG, 8-bit truecolor)</span>
+                          <span className="text-xs text-muted block">Click or drag & drop to upload stego carrier (PNG, 8-bit truecolor)</span>
                         </div>
                       )}
                       <input
