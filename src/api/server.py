@@ -694,6 +694,7 @@ async def get_capabilities(
         "status": "OPERATIONAL" if is_operational else "DEGRADED",
         "system_title": "PaladinMedia",
         "subtitle": "Post-Quantum Media Steganography & Wavelet Core",
+        "deployment_commit": os.environ.get("RENDER_GIT_COMMIT", "local_development"),
         "active_engine": "neural_spatial_onnx",
         "available_engines": [
             {
