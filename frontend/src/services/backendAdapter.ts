@@ -96,6 +96,16 @@ export interface DefaultFixtures {
     format?: string;
     mode?: string;
   };
+  stego?: {
+    session_id: string;
+    data_url: string;
+    name: string;
+    size: number;
+    width?: number;
+    height?: number;
+    format?: string;
+    mode?: string;
+  };
 }
 
 export interface CarrierCapacityInfo {
@@ -272,7 +282,16 @@ export class BackendAdapter {
       body: formData,
       credentials: "include",
     });
-    if (!res.ok) throw new Error("Media upload failed");
+    if (!res.ok) {
+      let errMsg = `Media upload failed (${res.status})`;
+      try {
+        const j = await res.json();
+        if (j.detail) errMsg = j.detail;
+      } catch {
+        // non-json response
+      }
+      throw new Error(errMsg);
+    }
     return res.json();
   }
 

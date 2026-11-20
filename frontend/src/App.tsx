@@ -26,7 +26,9 @@ import {
   Layers,
   Unlock,
   Key,
-  FileText
+  FileText,
+  Download,
+  FileImage
 } from 'lucide-react';
 import { StegoInspectorModal, type DiagnosticsMetadata, type PixelDiffMetrics } from './components/StegoInspectorModal';
 import { DwtSubbandInspector } from './components/DwtSubbandInspector';
@@ -158,6 +160,7 @@ export default function App() {
   const [extractResult, setExtractResult] = useState<any>(null);
   const [extractError, setExtractError] = useState<string | null>(null);
   const [extractedMediaUrl, setExtractedMediaUrl] = useState<string | null>(null);
+  const [defaultFixtures, setDefaultFixtures] = useState<DefaultFixtures | null>(null);
 
   // Authentication & BFF Session state
   const [authSession, setAuthSession] = useState<{
@@ -202,6 +205,7 @@ export default function App() {
   const loadBaselineFixtures = () => {
     backend.fetchDefaultFixtures()
       .then((fixtures: DefaultFixtures) => {
+        setDefaultFixtures(fixtures);
         if (fixtures.secret && fixtures.secret.data_url) {
           setSecretSessionId(fixtures.secret.session_id);
           setSecretPreview(fixtures.secret.data_url);
@@ -283,7 +287,7 @@ export default function App() {
   const handleSecretUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const maxUploadBytes = capabilities?.max_upload_size_bytes || (2 * 1024 * 1024);
+      const maxUploadBytes = capabilities?.max_upload_size_bytes || (10 * 1024 * 1024);
       if (file.size > maxUploadBytes) {
         addLog(`ERROR: Secret file size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum upload limit of ${(maxUploadBytes / 1024 / 1024).toFixed(2)} MB.`);
         return;
@@ -317,9 +321,13 @@ export default function App() {
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      const maxUploadBytes = capabilities?.max_upload_size_bytes || (2 * 1024 * 1024);
+      const maxUploadBytes = capabilities?.max_upload_size_bytes || (10 * 1024 * 1024);
       if (file.size > maxUploadBytes) {
         addLog(`ERROR: Carrier file size (${(file.size / 1024 / 1024).toFixed(2)} MB) exceeds maximum upload limit of ${(maxUploadBytes / 1024 / 1024).toFixed(2)} MB.`);
+        return;
+      }
+      if (file.type && file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
+        addLog(`ERROR: Unsupported carrier format "${file.type || file.name}". PaladinMedia strictly requires lossless 8-bit RGB PNG carriers. Lossy formats (JPEG/WebP) are not supported.`);
         return;
       }
       setCoverFilename(file.name);
@@ -331,7 +339,7 @@ export default function App() {
       cImg.onload = () => {
         const w = cImg.naturalWidth;
         const h = cImg.naturalHeight;
-        const maxDim = capabilities?.max_carrier_dimension || 512;
+        const maxDim = capabilities?.max_carrier_dimension || 2048;
 
         if (w > maxDim || h > maxDim) {
           addLog(`ERROR: Carrier dimensions ${w}×${h} exceed maximum permitted ${maxDim}×${maxDim} for this deployment.`);
@@ -520,9 +528,72 @@ export default function App() {
     );
   };
 
+  const handleTransferStegoToExtract = async () => {
+    if (!stegoImage) {
+      addLog("WARNING: No generated stego container available from experiment yet.");
+      return;
+    }
+    try {
+      addLog("Transferring generated stego carrier to standalone extraction pipeline...");
+      const res = await fetch(stegoImage);
+      const blob = await res.blob();
+      const filename = `stego_carrier_${activeRunId || "experiment"}.png`;
+      const file = new File([blob], filename, { type: "image/png" });
+      setExtractFile(file);
+      setExtractFilename(filename);
+      setExtractFileSize(file.size);
+      setExtractPreview(stegoImage);
+      setExtractResult(null);
+      setExtractError(null);
+      setExtractedMediaUrl(null);
+      if (coverDims) {
+        setExtractDims({ width: coverDims.width, height: coverDims.height });
+      }
+      setActiveTab("STANDALONE_EXTRACT");
+      addLog(`Stego container transferred: ${coverDims?.width || 512}×${coverDims?.height || 512} (${file.size} bytes). Ready for extraction.`);
+    } catch (err: any) {
+      addLog(`ERROR: Failed to transfer stego image: ${err.message}`);
+    }
+  };
+
+  const handleLoadSampleStego = async () => {
+    try {
+      addLog("Loading pre-encoded sample stego container fixture...");
+      let fixture = defaultFixtures?.stego;
+      if (!fixture?.data_url) {
+        const fixtures = await backend.fetchDefaultFixtures();
+        setDefaultFixtures(fixtures);
+        fixture = fixtures.stego;
+      }
+      if (!fixture?.data_url) {
+        addLog("ERROR: Sample stego fixture is not available on this server.");
+        return;
+      }
+      const res = await fetch(fixture.data_url);
+      const blob = await res.blob();
+      const file = new File([blob], fixture.name || "sample_stego_carrier_512.png", { type: "image/png" });
+      setExtractFile(file);
+      setExtractFilename(file.name);
+      setExtractFileSize(file.size);
+      setExtractPreview(fixture.data_url);
+      setExtractResult(null);
+      setExtractError(null);
+      setExtractedMediaUrl(null);
+      setExtractDims({ width: fixture.width || 512, height: fixture.height || 512 });
+      addLog(`Loaded sample pre-encoded stego carrier: ${file.name} (${fixture.width || 512}×${fixture.height || 512}, ${file.size} bytes)`);
+    } catch (err: any) {
+      addLog(`ERROR: Failed to load sample stego carrier: ${err.message}`);
+    }
+  };
+
   const handleExtractCarrierUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      if (file.type && file.type !== "image/png" && !file.name.toLowerCase().endsWith(".png")) {
+        addLog(`ERROR: Carrier must be a lossless PNG stego container. Got "${file.type || file.name}".`);
+        setExtractError("Unsupported carrier format: PaladinMedia requires an 8-bit RGB lossless PNG carrier.");
+        return;
+      }
       setExtractFile(file);
       setExtractFilename(file.name);
       setExtractFileSize(file.size);
@@ -846,7 +917,7 @@ export default function App() {
                       <span className="text-xs text-muted block">Click to upload carrier (PNG, even dims)</span>
                     </div>
                   )}
-                  <input type="file" onChange={handleCoverUpload} disabled={running} accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" />
+                  <input type="file" onChange={handleCoverUpload} disabled={running} accept="image/png" className="absolute inset-0 opacity-0 cursor-pointer" />
                 </div>
                 <div className="mt-2 text-[11px] font-mono text-muted truncate">
                   Carrier: <span className="text-[#ededed]">{coverFilename}</span>
@@ -874,11 +945,28 @@ export default function App() {
                       </span>
                     )}
                   </div>
-                  {psnr !== null && (
-                    <span className="text-[10px] font-mono text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded">
-                      PSNR: {psnr} dB
-                    </span>
-                  )}
+                  <div className="flex items-center space-x-1.5">
+                    {psnr !== null && (
+                      <span className="text-[10px] font-mono text-green-400 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded">
+                        PSNR: {psnr} dB
+                      </span>
+                    )}
+                    {stegoImage && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const a = document.createElement("a");
+                          a.href = stegoImage;
+                          a.download = `stego_carrier_${activeRunId || "export"}.png`;
+                          a.click();
+                        }}
+                        className="text-[10px] font-mono font-semibold bg-primary/20 text-primary hover:bg-primary/30 border border-primary/40 px-1.5 py-0.5 rounded flex items-center transition-colors"
+                        title="Download untouched 8-bit RGB Stego PNG"
+                      >
+                        <Download className="w-2.5 h-2.5 mr-1" /> PNG
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="h-44 border border-[#2b2b2b] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707]">
                   {stegoImage ? (
@@ -917,9 +1005,22 @@ export default function App() {
                     </div>
                   )}
                 </div>
-                <div className="mt-2 flex justify-between text-[11px] font-mono text-muted">
+                <div className="mt-2 flex justify-between items-center text-[11px] font-mono text-muted">
                   <span>SSIM: <span className="text-[#ededed]">{ssim !== null ? ssim : "N/A"}</span></span>
-                  <span>Container: <span className="text-[#ededed]">8-bit PNG</span></span>
+                  {stegoImage ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTransferStegoToExtract();
+                      }}
+                      className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold underline flex items-center"
+                      title="Load this stego container directly into the Standalone Extraction tab"
+                    >
+                      Extract Hidden Secret &rarr;
+                    </button>
+                  ) : (
+                    <span>Container: <span className="text-[#ededed]">8-bit PNG</span></span>
+                  )}
                 </div>
               </div>
 
@@ -1124,6 +1225,32 @@ export default function App() {
                   </span>
                 </div>
 
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-4 bg-[#0a0a0a] p-3 rounded-lg border border-[#262626]">
+                  <div className="text-xs font-mono text-muted flex items-center space-x-1.5">
+                    <span className="text-[#ededed] font-semibold">One-Click Test Actions:</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {stegoImage && (
+                      <button
+                        onClick={handleTransferStegoToExtract}
+                        disabled={extracting}
+                        className="px-2.5 py-1 text-xs font-mono bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 border border-cyan-500/40 rounded flex items-center transition-colors shadow-sm"
+                        title="Load generated stego carrier from latest experiment run"
+                      >
+                        <Zap className="w-3.5 h-3.5 mr-1.5 text-cyan-400" /> Use Stego from Latest Run
+                      </button>
+                    )}
+                    <button
+                      onClick={handleLoadSampleStego}
+                      disabled={extracting}
+                      className="px-2.5 py-1 text-xs font-mono bg-[#1c1c1c] text-[#ededed] hover:bg-[#252525] border border-[#3a3a3a] rounded flex items-center transition-colors shadow-sm"
+                      title="Load verified pre-encoded sample stego carrier fixture (512x512)"
+                    >
+                      <FileImage className="w-3.5 h-3.5 mr-1.5 text-primary" /> Load Sample Stego (512×512)
+                    </button>
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* DROPZONE: STEGO CARRIER */}
                   <div className="border border-[#262626] rounded-lg p-3 bg-[#0d0d0d] flex flex-col relative group">
@@ -1307,13 +1434,13 @@ export default function App() {
                     </div>
                     <p className="text-[#ededed]">{extractError}</p>
                     <p className="text-[11px] text-muted">
-                      Security Invariant: When carrier headers are damaged, Reed-Solomon uncorrectable error thresholds are exceeded, or AES-GCM GHASH tags do not authenticate, PaladinMedia aborts cleanly without returning unverified plaintext.
+                      Security Invariant: When carrier headers are damaged, Reed-Solomon uncorrectable error thresholds are exceeded, or AES-GCM GHASH tags do not authenticate, PaladinMedia aborts cleanly without returning unverified plaintext. Ordinary (non-stego) photos will be rejected because they lack the PaladinMedia carrier header.
                     </p>
                   </div>
                 ) : (
                   <div className="p-6 text-center text-muted font-mono text-xs">
                     <Unlock className="w-8 h-8 opacity-30 mx-auto mb-2" />
-                    <span>Upload a stego carrier PNG and click &quot;Extract Hidden Secret Payload&quot; to begin.</span>
+                    <span>Upload a stego carrier PNG, click &quot;Load Sample Stego&quot;, or transfer the stego container from an Experiment run to extract the hidden payload.</span>
                   </div>
                 )}
               </div>

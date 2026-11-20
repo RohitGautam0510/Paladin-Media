@@ -166,11 +166,11 @@ class APISettings:
         if self.mode == "demo":
             # In demo mode, apply safe resource bounds for Render free tier (512 MB ceiling)
             if "PALADINMEDIA_MAX_UPLOAD_BYTES" not in os.environ:
-                self.max_upload_bytes = 2 * 1024 * 1024  # 2 MB upload ceiling for 512x512 carriers
+                self.max_upload_bytes = 10 * 1024 * 1024  # 10 MB upload ceiling
             if "PALADINMEDIA_MAX_SESSION_STORE_BYTES" not in os.environ:
-                self.max_session_store_bytes = 25 * 1024 * 1024  # 25 MB max in-memory session store
+                self.max_session_store_bytes = 50 * 1024 * 1024  # 50 MB max in-memory session store
             if "PALADINMEDIA_SESSION_TTL_SECONDS" not in os.environ:
-                self.session_ttl_seconds = 180  # 3 min TTL for prompt memory reclamation
+                self.session_ttl_seconds = 300  # 5 min TTL
 
         # In remote mode, docs default to disabled unless explicitly enabled
         if self.enable_docs is None:

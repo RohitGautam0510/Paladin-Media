@@ -776,8 +776,8 @@ async def get_capabilities(
         ],
         "onnx_models_verified": integrity["all_verified"],
         "max_upload_size_bytes": settings.max_upload_bytes,
-        "max_carrier_dimension": 512 if settings.mode == "demo" else 2048,
-        "max_carrier_pixels": (512 * 512) if settings.mode == "demo" else (4 * 1024 * 1024),
+        "max_carrier_dimension": 2048,
+        "max_carrier_pixels": 4 * 1024 * 1024,
     }
 
 
@@ -952,8 +952,8 @@ async def upload_file(
         raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
     media_type = file.content_type or "application/octet-stream"
-    MAX_PIXEL_COUNT = (512 * 512) if settings.mode == "demo" else (4 * 1024 * 1024)
-    MAX_DIMENSION = 512 if settings.mode == "demo" else 2048
+    MAX_PIXEL_COUNT = 4 * 1024 * 1024
+    MAX_DIMENSION = 2048
 
     try:
         Image.MAX_IMAGE_PIXELS = MAX_PIXEL_COUNT
@@ -1065,7 +1065,46 @@ async def get_default_fixtures(
         except Exception:
             pass
 
-    return {
+    stego_meta: Dict[str, Any] = {}
+    stego_b64 = None
+    stego_session_id = None
+    if qualified_pipeline is not None and SECRET_FIXTURE_PATH.exists() and COVER_FIXTURE_PATH.exists():
+        try:
+            cached_stego = session_store.get("default_stego")
+            if cached_stego is None:
+                with open(SECRET_FIXTURE_PATH, "rb") as f:
+                    s_bytes = f.read()
+                with open(COVER_FIXTURE_PATH, "rb") as f:
+                    c_img = Image.open(f).convert("RGB")
+                default_key = validate_key_hex(None, is_remote=False)
+                sec_p = SecretPayload(data=s_bytes, media_type=MediaType.IMAGE)
+                stego_res = qualified_pipeline.protect_and_embed(
+                    secret_payload=sec_p,
+                    cover_image=c_img,
+                    key=default_key,
+                    version=2,
+                )
+                cached_stego = stego_res.stego_png_bytes
+                session_store.store(
+                    data=cached_stego,
+                    ttl_seconds=settings.session_ttl_seconds,
+                    media_type="image/png",
+                    custom_session_id="default_stego",
+                    filename="sample_stego_carrier_512.png",
+                )
+            stego_b64 = f"data:image/png;base64,{base64.b64encode(cached_stego).decode('ascii')}"
+            stego_session_id = "default_stego"
+            with Image.open(io.BytesIO(cached_stego)) as st_img:
+                stego_meta = {
+                    "width": st_img.size[0],
+                    "height": st_img.size[1],
+                    "format": st_img.format,
+                    "mode": st_img.mode,
+                }
+        except Exception as e:
+            logger.warning("Could not generate default stego fixture: %s", sanitize_error_message(e))
+
+    resp_fixtures: Dict[str, Any] = {
         "secret": {
             "session_id": secret_session_id,
             "data_url": secret_b64,
@@ -1081,6 +1120,15 @@ async def get_default_fixtures(
             **cover_meta,
         },
     }
+    if stego_b64 and stego_session_id:
+        resp_fixtures["stego"] = {
+            "session_id": stego_session_id,
+            "data_url": stego_b64,
+            "name": "sample_stego_carrier_512.png (512x512)",
+            "size": len(session_store.get(stego_session_id, b"")),
+            **stego_meta,
+        }
+    return resp_fixtures
 
 
 def validate_carrier_image(cover_bytes: bytes) -> Image.Image:
