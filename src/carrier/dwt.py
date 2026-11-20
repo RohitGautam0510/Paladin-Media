@@ -96,33 +96,35 @@ class HaarDWT2D:
                 f"Expected even image dimensions, got ({h}, {w})"
             )
 
-        # Spatial 2x2 blocks:
-        # a: top-left (even, even)
-        # b: top-right (even, odd)
-        # c: bottom-left (odd, even)
-        # d: bottom-right (odd, odd)
-        a = arr[0::2, 0::2, :]
-        b = arr[0::2, 1::2, :]
-        c = arr[1::2, 0::2, :]
-        d = arr[1::2, 1::2, :]
+        h_half, w_half = h // 2, w // 2
+        # Memory-efficient channel-by-channel 1-level 2D Haar DWT
+        # Pre-allocating directly into (3, H/2, W/2) float64 avoids large full-image temporary buffers
+        ll = np.empty((3, h_half, w_half), dtype=np.float64)
+        lh = np.empty((3, h_half, w_half), dtype=np.float64)
+        hl = np.empty((3, h_half, w_half), dtype=np.float64)
+        hh = np.empty((3, h_half, w_half), dtype=np.float64)
 
-        # Compute 2D Haar subbands
-        ll = (a + b + c + d) / 2.0
-        lh = (a - b + c - d) / 2.0
-        hl = (a + b - c - d) / 2.0
-        hh = (a - b - c + d) / 2.0
+        for ch in range(3):
+            a = arr[0::2, 0::2, ch].astype(np.float64)
+            b = arr[0::2, 1::2, ch].astype(np.float64)
+            c_sub = arr[1::2, 0::2, ch].astype(np.float64)
+            d = arr[1::2, 1::2, ch].astype(np.float64)
 
-        # Transpose from (256, 256, 3) to (3, 256, 256) for strict specification compliance
+            ll[ch] = (a + b + c_sub + d) * 0.5
+            lh[ch] = (a - b + c_sub - d) * 0.5
+            hl[ch] = (a + b - c_sub - d) * 0.5
+            hh[ch] = (a - b - c_sub + d) * 0.5
+
         return DWTSubbands(
-            ll=np.ascontiguousarray(np.transpose(ll, (2, 0, 1))),
-            lh=np.ascontiguousarray(np.transpose(lh, (2, 0, 1))),
-            hl=np.ascontiguousarray(np.transpose(hl, (2, 0, 1))),
-            hh=np.ascontiguousarray(np.transpose(hh, (2, 0, 1))),
+            ll=ll,
+            lh=lh,
+            hl=hl,
+            hh=hh,
         )
 
     @classmethod
     def inverse(cls, subbands: DWTSubbands) -> np.ndarray:
-        """Computes inverse 2D Haar DWT (IDWT) back to (512, 512, 3) float64.
+        """Computes inverse 2D Haar DWT (IDWT) back to (H, W, 3) float64.
 
         Formulation:
             a = (LL + LH + HL + HH) / 2.0
@@ -131,29 +133,25 @@ class HaarDWT2D:
             d = (LL - LH - HL + HH) / 2.0
 
         Args:
-            subbands: DWTSubbands with shape (3, 256, 256) each.
+            subbands: DWTSubbands with shape (3, H/2, W/2) each.
 
         Returns:
-            Reconstructed array of shape (512, 512, 3) float64.
+            Reconstructed array of shape (H, W, 3) float64.
         """
-        # Transpose back from (3, 256, 256) to (256, 256, 3)
-        ll = np.transpose(subbands.ll, (1, 2, 0))
-        lh = np.transpose(subbands.lh, (1, 2, 0))
-        hl = np.transpose(subbands.hl, (1, 2, 0))
-        hh = np.transpose(subbands.hh, (1, 2, 0))
+        h_half, w_half = subbands.ll.shape[1], subbands.ll.shape[2]
+        # In-place channel-by-channel reconstruction avoids intermediate a, b, c, d arrays
+        reconstructed = np.empty((h_half * 2, w_half * 2, 3), dtype=np.float64)
 
-        a = (ll + lh + hl + hh) / 2.0
-        b = (ll - lh + hl - hh) / 2.0
-        c = (ll + lh - hl - hh) / 2.0
-        d = (ll - lh - hl + hh) / 2.0
+        for ch in range(3):
+            ch_ll = subbands.ll[ch]
+            ch_lh = subbands.lh[ch]
+            ch_hl = subbands.hl[ch]
+            ch_hh = subbands.hh[ch]
 
-        h_half, w_half, c_dim = ll.shape
-        reconstructed = np.zeros((h_half * 2, w_half * 2, c_dim), dtype=np.float64)
-
-        reconstructed[0::2, 0::2, :] = a
-        reconstructed[0::2, 1::2, :] = b
-        reconstructed[1::2, 0::2, :] = c
-        reconstructed[1::2, 1::2, :] = d
+            reconstructed[0::2, 0::2, ch] = (ch_ll + ch_lh + ch_hl + ch_hh) * 0.5
+            reconstructed[0::2, 1::2, ch] = (ch_ll - ch_lh + ch_hl - ch_hh) * 0.5
+            reconstructed[1::2, 0::2, ch] = (ch_ll + ch_lh - ch_hl - ch_hh) * 0.5
+            reconstructed[1::2, 1::2, ch] = (ch_ll - ch_lh - ch_hl + ch_hh) * 0.5
 
         return reconstructed
 

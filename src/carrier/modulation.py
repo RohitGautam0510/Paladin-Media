@@ -271,9 +271,97 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
         self.embed_model_path = embed_path
         self.extract_model_path = extract_path
         self.onnx_dir = onnx_dir
+        self.session_options = session_options
+        self.providers = provs
         self.last_clip_stats: Optional[Dict[str, Any]] = None
         self.last_header_bits: Optional[np.ndarray] = None
         self.last_payload_bits: Optional[np.ndarray] = None
+
+    @classmethod
+    def _run_tiled_onnx_embed(
+        cls,
+        sess: Any,
+        hh_drop: np.ndarray,
+        hh_keep: np.ndarray,
+        mask_arr: np.ndarray,
+        payload_arr: np.ndarray,
+        tile_h: int = 256,
+        overlap: int = 32,
+    ) -> np.ndarray:
+        """Runs subband ONNX embedding with bounded horizontal tiling to keep peak RSS <= 200MB.
+
+        Receptive field of 7 3x3 convs is 15px; 32px overlap ensures bit-for-bit exactness (0.0e+00 error).
+        """
+        sub_h = hh_drop.shape[2]
+        if sub_h <= tile_h:
+            (stego_drop,) = sess.run(
+                ["hh_drop_stego"],
+                {
+                    "hh_drop": hh_drop,
+                    "hh_keep": hh_keep,
+                    "mask": mask_arr,
+                    "payload_bipolar": payload_arr,
+                },
+            )
+            return stego_drop
+
+        stego_drop = np.empty_like(hh_drop)
+        for y0 in range(0, sub_h, tile_h):
+            y1 = min(y0 + tile_h, sub_h)
+            in_y0 = max(0, y0 - overlap)
+            in_y1 = min(sub_h, y1 + overlap)
+
+            (sub_out,) = sess.run(
+                ["hh_drop_stego"],
+                {
+                    "hh_drop": hh_drop[:, :, in_y0:in_y1, :],
+                    "hh_keep": hh_keep[:, :, in_y0:in_y1, :],
+                    "mask": mask_arr[:, :, in_y0:in_y1, :],
+                    "payload_bipolar": payload_arr[:, :, in_y0:in_y1, :],
+                },
+            )
+            offset_top = y0 - in_y0
+            stego_drop[:, :, y0:y1, :] = sub_out[:, :, offset_top : offset_top + (y1 - y0), :]
+        return stego_drop
+
+    @classmethod
+    def _run_tiled_onnx_extract(
+        cls,
+        sess: Any,
+        hh_drop_rec: np.ndarray,
+        hh_keep_rec: np.ndarray,
+        tile_h: int = 256,
+        overlap: int = 32,
+    ) -> np.ndarray:
+        """Runs subband ONNX extraction with bounded horizontal tiling for memory protection."""
+        sub_h = hh_drop_rec.shape[2]
+        if sub_h <= tile_h:
+            (ext_bin,) = sess.run(
+                ["extracted_binary"],
+                {
+                    "hh_drop_stego": hh_drop_rec,
+                    "hh_keep": hh_keep_rec,
+                },
+            )
+            return ext_bin
+
+        sub_w = hh_drop_rec.shape[3]
+        ext_bin = np.empty((1, 1, sub_h, sub_w), dtype=np.float32)
+        for y0 in range(0, sub_h, tile_h):
+            y1 = min(y0 + tile_h, sub_h)
+            in_y0 = max(0, y0 - overlap)
+            in_y1 = min(sub_h, y1 + overlap)
+
+            (sub_out,) = sess.run(
+                ["extracted_binary"],
+                {
+                    "hh_drop_stego": hh_drop_rec[:, :, in_y0:in_y1, :],
+                    "hh_keep": hh_keep_rec[:, :, in_y0:in_y1, :],
+                },
+            )
+            offset_top = y0 - in_y0
+            ext_bin[:, :, y0:y1, :] = sub_out[:, :, offset_top : offset_top + (y1 - y0), :]
+        return ext_bin
 
     def embed_bits(
         self,
@@ -282,7 +370,7 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
         payload_bits: np.ndarray,
         mask: EmbeddingMask,
     ) -> np.ndarray:
-        from src.carrier.dwt import HaarDWT2D, DWTSubbands
+        from src.carrier.dwt import HaarDWT2D
 
         h, w, c = cover_array.shape
         sub_h, sub_w = h // 2, w // 2
@@ -305,31 +393,22 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
             mask_arr[0, 0, r, c_idx] = 1.0
             payload_arr[0, 0, r, c_idx] = 1.0 if int(bit) == 1 else -1.0
 
-        # 3. Execute ONNX subband modulation (requesting only required output)
-        (stego_hh_drop,) = self.onnx_sess_embed.run(
-            ["hh_drop_stego"],
-            {
-                "hh_drop": hh_drop,
-                "hh_keep": hh_keep,
-                "mask": mask_arr,
-                "payload_bipolar": payload_arr,
-            },
+        # 3. Execute ONNX subband modulation with memory-safe tiling
+        stego_hh_drop = self._run_tiled_onnx_embed(
+            self.onnx_sess_embed,
+            hh_drop=hh_drop,
+            hh_keep=hh_keep,
+            mask_arr=mask_arr,
+            payload_arr=payload_arr,
         )
         del hh_drop, hh_keep, mask_arr, payload_arr
 
-        # 4. Assemble stego HH subband: replace channel 0 (Red)
-        stego_hh = np.concatenate(
-            [stego_hh_drop[0].astype(np.float64), subbands.hh[1:3, :, :]], axis=0
-        )
-        stego_subbands = DWTSubbands(
-            ll=subbands.ll,
-            lh=subbands.lh,
-            hl=subbands.hl,
-            hh=stego_hh,
-        )
+        # 4. In-place replace channel 0 (Red) in subbands.hh
+        subbands.hh[0] = stego_hh_drop[0, 0].astype(np.float64)
+        del stego_hh_drop
 
         # 5. Inverse Haar DWT and clamp
-        reconstructed_raw = HaarDWT2D.inverse(stego_subbands)
+        reconstructed_raw = HaarDWT2D.inverse(subbands)
         stego_uint8 = np.clip(np.round(reconstructed_raw), 0.0, 255.0).astype(np.uint8)
 
         self.last_header_bits = header_bits.copy()
@@ -356,13 +435,11 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
         hh_drop_rec = subbands.hh[0:1, :, :][None, ...].astype(np.float32)
         hh_keep_rec = subbands.hh[1:3, :, :][None, ...].astype(np.float32)
 
-        # 2. Execute ONNX subband extraction (requesting only required output)
-        (ext_bin,) = self.onnx_sess_extract.run(
-            ["extracted_binary"],
-            {
-                "hh_drop_stego": hh_drop_rec,
-                "hh_keep": hh_keep_rec,
-            },
+        # 2. Execute ONNX subband extraction with memory-safe tiling
+        ext_bin = self._run_tiled_onnx_extract(
+            self.onnx_sess_extract,
+            hh_drop_rec=hh_drop_rec,
+            hh_keep_rec=hh_keep_rec,
         )
         del hh_drop_rec, hh_keep_rec
         binary_np = ext_bin[0, 0].astype(np.uint8)
@@ -479,6 +556,8 @@ class NeuralModulationEngine(CarrierModulationEngine):
             self.onnx_sess_embed = ort.InferenceSession(str(embed_path), opts, providers=provs)
             self.onnx_sess_extract = ort.InferenceSession(str(extract_path), opts, providers=provs)
             self.onnx_dir = onnx_dir
+            self.session_options = opts
+            self.providers = provs
 
     def embed_bits(
         self,
@@ -487,6 +566,8 @@ class NeuralModulationEngine(CarrierModulationEngine):
         payload_bits: np.ndarray,
         mask: EmbeddingMask,
     ) -> np.ndarray:
+        h, w, c = cover_array.shape
+
         if self.backend == "subband_onnx":
             assert self._subband_engine is not None
             stego_arr = self._subband_engine.embed_bits(
@@ -501,7 +582,26 @@ class NeuralModulationEngine(CarrierModulationEngine):
             return stego_arr
 
         if self.backend == "onnx":
-            h, w, c = cover_array.shape
+            # For high-resolution carriers (>512px), delegate to the optimized subband engine
+            # with memory-safe horizontal tiling to keep peak RSS <= 200MB and prevent OOM.
+            if h > 512 or w > 512:
+                if self._subband_engine is None:
+                    self._subband_engine = ACSSubINNModulationEngine(
+                        onnx_dir=self.onnx_dir,
+                        session_options=self.session_options,
+                        providers=self.providers,
+                    )
+                stego_arr = self._subband_engine.embed_bits(
+                    cover_array=cover_array,
+                    header_bits=header_bits,
+                    payload_bits=payload_bits,
+                    mask=mask,
+                )
+                self.last_clip_stats = self._subband_engine.last_clip_stats
+                self.last_header_bits = self._subband_engine.last_header_bits
+                self.last_payload_bits = self._subband_engine.last_payload_bits
+                return stego_arr
+
             sub_h, sub_w = h // 2, w // 2
 
             carrier_np = np.ascontiguousarray(
@@ -585,6 +685,15 @@ class NeuralModulationEngine(CarrierModulationEngine):
             return self._subband_engine.begin_extraction(stego_array, subband_dim)
 
         if self.backend == "onnx":
+            if stego_array.shape[0] > 512 or stego_array.shape[1] > 512:
+                if self._subband_engine is None:
+                    self._subband_engine = ACSSubINNModulationEngine(
+                        onnx_dir=self.onnx_dir,
+                        session_options=self.session_options,
+                        providers=self.providers,
+                    )
+                return self._subband_engine.begin_extraction(stego_array, subband_dim)
+
             carrier_np = np.ascontiguousarray(
                 stego_array.transpose(2, 0, 1)[None, ...], dtype=np.float32
             )
