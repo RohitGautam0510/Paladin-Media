@@ -151,6 +151,9 @@ const getDefaultBaseUrl = (): string => {
 
   if (typeof window !== "undefined" && window.location) {
     const { protocol, hostname, port } = window.location;
+    if (hostname.endsWith("vercel.app")) {
+      return "https://paladin-media.onrender.com";
+    }
     if (port !== "5173" && port !== "3000") {
       return `${protocol}//${hostname}${port ? `:${port}` : ""}`;
     }

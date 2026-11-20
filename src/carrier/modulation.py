@@ -258,7 +258,12 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
             raise FileNotFoundError(f"ACS-Sub-INN ONNX extraction model missing in {onnx_dir} (precision={precision})")
 
         provs = list(providers) if providers is not None else ["CPUExecutionProvider"]
-        opts = session_options if session_options is not None else ort.SessionOptions()
+        if session_options is not None:
+            opts = session_options
+        else:
+            opts = ort.SessionOptions()
+            opts.enable_cpu_mem_arena = False
+            opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
         self.precision = precision
         self.onnx_sess_embed = ort.InferenceSession(str(embed_path), opts, providers=provs)
@@ -462,7 +467,12 @@ class NeuralModulationEngine(CarrierModulationEngine):
                 raise FileNotFoundError(f"ONNX extraction model missing at {extract_path}")
 
             provs = list(providers) if providers is not None else ["CPUExecutionProvider"]
-            opts = session_options if session_options is not None else ort.SessionOptions()
+            if session_options is not None:
+                opts = session_options
+            else:
+                opts = ort.SessionOptions()
+                opts.enable_cpu_mem_arena = False
+                opts.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
 
             self.onnx_sess_embed = ort.InferenceSession(str(embed_path), opts, providers=provs)
             self.onnx_sess_extract = ort.InferenceSession(str(extract_path), opts, providers=provs)
