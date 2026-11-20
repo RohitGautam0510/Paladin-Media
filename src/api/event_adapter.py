@@ -551,18 +551,20 @@ class MediaEventAdapter:
             mod_hh_img = subband_to_image(mod_subbands.hh, is_ll=False)
             mod_hh_url = pil_to_base64_data_url(create_bounded_thumbnail(mod_hh_img, max_dim=384))
 
-            # Extract genuine transform diagnostic coordinates
+            # Extract genuine transform diagnostic coordinates (bounded to 15,000 sample coords to protect container memory)
             header_positions = [(int(p[0]), int(p[1])) for p in mask.header_positions]
-            payload_positions = [(int(p[0]), int(p[1])) for p in mask.payload_positions]
+            total_embedded_count = int(len(header_bits) + len(payload_bits))
+            payload_positions = [(int(p[0]), int(p[1])) for p in mask.payload_positions[:15000]]
             embedded_positions = header_positions + payload_positions
 
             hh_orig = subbands.hh[0]
             hh_mod = mod_subbands.hh[0]
             hh_diff = np.abs(hh_mod - hh_orig)
             changed_indices = np.argwhere(hh_diff > 1e-4)
-            changed_positions = [(int(c[0]), int(c[1])) for c in changed_indices]
-            changed_count = int(len(changed_positions))
+            changed_count = int(len(changed_indices))
+            changed_positions = [(int(c[0]), int(c[1])) for c in changed_indices[:15000]]
             max_hh_diff = float(np.max(hh_diff)) if hh_diff.size > 0 else 0.0
+            del hh_diff
 
             # Apply single unified diagnostic budgeting policy before SSE emission and store
             bounded_diag = diagnostics_store.create_bounded_record(
