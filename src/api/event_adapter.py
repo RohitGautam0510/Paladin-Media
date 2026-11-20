@@ -225,13 +225,14 @@ class MediaEventAdapter:
         session_counter: int = 1,
         model_name: Optional[str] = None,
         version: int = CarrierHeader.VERSION_2,
+        precision: str = "fp32",
     ) -> AsyncGenerator[Dict[str, Any], None]:
         """Runs the complete media-to-media pipeline, yielding real events and artifacts."""
         if model_name:
             try:
-                self.pipeline.modulation_engine = create_modulation_engine(model_name)
+                self.pipeline.modulation_engine = create_modulation_engine(model_name, precision=precision)
             except Exception as e:
-                logger.warning("Could not select engine '%s', keeping default: %s", model_name, e)
+                logger.warning("Could not select engine '%s' (precision=%s), keeping default: %s", model_name, precision, e)
 
         t_start = time.perf_counter()
         run_id = f"run_{session_counter}_{int(time.time() * 1000)}_{uuid.uuid4().hex}"
@@ -362,7 +363,12 @@ class MediaEventAdapter:
             return
 
         # Stage 4: Error Correction Coding (Reed-Solomon GF(2^8))
-        ecc_symbols = getattr(self.security_pipeline.ecc_encoder, "parity_symbols", 48)
+        if version == CarrierHeader.VERSION_3:
+            ecc_symbols = 64
+            encoder = ReedSolomonEncoder(parity_symbols=64)
+        else:
+            ecc_symbols = getattr(self.security_pipeline.ecc_encoder, "parity_symbols", 48 if version == 2 else 32)
+            encoder = self.security_pipeline.ecc_encoder
         yield {
             "stage": "RS_ENCODE",
             "status": "processing",
@@ -370,7 +376,7 @@ class MediaEventAdapter:
         }
         await asyncio.sleep(0.3)
         try:
-            protected_payload = self.security_pipeline.ecc_encoder.encode(encrypted)
+            protected_payload = encoder.encode(encrypted)
             yield {
                 "stage": "RS_ENCODE",
                 "status": "complete",
@@ -397,7 +403,7 @@ class MediaEventAdapter:
         await asyncio.sleep(0.3)
         try:
             cap_report = CapacityCalculator.check_capacity(
-                len(protected_payload), subband_dim=subband_dim, rs_parity=ecc_symbols
+                len(protected_payload), subband_dim=subband_dim, rs_parity=ecc_symbols, version=version
             )
             if not cap_report.fits:
                 msg = (
@@ -523,8 +529,16 @@ class MediaEventAdapter:
                 subband_dim=subband_dim,
                 version=version,
             )
+            if version == CarrierHeader.VERSION_3:
+                from src.carrier.interleaver import DeterministicSymbolInterleaver
+                payload_to_embed = DeterministicSymbolInterleaver.interleave(
+                    protected_payload, scheme="coprime", session_counter=session_counter
+                )
+            else:
+                payload_to_embed = protected_payload
+
             header_bits = BaselineEmbedder.bytes_to_bits(header_bytes)
-            payload_bits = BaselineEmbedder.bytes_to_bits(protected_payload)
+            payload_bits = BaselineEmbedder.bytes_to_bits(payload_to_embed)
 
             stego_arr = self.pipeline.modulation_engine.embed_bits(
                 cover_array=cover_arr,
@@ -716,10 +730,56 @@ class MediaEventAdapter:
         await asyncio.sleep(0.3)
         try:
             bit_extractor = self.pipeline.modulation_engine.begin_extraction(reloaded_arr, subband_dim=subband_dim)
-            hdr_positions = DeterministicMaskGenerator.generate_header_positions(subband_dim=subband_dim)
-            hdr_bits = bit_extractor.extract_bits(hdr_positions)
-            hdr_bytes = Extractor.bits_to_bytes(hdr_bits)
-            carrier_hdr = CarrierHeader.unpack(hdr_bytes)
+            allow_v3 = (version == CarrierHeader.VERSION_3) or getattr(self.pipeline, "enable_v3_mr", False)
+
+            header_v3: Optional[CarrierHeader] = None
+            if allow_v3 and subband_dim[0] > CarrierHeader.HEADER_ROW_OFFSET_V3:
+                pos_v3 = DeterministicMaskGenerator.generate_header_positions(
+                    subband_dim=subband_dim, version=CarrierHeader.VERSION_3
+                )
+                hdr_bits_v3 = bit_extractor.extract_bits(pos_v3)
+                raw_v3 = Extractor.bits_to_bytes(hdr_bits_v3)
+                try:
+                    cand_v3 = CarrierHeader.unpack(raw_v3, allow_v3=True)
+                    if cand_v3.version == CarrierHeader.VERSION_3:
+                        header_v3 = cand_v3
+                except CarrierHeaderError:
+                    pass
+
+            header_v2: Optional[CarrierHeader] = None
+            pos_v2 = DeterministicMaskGenerator.generate_header_positions(
+                subband_dim=subband_dim, version=CarrierHeader.VERSION_2
+            )
+            hdr_bits_v2 = bit_extractor.extract_bits(pos_v2)
+            raw_v2 = Extractor.bits_to_bytes(hdr_bits_v2)
+            try:
+                cand_v2 = CarrierHeader.unpack(raw_v2, allow_v3=allow_v3)
+                if cand_v2.version in (CarrierHeader.VERSION_1, CarrierHeader.VERSION_2):
+                    header_v2 = cand_v2
+            except CarrierHeaderError:
+                pass
+
+            if header_v3 is not None and header_v2 is not None:
+                if (
+                    header_v3.version == header_v2.version
+                    and header_v3.flags == header_v2.flags
+                    and header_v3.session_counter == header_v2.session_counter
+                    and header_v3.payload_length == header_v2.payload_length
+                ):
+                    carrier_hdr = header_v3 if header_v3.version == CarrierHeader.VERSION_3 else header_v2
+                else:
+                    raise CarrierHeaderError(
+                        "Ambiguous carrier header detected: multiple valid headers with conflicting metadata "
+                        "at distinct anchor positions (Row 32 and Row 0)."
+                    )
+            elif header_v3 is not None:
+                carrier_hdr = header_v3
+            elif header_v2 is not None:
+                carrier_hdr = header_v2
+            else:
+                if allow_v3:
+                    raise CarrierHeaderError("Uncorrectable carrier header: both Row 32 (v3) and Row 0 (v2/v1) anchor probes failed.")
+                raise CarrierHeaderError("Uncorrectable carrier header at Row 0 anchor (Wire Protocol v2/v1).")
 
             CapacityCalculator.check_capacity(
                 protected_payload_bytes=carrier_hdr.payload_length,
@@ -736,6 +796,12 @@ class MediaEventAdapter:
             )
             extracted_bits = bit_extractor.extract_bits(payload_positions)
             extracted_protected = Extractor.bits_to_bytes(extracted_bits)
+
+            if carrier_hdr.symbol_interleaved:
+                from src.carrier.interleaver import DeterministicSymbolInterleaver
+                extracted_protected = DeterministicSymbolInterleaver.deinterleave(
+                    extracted_protected, scheme="coprime", session_counter=carrier_hdr.session_counter
+                )
 
             yield {
                 "stage": "EXTRACT",

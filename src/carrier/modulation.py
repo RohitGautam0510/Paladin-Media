@@ -16,6 +16,8 @@ Architecture & Integration Invariants:
 
 from __future__ import annotations
 
+import os
+
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
@@ -24,6 +26,14 @@ import numpy as np
 from PIL import Image
 
 from src.carrier.mask import EmbeddingMask
+
+
+def get_checkpoints_root() -> Path:
+    """Resolves root directory for model checkpoints from environment or repository structure."""
+    env_dir = os.environ.get("PALADIN_CHECKPOINTS_DIR") or os.environ.get("PALADIN_MODEL_DIR")
+    if env_dir:
+        return Path(env_dir).resolve()
+    return Path(__file__).resolve().parent.parent.parent / "checkpoints" 
 
 
 class CarrierBitExtractor(ABC):
@@ -205,6 +215,7 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
         onnx_dir: Optional[Union[str, Path]] = None,
         session_options: Optional[Any] = None,
         providers: Optional[Sequence[str]] = None,
+        precision: str = "fp32",
     ) -> None:
         try:
             import onnxruntime as ort
@@ -213,24 +224,47 @@ class ACSSubINNModulationEngine(CarrierModulationEngine):
                 "ONNX Runtime backend requested, but 'onnxruntime' is not installed."
             ) from e
 
+        precision = precision.lower()
+        if precision not in ("fp32", "int8"):
+            raise ValueError(f"Unsupported precision: {precision}. Must be 'fp32' or 'int8'")
+
+        root_checkpoints = get_checkpoints_root()
         if onnx_dir is None:
-            onnx_dir = Path(__file__).resolve().parent.parent.parent / "checkpoints" / "phase5a_onnx"
+            if precision == "int8":
+                onnx_dir = root_checkpoints / "phase12_int8" if (root_checkpoints / "phase12_int8").exists() else root_checkpoints
+            else:
+                onnx_dir = root_checkpoints / "phase5a_onnx" if (root_checkpoints / "phase5a_onnx").exists() else root_checkpoints
         else:
             onnx_dir = Path(onnx_dir)
 
-        embed_path = onnx_dir / "acs_sub_inn_embedding_opset14.onnx"
-        extract_path = onnx_dir / "acs_sub_inn_extraction_opset14.onnx"
+        embed_cand = [
+            onnx_dir / "acs_sub_inn_embedding_int8_qdq.onnx",
+            onnx_dir / "acs_sub_inn_embedding_static_qdq.onnx",
+            onnx_dir / "acs_sub_inn_embedding_opset14.onnx",
+        ] if precision == "int8" else [onnx_dir / "acs_sub_inn_embedding_opset14.onnx"]
 
-        if not embed_path.exists():
-            raise FileNotFoundError(f"ACS-Sub-INN ONNX embedding model missing at {embed_path}")
-        if not extract_path.exists():
-            raise FileNotFoundError(f"ACS-Sub-INN ONNX extraction model missing at {extract_path}")
+        extract_cand = [
+            onnx_dir / "acs_sub_inn_extraction_int8_qdq.onnx",
+            onnx_dir / "acs_sub_inn_extraction_static_qdq.onnx",
+            onnx_dir / "acs_sub_inn_extraction_opset14.onnx",
+        ] if precision == "int8" else [onnx_dir / "acs_sub_inn_extraction_opset14.onnx"]
+
+        embed_path = next((p for p in embed_cand if p.exists()), None)
+        extract_path = next((p for p in extract_cand if p.exists()), None)
+
+        if not embed_path or not embed_path.exists():
+            raise FileNotFoundError(f"ACS-Sub-INN ONNX embedding model missing in {onnx_dir} (precision={precision})")
+        if not extract_path or not extract_path.exists():
+            raise FileNotFoundError(f"ACS-Sub-INN ONNX extraction model missing in {onnx_dir} (precision={precision})")
 
         provs = list(providers) if providers is not None else ["CPUExecutionProvider"]
         opts = session_options if session_options is not None else ort.SessionOptions()
 
+        self.precision = precision
         self.onnx_sess_embed = ort.InferenceSession(str(embed_path), opts, providers=provs)
         self.onnx_sess_extract = ort.InferenceSession(str(extract_path), opts, providers=provs)
+        self.embed_model_path = embed_path
+        self.extract_model_path = extract_path
         self.onnx_dir = onnx_dir
         self.last_clip_stats: Optional[Dict[str, Any]] = None
         self.last_header_bits: Optional[np.ndarray] = None
@@ -393,8 +427,7 @@ class NeuralModulationEngine(CarrierModulationEngine):
 
                 if checkpoint_path is None:
                     ckpt_p = (
-                        Path(__file__).resolve().parent.parent.parent
-                        / "checkpoints"
+                        get_checkpoints_root()
                         / "phase4c_extended_30ep"
                         / "best_model.pt"
                     )
@@ -415,7 +448,8 @@ class NeuralModulationEngine(CarrierModulationEngine):
                 ) from e
 
             if onnx_dir is None:
-                onnx_dir = Path(__file__).resolve().parent.parent.parent / "checkpoints" / "phase5a_onnx"
+                root_ckpt = get_checkpoints_root()
+                onnx_dir = root_ckpt / "phase5a_onnx" if (root_ckpt / "phase5a_onnx").exists() else root_ckpt
             else:
                 onnx_dir = Path(onnx_dir)
 
@@ -568,6 +602,7 @@ def create_modulation_engine(
     spatial_bridge: Optional[Any] = None,
     session_options: Optional[Any] = None,
     providers: Optional[Sequence[str]] = None,
+    precision: str = "fp32",
 ) -> CarrierModulationEngine:
     """Factory creating configured carrier modulation engines by standardized name.
 
@@ -585,11 +620,13 @@ def create_modulation_engine(
             session_options=session_options,
             providers=providers,
         )
-    elif normalized in ("acs_sub_inn_onnx", "subband_onnx"):
+    elif normalized in ("acs_sub_inn_onnx", "subband_onnx", "acs_sub_inn", "acs_sub_inn_int8"):
+        prec = "int8" if "int8" in normalized or precision.lower() == "int8" else "fp32"
         return ACSSubINNModulationEngine(
             onnx_dir=onnx_dir,
             session_options=session_options,
             providers=providers,
+            precision=prec,
         )
     elif normalized in ("acs_sub_inn_pytorch", "pytorch"):
         return NeuralModulationEngine(

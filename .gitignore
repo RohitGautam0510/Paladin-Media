@@ -61,6 +61,9 @@ checkpoints/sprint3_smoke/
 # OS Artifacts
 .DS_Store
 Thumbs.db
+~$*
+~*.tmp
+*.tmp
 
 # Local Academic & Administrative Documents (Private Coursework)
 Others/
@@ -70,3 +73,7 @@ submission/
 # Agent Scratch & System Runtime
 .agents/
 skills-lock.json
+
+# Staging & Infrastructure Archive (Out of Scope for GitHub)
+_staging_infrastructure_archive/
+

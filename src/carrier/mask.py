@@ -1,11 +1,13 @@
 """Deterministic Embedding Position Mask Generator for PaladinMedia.
 
-Implements the deterministic mask generator per Architecture §14 and Wire Protocol v2:
+Implements the deterministic mask generator per Architecture §14 and Wire Protocol v2/v3:
 - Reversible and non-circular: The carrier header occupies fixed anchor positions
-  (indices 0..191 for Wire Protocol v2; indices 0..127 for Wire Protocol v1) so the receiver
+  (Row 0 cols 0..191 for Wire Protocol v2; Row 0 cols 0..127 for Wire Protocol v1;
+   Row 32 cols 0..191 for Wire Protocol v3 relocated anchors) so the receiver
   can extract the header without prior mask knowledge.
 - The remaining payload positions are deterministically derived from:
-    seed = H(b"PALADIN_MASK_SEED_V1" || session_counter || payload_bit_count)
+    v2/v1: seed = H(b"PALADIN_MASK_SEED_V1" || session_counter || payload_bit_count)
+    v3:    seed = H(b"PALADIN_RELOCATED_MASK_SEED_V1" || session_counter || payload_bit_count || row_offset)
 - Generates reproducible, non-colliding (row, col) coordinates within the transform subband.
 """
 
@@ -56,16 +58,20 @@ class DeterministicMaskGenerator:
     # Header sizing
     HEADER_BITS_V1: int = 16 * 8  # 128 bits for legacy v1 header
     HEADER_BITS_V2: int = 24 * 8  # 192 bits for Wire Protocol v2 header
-    HEADER_BITS: int = 192        # Wire Protocol v2 default
+    HEADER_BITS_V3: int = 24 * 8  # 192 bits for Wire Protocol v3 header
+    HEADER_BITS: int = 192        # Wire Protocol v2/v3 default
+
+    HEADER_ROW_OFFSET_V3: int = 32
 
     MAX_PAYLOAD_BITS_V1: int = TOTAL_POSITIONS - HEADER_BITS_V1  # 65,408 bits (8,176 bytes)
     MAX_PAYLOAD_BITS_V2: int = TOTAL_POSITIONS - HEADER_BITS_V2  # 65,344 bits (8,168 bytes)
+    MAX_PAYLOAD_BITS_V3: int = TOTAL_POSITIONS - HEADER_BITS_V3  # 65,344 bits (8,168 bytes)
     MAX_PAYLOAD_BITS: int = TOTAL_POSITIONS - HEADER_BITS        # 65,344 bits (8,168 bytes)
 
     @classmethod
     def get_header_bits(cls, version: int = 2) -> int:
         """Returns the header anchor bit count for the requested wire version."""
-        return cls.HEADER_BITS_V2 if version == 2 else cls.HEADER_BITS_V1
+        return cls.HEADER_BITS_V1 if version == 1 else cls.HEADER_BITS_V2
 
     @classmethod
     def index_to_coord(
@@ -80,13 +86,25 @@ class DeterministicMaskGenerator:
         cls,
         subband_dim: Union[int, Tuple[int, int], Sequence[int]] = SUBBAND_DIM,
         version: int = 2,
+        row_offset: Optional[int] = None,
     ) -> Tuple[Tuple[int, int], ...]:
         """Returns the fixed anchor coordinates for header bits.
 
-        - Wire Protocol v2: 192 bits (indices 0..191).
-        - Wire Protocol v1: 128 bits (indices 0..127).
+        - Wire Protocol v3: 192 bits relocated to interior (default Row 32, cols 0..191).
+        - Wire Protocol v2: 192 bits at boundary (Row 0, cols 0..191).
+        - Wire Protocol v1: 128 bits at boundary (Row 0, cols 0..127).
         """
+        sub_h, sub_w = resolve_subband_dims(subband_dim)
         hdr_bits = cls.get_header_bits(version=version)
+
+        if version == 3 or row_offset is not None:
+            r_off = cls.HEADER_ROW_OFFSET_V3 if row_offset is None else row_offset
+            if r_off < 0 or r_off >= sub_h:
+                raise MaskGenerationError(f"Invalid row_offset {r_off} for subband height {sub_h}")
+            if hdr_bits > sub_w:
+                raise MaskGenerationError(f"Header bits ({hdr_bits}) exceeds subband width ({sub_w})")
+            return tuple((r_off, c) for c in range(hdr_bits))
+
         return tuple(cls.index_to_coord(i, subband_dim) for i in range(hdr_bits))
 
     @classmethod
@@ -97,6 +115,7 @@ class DeterministicMaskGenerator:
         subband_dim: Union[int, Tuple[int, int], Sequence[int]] = SUBBAND_DIM,
         version: int = 2,
         header_bits: Optional[int] = None,
+        row_offset: Optional[int] = None,
     ) -> Tuple[Tuple[int, int], ...]:
         """Derives deterministic, non-colliding coordinates for the payload bits.
 
@@ -104,8 +123,9 @@ class DeterministicMaskGenerator:
             session_counter: 32-bit session/file counter from carrier header.
             payload_length_bytes: Exact byte length of the Reed-Solomon protected stream.
             subband_dim: Dimension of the subband (int for square or (sub_h, sub_w) tuple).
-            version: Wire protocol version (2 for v2; 1 for v1).
+            version: Wire protocol version (3 for v3; 2 for v2; 1 for v1).
             header_bits: Optional explicit header anchor bit count override.
+            row_offset: Optional explicit header row offset override (for v3).
 
         Returns:
             Tuple of (row, col) coordinate pairs of length payload_length_bytes * 8.
@@ -126,15 +146,28 @@ class DeterministicMaskGenerator:
         if payload_bits == 0:
             return ()
 
-        # Deterministic seed derivation: SHA-256(domain || session_counter || payload_bits)
+        if version == 3 or row_offset is not None:
+            r_off = cls.HEADER_ROW_OFFSET_V3 if row_offset is None else row_offset
+            header_indices = set(r_off * sub_w + c for c in range(hdr_bits))
+            candidate_indices = [idx for idx in range(total_positions) if idx not in header_indices]
+
+            # Domain-separated seed for relocated mask
+            hasher = hashlib.sha256()
+            hasher.update(b"PALADIN_RELOCATED_MASK_SEED_V1")
+            hasher.update(struct.pack(">III", session_counter, payload_bits, r_off))
+            seed_int = int.from_bytes(hasher.digest()[:8], "big")
+
+            rng = random.Random(seed_int)
+            selected_indices = rng.sample(candidate_indices, payload_bits)
+            return tuple(cls.index_to_coord(idx, (sub_h, sub_w)) for idx in selected_indices)
+
+        # Wire Protocol v1 / v2: Sequential index exclusion from Row 0 anchor
         hasher = hashlib.sha256()
         hasher.update(b"PALADIN_MASK_SEED_V1")
         hasher.update(struct.pack(">II", session_counter, payload_bits))
         seed_int = int.from_bytes(hasher.digest()[:8], "big")
 
         rng = random.Random(seed_int)
-
-        # Sample exactly payload_bits without replacement starting after the header anchor
         candidate_range = range(hdr_bits, total_positions)
         selected_indices = rng.sample(candidate_range, payload_bits)
 
@@ -147,13 +180,17 @@ class DeterministicMaskGenerator:
         payload_length_bytes: int,
         subband_dim: Union[int, Tuple[int, int], Sequence[int]] = SUBBAND_DIM,
         version: int = 2,
+        row_offset: Optional[int] = None,
     ) -> EmbeddingMask:
         """Generates the complete embedding mask containing header and payload coordinates."""
-        header_pos = cls.generate_header_positions(subband_dim=subband_dim, version=version)
+        header_pos = cls.generate_header_positions(
+            subband_dim=subband_dim, version=version, row_offset=row_offset
+        )
         payload_pos = cls.generate_payload_positions(
             session_counter=session_counter,
             payload_length_bytes=payload_length_bytes,
             subband_dim=subband_dim,
             version=version,
+            row_offset=row_offset,
         )
         return EmbeddingMask(header_positions=header_pos, payload_positions=payload_pos)

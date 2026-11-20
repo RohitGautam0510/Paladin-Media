@@ -57,6 +57,8 @@ export interface BackendCapabilities {
   available_engines: EngineCapability[];
   default_protocol_version: number;
   supported_protocol_versions: number[];
+  default_precision?: string;
+  supported_precisions?: string[];
   ecc_profile: string;
   supported_ecc_profiles: string[];
   telemetry: {
@@ -67,6 +69,7 @@ export interface BackendCapabilities {
   };
   pipeline_stages: { id: PipelineStage; name: string; domain: string }[];
   onnx_models_verified: boolean;
+  v3_mr_enabled?: boolean;
   max_upload_size_bytes: number;
   max_carrier_dimension: number;
   max_carrier_pixels: number;
@@ -100,6 +103,8 @@ export interface CarrierCapacityInfo {
   carrier_height: number;
   subband_width: number;
   subband_height: number;
+  wire_protocol_version?: number;
+  header_wire_bytes?: number;
   ecc_profile: string;
   ecc_parity_symbols: number;
   carrier_format_policy: string;
@@ -108,6 +113,21 @@ export interface CarrierCapacityInfo {
   max_protected_bytes: number;
   is_qualified_deployment: boolean;
   operational_qualification_note: string;
+}
+
+export interface AuthSessionInfo {
+  authenticated: boolean;
+  mode?: string;
+  requires_auth?: boolean;
+  user?: string | null;
+  roles?: string[];
+  csrf_token?: string | null;
+  expires_at?: number | null;
+  auth_method?: string;
+  oidc_configured?: boolean;
+  oidc_issuer?: string | null;
+  oidc_login_url?: string | null;
+  idp_gate_status?: string;
 }
 
 const getDefaultBaseUrl = (): string => {
@@ -133,6 +153,7 @@ export class BackendAdapter {
   private baseUrl: string = getDefaultBaseUrl();
   private abortController: AbortController | null = null;
   private apiToken: string | null = null;
+  private csrfToken: string | null = null;
 
   setBaseUrl(url: string) {
     this.baseUrl = url.replace(/\/+$/, "");
@@ -146,17 +167,89 @@ export class BackendAdapter {
     this.apiToken = token;
   }
 
+  setCsrfToken(token: string | null) {
+    this.csrfToken = token;
+  }
+
+  getCsrfToken(): string | null {
+    return this.csrfToken;
+  }
+
+  getOidcLoginUrl(): string {
+    return `${this.baseUrl}/api/auth/oidc/login`;
+  }
+
   private getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
     const headers: Record<string, string> = { ...extraHeaders };
     if (this.apiToken) {
       headers["Authorization"] = `Bearer ${this.apiToken}`;
     }
+    if (this.csrfToken) {
+      headers["X-CSRF-Token"] = this.csrfToken;
+    }
     return headers;
+  }
+
+  async checkSession(): Promise<AuthSessionInfo> {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/auth/session`, {
+        method: "GET",
+        headers: this.getHeaders(),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        return { authenticated: false, requires_auth: true };
+      }
+      const data: AuthSessionInfo = await res.json();
+      if (data.csrf_token) {
+        this.csrfToken = data.csrf_token;
+      }
+      return data;
+    } catch {
+      return { authenticated: false, requires_auth: true };
+    }
+  }
+
+  async login(token: string): Promise<{ status: string; user?: string; csrf_token?: string }> {
+    const res = await fetch(`${this.baseUrl}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      let msg = `Authentication failed (${res.status})`;
+      try {
+        const j = await res.json();
+        if (j.detail) msg = j.detail;
+      } catch {
+        // ignore
+      }
+      throw new Error(msg);
+    }
+    const data = await res.json();
+    if (data.csrf_token) {
+      this.csrfToken = data.csrf_token;
+    }
+    return data;
+  }
+
+  async logout(): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/api/auth/logout`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        credentials: "include",
+      });
+    } finally {
+      this.csrfToken = null;
+    }
   }
 
   async fetchDefaultFixtures(): Promise<DefaultFixtures> {
     const res = await fetch(`${this.baseUrl}/api/fixtures/defaults`, {
       headers: this.getHeaders(),
+      credentials: "include",
     });
     if (!res.ok) throw new Error("Failed to load default fixtures");
     return res.json();
@@ -177,14 +270,16 @@ export class BackendAdapter {
       method: "POST",
       headers: this.getHeaders(),
       body: formData,
+      credentials: "include",
     });
     if (!res.ok) throw new Error("Media upload failed");
     return res.json();
   }
 
-  async fetchCarrierCapacity(width: number, height: number): Promise<CarrierCapacityInfo> {
-    const res = await fetch(`${this.baseUrl}/api/carrier/capacity?width=${width}&height=${height}`, {
+  async fetchCarrierCapacity(width: number, height: number, version: number = 2): Promise<CarrierCapacityInfo> {
+    const res = await fetch(`${this.baseUrl}/api/carrier/capacity?width=${width}&height=${height}&protocol_version=${version}`, {
       headers: this.getHeaders(),
+      credentials: "include",
     });
     if (!res.ok) {
       let msg = "Failed to fetch carrier capacity";
@@ -206,6 +301,7 @@ export class BackendAdapter {
     const query = params.toString() ? `?${params.toString()}` : "";
     const res = await fetch(`${this.baseUrl}/api/config${query}`, {
       headers: this.getHeaders(),
+      credentials: "include",
     });
     if (!res.ok) throw new Error("Failed to fetch backend configuration");
     return res.json();
@@ -214,6 +310,7 @@ export class BackendAdapter {
   async fetchSessionMedia(sessionId: string): Promise<string> {
     const res = await fetch(`${this.baseUrl}/api/session/${sessionId}`, {
       headers: this.getHeaders(),
+      credentials: "include",
     });
     if (!res.ok) throw new Error(`Failed to fetch session media: ${res.status}`);
     const blob = await res.blob();
@@ -223,6 +320,7 @@ export class BackendAdapter {
   async fetchRunSubbands(runId: string): Promise<Record<string, string>> {
     const res = await fetch(`${this.baseUrl}/api/runs/${runId}/subbands`, {
       headers: this.getHeaders(),
+      credentials: "include",
     });
     if (!res.ok) throw new Error(`Failed to fetch run subbands: ${res.status}`);
     const data = await res.json();
@@ -232,8 +330,50 @@ export class BackendAdapter {
   async fetchCapabilities(): Promise<BackendCapabilities> {
     const res = await fetch(`${this.baseUrl}/api/capabilities`, {
       headers: this.getHeaders(),
+      credentials: "include",
     });
     if (!res.ok) throw new Error("Failed to fetch backend capabilities");
+    return res.json();
+  }
+
+  async extractMedia(
+    file: File,
+    keyHex?: string,
+    modelName?: string,
+    precision?: string
+  ): Promise<{
+    status: string;
+    recovered_session_id: string;
+    recovered_bytes: number;
+    media_type: string;
+    session_counter: number;
+    ecc_parity: number;
+    protocol_version: number;
+    wire_protocol_version: number;
+    pqc_authenticated_sender_id?: string;
+  }> {
+    const uploadResult = await this.uploadMedia(file);
+    const res = await fetch(`${this.baseUrl}/api/extract`, {
+      method: "POST",
+      headers: this.getHeaders({ "Content-Type": "application/json" }),
+      credentials: "include",
+      body: JSON.stringify({
+        stego_session_id: uploadResult.session_id,
+        key_hex: keyHex || undefined,
+        model_name: modelName || undefined,
+        precision: precision || "fp32",
+      }),
+    });
+    if (!res.ok) {
+      let msg = `Extraction failed with status ${res.status}`;
+      try {
+        const j = await res.json();
+        if (j.detail) msg = j.detail;
+      } catch {
+        // ignore
+      }
+      throw new Error(msg);
+    }
     return res.json();
   }
 
@@ -244,7 +384,8 @@ export class BackendAdapter {
     onComplete: () => void,
     keyHex?: string,
     modelName?: string,
-    version?: number
+    version?: number,
+    precision?: string
   ): Promise<void> {
     this.cancel();
 
@@ -255,11 +396,13 @@ export class BackendAdapter {
       const res = await fetch(`${this.baseUrl}/api/stream`, {
         method: "POST",
         headers: this.getHeaders({ "Content-Type": "application/json" }),
+        credentials: "include",
         body: JSON.stringify({
           secret_session_id: secretSessionId,
           cover_session_id: coverSessionId || undefined,
           key_hex: keyHex || undefined,
           model_name: modelName || undefined,
+          precision: precision || "fp32",
           version: version || 2,
         }),
         signal,

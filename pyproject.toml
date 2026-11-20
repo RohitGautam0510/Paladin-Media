@@ -4,24 +4,45 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "paladinmedia"
-version = "0.1.0"
+version = "2.6.0rc2"
+description = "PaladinMedia: Energy-Efficient Post-Quantum Steganography and Media Protection Runtime"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary / All Rights Reserved" }
 dependencies = [
     "fastapi>=0.110.0",
     "uvicorn>=0.28.0",
     "python-multipart>=0.0.9",
     "pydantic>=2.0.0",
     "onnxruntime>=1.15.0",
-    "torch>=2.0.0",
     "pillow>=10.0.0",
     "cryptography>=41.0.0",
     "reedsolo>=1.7.0",
     "numpy>=1.24.0",
+    "psutil>=5.9.0",
+    "pyjwt>=2.8.0",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
     "httpx>=0.27.0",
+    "torch>=2.0.0",
+]
+
+[tool.setuptools]
+packages = [
+    "paladinmedia",
+    "src",
+    "src.api",
+    "src.carrier",
+    "src.core",
+    "src.core.serialization",
+    "src.neural",
+    "src.security",
+    "src.security.crypto",
+    "src.security.ecc",
+    "src.security.pqc",
 ]
 
 [tool.pytest.ini_options]

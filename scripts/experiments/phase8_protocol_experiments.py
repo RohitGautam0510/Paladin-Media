@@ -44,7 +44,7 @@ from src.carrier.modulation import NeuralModulationEngine
 from src.core.exceptions import AuthenticationError, ECCDecodeError, PaladinSecurityError
 from src.core.media_pipeline import MediaStegoPipeline, calculate_psnr, calculate_ssim
 from src.core.serialization import MediaType, SecretPayload, SecretSerializer
-from src.neural.dataset import DIV2KStegoDataset
+# from src.neural.dataset import DIV2KStegoDataset (lazy import in run_protocol_evaluation_suite)
 from src.security.crypto.provider import AESGCMProvider
 from src.security.ecc.encoder import ReedSolomonEncoder
 
@@ -786,6 +786,7 @@ def run_full_evaluation(
     }
 
     # Load dataset
+    from src.neural.dataset import DIV2KStegoDataset
     ds = DIV2KStegoDataset(split=eval_split, random_crop=False)
     n_images = len(ds) if max_images is None else min(len(ds), max_images)
     logger.info("Loaded %s split: %d carriers to evaluate", eval_split, n_images)

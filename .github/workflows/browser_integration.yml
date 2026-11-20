@@ -1,0 +1,63 @@
+name: Full-Stack Browser Integration Qualification
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+
+jobs:
+  browser-qualification:
+    name: Headless Playwright Integration Sweep
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "frontend/package-lock.json"
+
+      - name: Install Python Backend Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Install Frontend Dependencies & Playwright
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Build Production Frontend Bundle
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Start FastAPI Backend Service
+        run: |
+          python -m uvicorn src.api.server:app --host 127.0.0.1 --port 8000 --workers 1 &
+          sleep 3
+          curl -f http://127.0.0.1:8000/api/capabilities
+
+      - name: Execute Playwright E2E Qualification Suite
+        working-directory: ./frontend
+        run: npx playwright test tests/e2e/integration.spec.ts
+
+      - name: Upload Playwright Qualification Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-qualification-results
+          path: frontend/playwright-report/
+          retention-days: 14

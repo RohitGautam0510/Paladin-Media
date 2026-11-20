@@ -12,20 +12,24 @@ Provides:
 from __future__ import annotations
 
 import asyncio
+from contextlib import asynccontextmanager
 import base64
 import hashlib
 import io
 import json
 import logging
 import os
+import secrets
 import struct
+import urllib.parse
+import urllib.request
 import zlib
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
-from fastapi import APIRouter, Depends, FastAPI, File, Header, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, File, Header, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, Response, StreamingResponse
+from fastapi.responses import JSONResponse, RedirectResponse, Response, StreamingResponse
 from PIL import Image
 from pydantic import BaseModel, Field
 
@@ -38,18 +42,25 @@ from src.api.event_adapter import (
 )
 from src.api.security import (
     APISettings,
+    AuthSession,
     BoundedSessionStore,
     DemoRateLimiterMiddleware,
     RequestSizeLimitMiddleware,
     SecurityHeadersMiddleware,
+    default_auth_session_store,
+    default_oidc_state_store,
+    generate_pkce_pair,
     get_api_settings,
+    is_request_https,
     reset_api_settings,
+    reset_auth_session_store,
     sanitize_error_message,
+    validate_id_token_claims,
     validate_key_hex,
     verify_auth,
 )
 from src.api.telemetry import SustainabilityTelemetryTracker, telemetry_tracker
-from src.carrier.capacity import PayloadCapacityExceededError
+from src.carrier.capacity import CapacityCalculator, PayloadCapacityExceededError
 from src.carrier.header import CarrierHeaderError
 from src.carrier.modulation import create_modulation_engine
 from src.core.exceptions import (
@@ -75,7 +86,13 @@ COVER_FIXTURE_PATH = (
         else REPO_ROOT / "MVP 0 Dataset" / "0001x2.png"
     )
 )
-ONNX_DIR = REPO_ROOT / "checkpoints" / "phase5a_onnx"
+_checkpoints_env = os.environ.get("PALADIN_CHECKPOINTS_DIR") or os.environ.get("PALADIN_MODEL_DIR")
+if _checkpoints_env:
+    CHECKPOINTS_DIR = Path(_checkpoints_env).resolve()
+    ONNX_DIR = CHECKPOINTS_DIR if (CHECKPOINTS_DIR / "acs_sub_inn_embedding_opset14.onnx").exists() else (CHECKPOINTS_DIR / "phase5a_onnx")
+else:
+    CHECKPOINTS_DIR = REPO_ROOT / "checkpoints"
+    ONNX_DIR = CHECKPOINTS_DIR / "phase5a_onnx"
 
 EXPECTED_ONNX_HASHES = {
     "acs_sub_inn_embedding_opset14.onnx": "3cd22ba35e55d4addfb89e59cdc695f1086383bef5d507f39a3c91dd4917c173",
@@ -166,6 +183,58 @@ def check_runtime_operational() -> Tuple[bool, str, Dict[str, Any]]:
     return True, "Operational", integrity
 
 
+
+# Concurrency & Memory Admission Control
+MAX_CONCURRENT_ENGINE_JOBS = int(os.environ.get("PALADIN_MAX_CONCURRENT_ENGINE_JOBS", "1"))
+ENGINE_ADMISSION_TIMEOUT_SECONDS = float(os.environ.get("PALADIN_ENGINE_ADMISSION_TIMEOUT", "10.0"))
+
+_engine_semaphore: Optional[asyncio.Semaphore] = None
+
+
+def get_engine_semaphore() -> asyncio.Semaphore:
+    """Returns the singleton semaphore bounding concurrent neural engine executions."""
+    global _engine_semaphore
+    if _engine_semaphore is None:
+        _engine_semaphore = asyncio.Semaphore(MAX_CONCURRENT_ENGINE_JOBS)
+    return _engine_semaphore
+
+
+def reset_engine_semaphore(max_jobs: Optional[int] = None) -> None:
+    """Resets the concurrency admission semaphore (used for testing or dynamic reconfiguration)."""
+    global _engine_semaphore, MAX_CONCURRENT_ENGINE_JOBS
+    if max_jobs is not None:
+        MAX_CONCURRENT_ENGINE_JOBS = max_jobs
+    else:
+        MAX_CONCURRENT_ENGINE_JOBS = int(os.environ.get("PALADIN_MAX_CONCURRENT_ENGINE_JOBS", "1"))
+    _engine_semaphore = asyncio.Semaphore(MAX_CONCURRENT_ENGINE_JOBS)
+
+
+@asynccontextmanager
+async def engine_admission_gate(timeout: float = ENGINE_ADMISSION_TIMEOUT_SECONDS):
+    """Guarantees memory budget invariants by bounding concurrent neural steganography engine tasks.
+
+    Under the 512 MB container memory limit, a single execution of FP32 steganography consumes
+    <= 255 MB peak RSS. By limiting concurrent executions (default: 1), total peak RSS remains
+    strictly within the 512 MB budget. Concurrent requests wait up to timeout seconds before
+    returning HTTP 503 (Capacity/Queue full).
+    """
+    sem = get_engine_semaphore()
+    acquired = False
+    try:
+        try:
+            await asyncio.wait_for(sem.acquire(), timeout=timeout)
+            acquired = True
+        except asyncio.TimeoutError:
+            raise HTTPException(
+                status_code=503,
+                detail=f"Engine concurrency limit reached ({MAX_CONCURRENT_ENGINE_JOBS} concurrent job(s)). Admission queue timeout ({timeout}s) exceeded. Upgrade server memory allocation (768MB-1024MB) or increase PALADIN_MAX_CONCURRENT_ENGINE_JOBS.",
+            )
+        yield
+    finally:
+        if acquired:
+            sem.release()
+
+
 def get_deployment_configuration(subband_dim: Union[int, Tuple[int, int]] = 256) -> Dict[str, Any]:
     """Exposes non-sensitive operational deployment configuration facts."""
     settings = get_api_settings()
@@ -198,6 +267,12 @@ def get_deployment_configuration(subband_dim: Union[int, Tuple[int, int]] = 256)
         "reference_metadata_capacity_bytes": cap_info["reference_metadata_capacity_bytes"],
         "max_protected_payload_bytes": cap_info["max_protected_bytes"],
         "is_qualified_deployment": cap_info["is_qualified_deployment"],
+        "is_production_deployed": False,
+        "runtime_integrity_verified": is_operational,
+        "qualification_state": "pre_deployment_qualification",
+        "pqc_enabled": settings.enable_pqc,
+        "pqc_supported": True,
+        "pqc_ciphersuite": "ML-KEM-768 + ML-DSA-65 + AES-256-GCM + HKDF-SHA256",
         "onnx_models_verified": integrity["all_verified"],
         "onnx_models_present": integrity["all_present"],
         "onnx_files_present": integrity["files_present"],
@@ -210,6 +285,9 @@ def get_deployment_configuration(subband_dim: Union[int, Tuple[int, int]] = 256)
         "max_upload_size_bytes": settings.max_upload_bytes,
         "session_ttl_seconds": settings.session_ttl_seconds,
         "max_session_store_bytes": settings.max_session_store_bytes,
+        "v3_mr_enabled": settings.enable_v3_mr,
+        "default_protocol_version": 2,
+        "supported_protocol_versions": [2, 3] if settings.enable_v3_mr else [2],
     }
 
 
@@ -230,6 +308,10 @@ async def health_check() -> JSONResponse:
             "ready": is_ready,
             "deployment_mode": settings.mode,
             "is_qualified_deployment": is_ready,
+            "is_production_deployed": False,
+            "runtime_integrity_verified": is_ready,
+            "qualification_state": "pre_deployment_qualification",
+            "pqc_enabled": settings.enable_pqc,
             "reason": reason,
         },
     )
@@ -251,6 +333,353 @@ async def readiness_probe() -> JSONResponse:
             content={"status": "not_ready", "ready": False, "detail": reason},
         )
     return JSONResponse(status_code=200, content={"status": "ready", "ready": True})
+
+
+def _exchange_code_at_idp(token_endpoint: str, data: Dict[str, str], timeout: float = 10.0) -> Dict[str, Any]:
+    """Exchanges an authorization code with the IdP token endpoint per RFC 6749 / OIDC Core."""
+    encoded_data = urllib.parse.urlencode(data).encode("utf-8")
+    req = urllib.request.Request(
+        token_endpoint,
+        data=encoded_data,
+        headers={
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept": "application/json",
+            "User-Agent": "PaladinMedia-BFF/2.6.0-rc2",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        body = resp.read().decode("utf-8")
+        return json.loads(body)
+
+
+class LoginRequest(BaseModel):
+    api_token: Optional[str] = None
+    token: Optional[str] = None
+
+
+@api_router.get("/api/auth/oidc/login")
+async def auth_oidc_login(
+    request: Request,
+    redirect_to: Optional[str] = Query(None),
+    json_response: bool = Query(False, alias="json"),
+) -> Response:
+    """Initiates OAuth 2.0 / OpenID Connect authorization code flow with PKCE."""
+    settings = get_api_settings()
+
+    if not settings.is_oidc_configured():
+        if not settings.is_auth_required():
+            # In local unauthenticated mode, redirect directly to requested target
+            target = redirect_to or "/"
+            return RedirectResponse(url=target, status_code=302)
+        raise HTTPException(
+            status_code=503,
+            detail="OIDC Identity Provider is not configured (PALADIN_OIDC_ISSUER / PALADIN_OIDC_CLIENT_ID required). External IdP gate is OPEN.",
+        )
+
+    code_verifier, code_challenge = generate_pkce_pair()
+    state = secrets.token_urlsafe(32)
+    nonce = secrets.token_urlsafe(32)
+
+    redirect_uri = settings.oidc_redirect_uri
+    if not redirect_uri:
+        # Auto-derive from request base_url
+        redirect_uri = str(request.base_url).rstrip("/") + "/api/auth/oidc/callback"
+
+    default_oidc_state_store.store_state(
+        state=state,
+        nonce=nonce,
+        code_verifier=code_verifier,
+        redirect_uri=redirect_uri,
+        ttl_seconds=300,
+    )
+
+    auth_endpoint = settings.oidc_auth_endpoint
+    if not auth_endpoint:
+        base = settings.oidc_issuer or ""
+        auth_endpoint = f"{base}protocol/openid-connect/auth" if base.endswith("/") else f"{base}/protocol/openid-connect/auth"
+
+    params = {
+        "client_id": settings.oidc_client_id,
+        "response_type": "code",
+        "scope": settings.oidc_scopes,
+        "redirect_uri": redirect_uri,
+        "state": state,
+        "nonce": nonce,
+        "code_challenge": code_challenge,
+        "code_challenge_method": "S256",
+    }
+    authorization_url = f"{auth_endpoint}?{urllib.parse.urlencode(params)}"
+
+    accept = request.headers.get("accept", "")
+    if json_response or "application/json" in accept:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ready",
+                "authorization_url": authorization_url,
+                "state": state,
+                "code_challenge": code_challenge,
+                "code_challenge_method": "S256",
+            },
+        )
+
+    return RedirectResponse(url=authorization_url, status_code=302)
+
+
+@api_router.get("/api/auth/oidc/callback")
+async def auth_oidc_callback(
+    request: Request,
+    code: Optional[str] = Query(None),
+    state: Optional[str] = Query(None),
+    error: Optional[str] = Query(None),
+    error_description: Optional[str] = Query(None),
+) -> Response:
+    """Handles authorization-code callback from IdP, validates PKCE/state/nonce, sets session."""
+    settings = get_api_settings()
+
+    if error:
+        raise HTTPException(
+            status_code=400,
+            detail=f"OIDC IdP authorization error: {error} - {error_description or ''}".strip(),
+        )
+
+    if not code or not state:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing required 'code' or 'state' parameters in OIDC callback.",
+        )
+
+    stored = default_oidc_state_store.consume_state(state)
+    if stored is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid, expired, or replayed OAuth state parameter.",
+        )
+
+    if not settings.is_oidc_configured():
+        raise HTTPException(
+            status_code=503,
+            detail="OIDC Identity Provider configuration missing at callback time.",
+        )
+
+    token_endpoint = settings.oidc_token_endpoint
+    if not token_endpoint:
+        base = settings.oidc_issuer or ""
+        token_endpoint = f"{base}protocol/openid-connect/token" if base.endswith("/") else f"{base}/protocol/openid-connect/token"
+
+    token_form: Dict[str, str] = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": stored.redirect_uri,
+        "client_id": settings.oidc_client_id or "",
+        "code_verifier": stored.code_verifier,
+    }
+    if settings.oidc_client_secret:
+        token_form["client_secret"] = settings.oidc_client_secret
+
+    try:
+        token_data = await asyncio.to_thread(_exchange_code_at_idp, token_endpoint, token_form)
+    except Exception as exc:
+        logger.error("Failed to exchange code at IdP token endpoint %s: %s", token_endpoint, exc)
+        raise HTTPException(
+            status_code=502,
+            detail=f"Failed to exchange authorization code with IdP token endpoint: {str(exc)}",
+        )
+
+    id_token = token_data.get("id_token")
+    if not id_token:
+        raise HTTPException(
+            status_code=502,
+            detail="IdP token response did not include required 'id_token'.",
+        )
+
+    claims = validate_id_token_claims(
+        id_token=id_token,
+        expected_issuer=settings.oidc_issuer,
+        expected_audience=settings.oidc_client_id,
+        expected_nonce=stored.nonce,
+        client_secret=settings.oidc_client_secret,
+        jwks_uri=settings.oidc_jwks_uri,
+    )
+
+    user_id = (
+        claims.get("email")
+        or claims.get("preferred_username")
+        or claims.get("sub")
+        or "authenticated-user"
+    )
+    roles = claims.get("roles") or ["operator"]
+    if isinstance(roles, str):
+        roles = [roles]
+
+    ttl = getattr(settings, "session_ttl_seconds", 3600) or 3600
+    session = default_auth_session_store.create_session(user_id=user_id, ttl_seconds=ttl)
+    session.roles = roles
+    session.auth_method = "oidc"
+
+    is_secure = is_request_https(request, settings)
+
+    redirect_url = "/"
+    response = RedirectResponse(url=redirect_url, status_code=302)
+    response.set_cookie(
+        key="paladin_session",
+        value=session.session_id,
+        httponly=True,
+        secure=is_secure,
+        samesite="lax",
+        path="/",
+        max_age=ttl,
+    )
+    response.set_cookie(
+        key="paladin_csrf",
+        value=session.csrf_token,
+        httponly=False,
+        secure=is_secure,
+        samesite="lax",
+        path="/",
+        max_age=ttl,
+    )
+    return response
+
+
+@api_router.post("/api/auth/login")
+async def auth_login(req: LoginRequest, request: Request) -> Response:
+    """Authenticates operator via API token and establishes a secure HttpOnly session cookie."""
+    settings = get_api_settings()
+    provided_token = (req.api_token or req.token or "").strip()
+
+    if settings.is_auth_required():
+        expected_token = (settings.api_token or "").strip()
+        if not provided_token or not secrets.compare_digest(provided_token, expected_token):
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid API token",
+            )
+
+    ttl = getattr(settings, "session_ttl_seconds", 3600) or 3600
+    session = default_auth_session_store.create_session(user_id="operator", ttl_seconds=ttl)
+
+    is_secure = is_request_https(request, settings)
+    samesite_val = "lax"
+
+    response = JSONResponse(
+        status_code=200,
+        content={
+            "status": "authenticated",
+            "user": session.user_id,
+            "csrf_token": session.csrf_token,
+            "expires_at": session.expires_at,
+        },
+    )
+    # Set HttpOnly session cookie (inaccessible to browser JavaScript/XSS)
+    response.set_cookie(
+        key="paladin_session",
+        value=session.session_id,
+        httponly=True,
+        secure=is_secure,
+        samesite=samesite_val,
+        path="/",
+        max_age=ttl,
+    )
+    # Set CSRF cookie (readable by frontend JS so it can submit X-CSRF-Token header)
+    response.set_cookie(
+        key="paladin_csrf",
+        value=session.csrf_token,
+        httponly=False,
+        secure=is_secure,
+        samesite=samesite_val,
+        path="/",
+        max_age=ttl,
+    )
+    return response
+
+
+@api_router.get("/api/auth/session")
+async def get_auth_session(request: Request) -> Dict[str, Any]:
+    """Inspects the current browser authentication state."""
+    settings = get_api_settings()
+    is_oidc = settings.is_oidc_configured()
+    idp_verified = os.environ.get("PALADIN_IDP_VERIFIED", "false").lower() in ("true", "1")
+    idp_status = "CLOSED_VALIDATED" if (is_oidc and idp_verified) else "OPEN_PENDING_EXTERNAL_IDP"
+
+    if not settings.is_auth_required():
+        return {
+            "authenticated": True,
+            "mode": settings.mode,
+            "requires_auth": False,
+            "user": "local-operator",
+            "roles": ["operator", "admin"],
+            "csrf_token": "local-csrf-token",
+            "oidc_configured": is_oidc,
+            "oidc_issuer": settings.oidc_issuer,
+            "oidc_login_url": "/api/auth/oidc/login" if is_oidc else None,
+            "idp_gate_status": idp_status,
+        }
+
+    session_id = request.cookies.get("paladin_session")
+    if session_id:
+        session = default_auth_session_store.get_session(session_id)
+        if session:
+            return {
+                "authenticated": True,
+                "mode": settings.mode,
+                "requires_auth": True,
+                "user": session.user_id,
+                "roles": getattr(session, "roles", ["operator"]),
+                "csrf_token": session.csrf_token,
+                "expires_at": session.expires_at,
+                "auth_method": getattr(session, "auth_method", "token"),
+                "oidc_configured": is_oidc,
+                "oidc_issuer": settings.oidc_issuer,
+                "oidc_login_url": "/api/auth/oidc/login" if is_oidc else None,
+                "idp_gate_status": idp_status,
+            }
+
+    return {
+        "authenticated": False,
+        "mode": settings.mode,
+        "requires_auth": True,
+        "user": None,
+        "roles": [],
+        "csrf_token": None,
+        "oidc_configured": is_oidc,
+        "oidc_issuer": settings.oidc_issuer,
+        "oidc_login_url": "/api/auth/oidc/login" if is_oidc else None,
+        "idp_gate_status": idp_status,
+    }
+
+
+@api_router.post("/api/auth/logout")
+async def auth_logout(request: Request) -> Response:
+    """Invalidates the active session in the session store and clears cookies."""
+    session_id = request.cookies.get("paladin_session")
+    if session_id:
+        default_auth_session_store.delete_session(session_id)
+
+    response = JSONResponse(
+        status_code=200,
+        content={"status": "logged_out"},
+    )
+    response.delete_cookie(key="paladin_session", path="/")
+    response.delete_cookie(key="paladin_csrf", path="/")
+    return response
+
+
+@api_router.get("/api/auth/csrf")
+async def get_csrf_token(request: Request) -> Dict[str, Any]:
+    """Returns the CSRF token for the active session."""
+    session_id = request.cookies.get("paladin_session")
+    if session_id:
+        session = default_auth_session_store.get_session(session_id)
+        if session:
+            return {"csrf_token": session.csrf_token}
+
+    settings = get_api_settings()
+    if not settings.is_auth_required():
+        return {"csrf_token": "local-csrf-token"}
+
+    raise HTTPException(status_code=401, detail="Authentication required to obtain CSRF token.")
 
 
 @api_router.get("/api/capabilities")
@@ -297,9 +726,25 @@ async def get_capabilities(
             },
         ],
         "default_protocol_version": 2,
-        "supported_protocol_versions": [2],
+        "supported_protocol_versions": [2, 3] if settings.enable_v3_mr else [2],
+        "default_precision": "fp32",
+        "supported_precisions": ["fp32", "int8"],
+        "concurrency": {
+            "max_concurrent_engine_jobs": MAX_CONCURRENT_ENGINE_JOBS,
+            "engine_admission_timeout_seconds": ENGINE_ADMISSION_TIMEOUT_SECONDS,
+            "memory_budget_target_mb": 512,
+            "single_job_peak_rss_mb": 255.0,
+            "concurrent_memory_guideline": "1 worker <= 255 MB (fits 512 MB cgroups); N >= 2 workers require 768 MB - 1024 MB allocation.",
+        },
+        "v3_mr_enabled": settings.enable_v3_mr,
+        "pqc_enabled": settings.enable_pqc,
+        "pqc_supported": True,
+        "pqc_ciphersuite": "ML-KEM-768 + ML-DSA-65 + AES-256-GCM + HKDF-SHA256",
+        "is_production_deployed": False,
+        "runtime_integrity_verified": is_operational,
+        "qualification_state": "pre_deployment_qualification",
         "ecc_profile": "rs_2t_48",
-        "supported_ecc_profiles": ["rs_2t_48", "rs_2t_32"],
+        "supported_ecc_profiles": ["rs_2t_48", "rs_2t_64", "rs_2t_32"] if settings.enable_v3_mr else ["rs_2t_48", "rs_2t_32"],
         "telemetry": {
             "available": True,
             "source": "codecarbon" if SustainabilityTelemetryTracker.is_codecarbon_available() else "estimated_hardware_model",
@@ -365,11 +810,16 @@ async def get_config(
 
 @api_router.get("/api/carrier/capacity")
 async def get_carrier_capacity(
-    width: int = Query(..., description="Carrier width in pixels"),
-    height: int = Query(..., description="Carrier height in pixels"),
+    width: int = Query(512, description="Carrier width in pixels"),
+    height: int = Query(512, description="Carrier height in pixels"),
+    protocol_version: Optional[int] = Query(None, description="Wire protocol version (2 or 3)"),
+    protocol: Optional[str] = Query(None, description="Wire protocol selector ('v2' or 'v3_mr')"),
+    version: Optional[int] = Query(None, description="Wire protocol version alias"),
+    ecc_profile: Optional[str] = Query(None, description="Reed-Solomon ECC profile ('rs_2t_48' or 'rs_2t_64')"),
     token: Optional[str] = Depends(verify_auth),
 ) -> Dict[str, Any]:
-    """Computes dynamic secret capacity limits for a given carrier width and height."""
+    """Computes dynamic secret capacity limits for a given carrier width, height, and protocol."""
+    settings = get_api_settings()
     if width < 32 or height < 32:
         raise HTTPException(
             status_code=422,
@@ -385,28 +835,90 @@ async def get_carrier_capacity(
             status_code=413,
             detail=f"Carrier dimensions {width}x{height} exceed maximum resource limit (2048x2048 / 4 Mpx)",
         )
+
+    # Resolve target wire protocol version
+    target_version = 2
+    if protocol is not None:
+        p_clean = protocol.strip().lower()
+        if p_clean in ("v3_mr", "v3-mr", "v3_maximum_resilience"):
+            target_version = 3
+        elif p_clean in ("v2", "wire_protocol_v2", "2"):
+            target_version = 2
+        elif p_clean in ("v1", "wire_protocol_v1", "1"):
+            target_version = 1
+        elif p_clean in ("v3_standard", "v3", "3"):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported wire protocol '{protocol}'. Wire Protocol v3 Standard is an unpromoted experimental protocol. Only v3-MR is supported.",
+            )
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported wire protocol '{protocol}'. Supported options are 'v2' or 'v3_mr'.",
+            )
+    elif ecc_profile is not None:
+        e_clean = ecc_profile.strip().lower()
+        if e_clean in ("rs_2t_64", "rs(255,191)", "64"):
+            target_version = 3
+        elif e_clean in ("rs_2t_48", "rs(255,207)", "48"):
+            target_version = 2
+        elif e_clean in ("rs_2t_32", "rs(255,223)", "32"):
+            target_version = 1
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported ECC profile '{ecc_profile}'. Supported profiles are 'rs_2t_48' (v2 default) or 'rs_2t_64' (v3-MR).",
+            )
+    elif protocol_version is not None or version is not None:
+        ver = protocol_version if protocol_version is not None else version
+        if ver not in (1, 2, 3):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported wire protocol version: {ver}. Supported versions are 2 (default) or 3 (v3-MR).",
+            )
+        target_version = ver
+
+    if target_version == 3 and not settings.enable_v3_mr:
+        raise HTTPException(
+            status_code=403,
+            detail="Wire Protocol v3-MR is disabled on this server. Contact administrator or set PALADIN_ENABLE_V3_MR=true.",
+        )
+
     subband_dim = (height // 2, width // 2)
-    if qualified_pipeline is not None:
-        limits = qualified_pipeline.get_capacity_limits(subband_dim=subband_dim)
-    else:
-        from src.carrier.capacity import CapacityCalculator
-        raw_cap = CapacityCalculator.calculate_usable_secret_capacity(subband_dim=subband_dim, rs_parity=48)
-        limits = {
-            "ecc_profile": "rs_2t_48",
-            "ecc_parity_symbols": 48,
-            "carrier_format_policy": "Lossless 8-bit RGB PNG only. Lossy transcoded carriers (e.g. JPEG) are strictly unsupported.",
-            "raw_secret_capacity_bytes": raw_cap,
-            "reference_metadata_capacity_bytes": 100,
-            "max_protected_bytes": raw_cap,
-            "is_qualified_deployment": False,
-            "operational_qualification_note": "Qualified ONNX runtime is degraded",
-        }
+    ecc_parity = 64 if target_version == 3 else (48 if target_version == 2 else 32)
+    raw_cap = CapacityCalculator.calculate_usable_secret_capacity(
+        metadata_len=0, subband_dim=subband_dim, rs_parity=ecc_parity, version=target_version
+    )
+    ref_cap = CapacityCalculator.calculate_usable_secret_capacity(
+        metadata_len=2, subband_dim=subband_dim, rs_parity=ecc_parity, version=target_version
+    )
+    hdr_bytes = CapacityCalculator.get_header_bytes(version=target_version)
+    max_prot = (subband_dim[0] * subband_dim[1] // 8) - hdr_bytes
+
     return {
         "carrier_width": width,
         "carrier_height": height,
         "subband_height": subband_dim[0],
         "subband_width": subband_dim[1],
-        **limits,
+        "wire_protocol_version": target_version,
+        "protocol_version": target_version,
+        "header_wire_bytes": hdr_bytes,
+        "ecc_profile": f"rs_2t_{ecc_parity}",
+        "ecc_parity_symbols": ecc_parity,
+        "raw_secret_capacity_bytes": raw_cap,
+        "reference_metadata_capacity_bytes": ref_cap,
+        "max_protected_bytes": max_prot,
+        "is_qualified_deployment": (target_version == 2),
+        "carrier_format_policy": "Lossless 8-bit RGB PNG only. Lossy transcoded carriers (e.g. JPEG) are strictly unsupported.",
+        "operational_qualification_note": (
+            "Wire Protocol v3 Maximum Resilience (RS(255,191), 2t=64, Row 32 anchor, symbol-interleaved)."
+            if target_version == 3
+            else (
+                "Primary qualified deployment profile rs_2t_48 with native ONNX Runtime backend and Wire Protocol v2 Header ECC."
+                if target_version == 2
+                else "Legacy Wire Protocol v1 (unprotected header)."
+            )
+        ),
     }
 
 
@@ -758,7 +1270,14 @@ class DirectEmbedRequest(BaseModel):
     key_hex: Optional[str] = Field(None, description="64-character hex string representing a 32-byte key")
     session_counter: int = 1
     model_name: Optional[str] = Field("neural_spatial_onnx", description="Modulation engine selector")
-    version: Optional[int] = Field(2, description="Wire protocol version (2 or 3)")
+    precision: Optional[str] = Field("fp32", description="Model precision ('fp32' or 'int8')")
+    protocol: Optional[str] = Field(None, description="Wire protocol selector ('v2' or 'v3_mr')")
+    version: Optional[int] = Field(None, description="Wire protocol version (2 or 3)")
+    pqc_enabled: Optional[bool] = Field(False, description="Enable Post-Quantum Cryptography (ML-KEM-768 + ML-DSA-65)")
+    pqc_sender_id: Optional[str] = Field(None, description="Sender identity ID in trust store")
+    pqc_sender_dsa_private_key_hex: Optional[str] = Field(None, description="Sender ML-DSA-65 private key hex")
+    pqc_recipient_id: Optional[str] = Field(None, description="Recipient identity ID in trust store")
+    pqc_option: Optional[str] = Field("B", description="PQC delivery option ('B' or 'A')")
 
 
 @api_router.post("/api/embed")
@@ -772,12 +1291,37 @@ async def embed_media(
     if not is_ready:
         raise HTTPException(status_code=503, detail=f"Steganography runtime is unavailable: {reason}")
 
-    if req.version not in (1, 2):
+    target_version = 2
+    if req.protocol is not None:
+        p_clean = req.protocol.strip().lower()
+        if p_clean in ("v3_mr", "v3-mr", "v3_maximum_resilience"):
+            target_version = 3
+        elif p_clean in ("v2", "wire_protocol_v2", "2"):
+            target_version = 2
+        elif p_clean in ("v1", "wire_protocol_v1", "1"):
+            target_version = 1
+        elif p_clean in ("v3_standard", "v3", "3"):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported wire protocol '{req.protocol}'. Wire Protocol v3 Standard is an unpromoted experimental protocol. Only v3-MR is supported.",
+            )
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported wire protocol '{req.protocol}'. Supported options are 'v2' or 'v3_mr'.",
+            )
+    elif req.version is not None:
+        if req.version not in (1, 2, 3):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported wire protocol version: {req.version}. Supported versions are 2 (default) or 3 (v3-MR).",
+            )
+        target_version = req.version
+
+    if target_version == 3 and not settings.enable_v3_mr:
         raise HTTPException(
-            status_code=422,
-            detail=f"Unsupported wire protocol version: {req.version}. "
-                   "Only Wire Protocol v2 (qualified) is supported for production deployment. "
-                   "Wire Protocol v3 is an offline research prototype."
+            status_code=403,
+            detail="Wire Protocol v3-MR is disabled on this server. Contact administrator or set PALADIN_ENABLE_V3_MR=true.",
         )
 
     key = validate_key_hex(req.key_hex, is_remote=settings.is_remote())
@@ -788,35 +1332,122 @@ async def embed_media(
 
     cover_img = resolve_cover_image(req.cover_session_id, is_remote=settings.is_remote())
 
+    # Preflight capacity check before DWT or neural modulation
+    cover_w, cover_h = cover_img.size
+    sub_dim = (cover_h // 2, cover_w // 2)
+    ecc_parity = 64 if target_version == 3 else (48 if target_version == 2 else 32)
+    meta_dict = {"filename": "secret_upload.png", "source": "api_embed"}
+    import json as _json
+    meta_len = len(_json.dumps(meta_dict, separators=(",", ":")).encode("utf-8"))
+    usable_cap = CapacityCalculator.calculate_usable_secret_capacity(
+        metadata_len=meta_len, subband_dim=sub_dim, rs_parity=ecc_parity, version=target_version
+    )
+    if len(secret_bytes) > usable_cap:
+        raise HTTPException(
+            status_code=413,
+            detail=f"PAYLOAD_CAPACITY_EXCEEDED: Secret payload data ({len(secret_bytes)} B) "
+                   f"exceeds maximum usable capacity ({usable_cap} B with {meta_len}B metadata) "
+                   f"for ECC parity {ecc_parity} under Wire Protocol v{target_version}. Embedding aborted.",
+        )
+
     secret_payload = SecretPayload(
         data=secret_bytes,
         media_type=MediaType.IMAGE,
-        metadata={"filename": "secret_upload.png", "source": "api_embed"},
+        metadata=meta_dict,
     )
 
-    try:
-        assert qualified_pipeline is not None
-        if req.model_name and req.model_name != "neural_spatial_onnx":
-            pipe = MediaStegoPipeline(
-                crypto_provider=qualified_pipeline.security_pipeline.crypto_provider,
-                ecc_encoder=qualified_pipeline.security_pipeline.ecc_encoder,
-                backend=req.model_name,
+    if req.pqc_enabled:
+        if not settings.enable_pqc:
+            raise HTTPException(
+                status_code=403,
+                detail="Post-Quantum Cryptography is disabled on this server. Contact administrator or set PALADIN_ENABLE_PQC=true.",
             )
-        else:
-            pipe = qualified_pipeline
+        if not req.pqc_sender_id or not req.pqc_sender_dsa_private_key_hex or not req.pqc_recipient_id:
+            raise HTTPException(
+                status_code=422,
+                detail="pqc_sender_id, pqc_sender_dsa_private_key_hex, and pqc_recipient_id are required when pqc_enabled=true.",
+            )
+        try:
+            sender_dsa_priv = bytes.fromhex(req.pqc_sender_dsa_private_key_hex)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="pqc_sender_dsa_private_key_hex must be valid hex.")
 
-        res = pipe.protect_and_embed(
-            secret_payload=secret_payload,
-            cover_image=cover_img,
-            key=key,
-            session_counter=req.session_counter,
-            version=req.version or 2,
-        )
-    except PayloadCapacityExceededError as e:
-        raise HTTPException(status_code=413, detail=sanitize_error_message(e))
-    except Exception as e:
-        logger.error("Embedding execution failure: %s", sanitize_error_message(e))
-        raise HTTPException(status_code=500, detail=f"Embedding failed: {sanitize_error_message(e)}")
+        pqc_opt = (req.pqc_option or "B").upper()
+        pqc_overhead = 4547 if pqc_opt == "B" else 1150
+        pre_rs_cap = (32 * 191) if target_version == 3 else (32 * 207)
+        max_pqc_payload = pre_rs_cap - pqc_overhead
+        if len(secret_bytes) > max_pqc_payload:
+            raise HTTPException(
+                status_code=413,
+                detail=f"Secret payload data ({len(secret_bytes)} B) exceeds PQC Option {pqc_opt} usable capacity ({max_pqc_payload} B).",
+            )
+
+        precision_val = (req.precision or "fp32").lower()
+        try:
+            assert qualified_pipeline is not None
+            if target_version == 3:
+                pipe = MediaStegoPipeline.create_v3_mr_deployment(
+                    backend=req.model_name or "neural_spatial_onnx",
+                    precision=precision_val,
+                )
+            elif (req.model_name and req.model_name != "neural_spatial_onnx") or precision_val != "fp32":
+                pipe = MediaStegoPipeline(
+                    crypto_provider=qualified_pipeline.security_pipeline.crypto_provider,
+                    ecc_encoder=qualified_pipeline.security_pipeline.ecc_encoder,
+                    backend=req.model_name or "neural_spatial_onnx",
+                    precision=precision_val,
+                )
+            else:
+                pipe = qualified_pipeline
+
+            async with engine_admission_gate():
+                res = pipe.protect_and_embed_pqc(
+                    secret_payload=secret_payload,
+                    cover_image=cover_img,
+                    sender_id=req.pqc_sender_id,
+                    sender_dsa_private_key=sender_dsa_priv,
+                    recipient_id=req.pqc_recipient_id,
+                    option=pqc_opt,
+                    session_counter=req.session_counter,
+                    version=target_version,
+                )
+        except PayloadCapacityExceededError as e:
+            raise HTTPException(status_code=413, detail=sanitize_error_message(e))
+        except Exception as e:
+            logger.error("PQC embedding execution failure: %s", sanitize_error_message(e))
+            raise HTTPException(status_code=500, detail=f"PQC embedding failed: {sanitize_error_message(e)}")
+    else:
+        precision_val = (req.precision or "fp32").lower()
+        try:
+            assert qualified_pipeline is not None
+            if target_version == 3:
+                pipe = MediaStegoPipeline.create_v3_mr_deployment(
+                    backend=req.model_name or "neural_spatial_onnx",
+                    precision=precision_val,
+                )
+            elif (req.model_name and req.model_name != "neural_spatial_onnx") or precision_val != "fp32":
+                pipe = MediaStegoPipeline(
+                    crypto_provider=qualified_pipeline.security_pipeline.crypto_provider,
+                    ecc_encoder=qualified_pipeline.security_pipeline.ecc_encoder,
+                    backend=req.model_name or "neural_spatial_onnx",
+                    precision=precision_val,
+                )
+            else:
+                pipe = qualified_pipeline
+
+            async with engine_admission_gate():
+                res = pipe.protect_and_embed(
+                    secret_payload=secret_payload,
+                    cover_image=cover_img,
+                    key=key,
+                    session_counter=req.session_counter,
+                    version=target_version,
+                )
+        except PayloadCapacityExceededError as e:
+            raise HTTPException(status_code=413, detail=sanitize_error_message(e))
+        except Exception as e:
+            logger.error("Embedding execution failure: %s", sanitize_error_message(e))
+            raise HTTPException(status_code=500, detail=f"Embedding failed: {sanitize_error_message(e)}")
 
     stego_session_id = session_store.store(
         data=res.stego_png_bytes,
@@ -832,7 +1463,8 @@ async def embed_media(
         "output_format_policy": res.output_format_policy,
         "psnr_db": round(res.psnr_db, 2),
         "ssim": round(res.ssim, 5),
-        "ecc_profile": "rs_2t_48",
+        "ecc_profile": f"rs_2t_{ecc_parity}",
+        "wire_protocol_version": target_version,
     }
 
 
@@ -840,6 +1472,11 @@ class DirectExtractRequest(BaseModel):
     stego_session_id: str
     key_hex: Optional[str] = Field(None, description="64-character hex string representing a 32-byte key")
     model_name: Optional[str] = Field("neural_spatial_onnx", description="Modulation engine selector")
+    precision: Optional[str] = Field("fp32", description="Model precision ('fp32' or 'int8')")
+    pqc_enabled: Optional[bool] = Field(False, description="Expect Post-Quantum Cryptography envelope")
+    pqc_recipient_kem_private_key_hex: Optional[str] = Field(None, description="Recipient ML-KEM-768 private key hex")
+    pqc_detached_signature_hex: Optional[str] = Field(None, description="Detached ML-DSA-65 signature hex (for Option A)")
+    pqc_sender_id_override: Optional[str] = Field(None, description="Sender ID override (for Option A)")
 
 
 @api_router.post("/api/extract")
@@ -884,27 +1521,97 @@ async def extract_media(
         # Non-image or damaged headers handled by pipeline fail-closed
         pass
 
-    try:
-        assert qualified_pipeline is not None
-        if req.model_name and req.model_name != "neural_spatial_onnx":
-            pipe = MediaStegoPipeline(
-                crypto_provider=qualified_pipeline.security_pipeline.crypto_provider,
-                ecc_encoder=qualified_pipeline.security_pipeline.ecc_encoder,
-                backend=req.model_name,
+    if req.pqc_enabled:
+        if not settings.enable_pqc:
+            raise HTTPException(
+                status_code=403,
+                detail="Post-Quantum Cryptography is disabled on this server. Contact administrator or set PALADIN_ENABLE_PQC=true.",
             )
-        else:
-            pipe = qualified_pipeline
-        recovery = pipe.extract_and_unprotect(stego_carrier=stego_bytes, key=key)
-    except UnsupportedCarrierFormatError as e:
-        raise HTTPException(status_code=400, detail=sanitize_error_message(e))
-    except (CarrierHeaderError, ECCDecodeError, AuthenticationError) as e:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Extraction failed closed: {sanitize_error_message(e)}. Please ensure the carrier is the original lossless PNG.",
-        )
-    except Exception as e:
-        logger.error("Extraction execution failure: %s", sanitize_error_message(e))
-        raise HTTPException(status_code=500, detail=f"Extraction failure: {sanitize_error_message(e)}")
+        if not req.pqc_recipient_kem_private_key_hex:
+            raise HTTPException(
+                status_code=422,
+                detail="pqc_recipient_kem_private_key_hex is required when pqc_enabled=true.",
+            )
+        try:
+            recipient_kem_priv = bytes.fromhex(req.pqc_recipient_kem_private_key_hex)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="pqc_recipient_kem_private_key_hex must be valid hex.")
+
+        detached_sig = None
+        if req.pqc_detached_signature_hex:
+            try:
+                detached_sig = bytes.fromhex(req.pqc_detached_signature_hex)
+            except ValueError:
+                raise HTTPException(status_code=422, detail="pqc_detached_signature_hex must be valid hex.")
+
+        precision_val = (req.precision or "fp32").lower()
+        try:
+            assert qualified_pipeline is not None
+            if (req.model_name and req.model_name != "neural_spatial_onnx") or precision_val != "fp32":
+                pipe = MediaStegoPipeline(
+                    crypto_provider=qualified_pipeline.security_pipeline.crypto_provider,
+                    ecc_encoder=qualified_pipeline.security_pipeline.ecc_encoder,
+                    backend=req.model_name or "neural_spatial_onnx",
+                    precision=precision_val,
+                )
+            else:
+                pipe = qualified_pipeline
+
+            async with engine_admission_gate():
+                recovery = pipe.extract_and_unprotect_pqc(
+                    stego_carrier=stego_bytes,
+                    recipient_kem_private_key=recipient_kem_priv,
+                    detached_signature=detached_sig,
+                    sender_id_override=req.pqc_sender_id_override,
+                )
+        except UnsupportedCarrierFormatError as e:
+            raise HTTPException(status_code=400, detail=sanitize_error_message(e))
+        except CarrierHeaderError as e:
+            err_msg = sanitize_error_message(e)
+            if "Wire Protocol v3 is disabled" in err_msg or "v3-MR is not authorized" in err_msg:
+                raise HTTPException(status_code=403, detail=err_msg)
+            raise HTTPException(
+                status_code=422,
+                detail=f"Extraction failed closed: {err_msg}. Please ensure the carrier is the original lossless PNG.",
+            )
+        except Exception as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"PQC extraction failed closed: {sanitize_error_message(e)}. Please ensure the carrier is the original lossless PNG.",
+            )
+    else:
+        precision_val = (req.precision or "fp32").lower()
+        try:
+            assert qualified_pipeline is not None
+            if (req.model_name and req.model_name != "neural_spatial_onnx") or precision_val != "fp32":
+                pipe = MediaStegoPipeline(
+                    crypto_provider=qualified_pipeline.security_pipeline.crypto_provider,
+                    ecc_encoder=qualified_pipeline.security_pipeline.ecc_encoder,
+                    backend=req.model_name or "neural_spatial_onnx",
+                    precision=precision_val,
+                )
+            else:
+                pipe = qualified_pipeline
+            async with engine_admission_gate():
+                recovery = pipe.extract_and_unprotect(stego_carrier=stego_bytes, key=key)
+        except UnsupportedCarrierFormatError as e:
+            raise HTTPException(status_code=400, detail=sanitize_error_message(e))
+        except CarrierHeaderError as e:
+            err_msg = sanitize_error_message(e)
+            if "Wire Protocol v3 is disabled" in err_msg or "v3-MR is not authorized" in err_msg:
+                raise HTTPException(status_code=403, detail=err_msg)
+            raise HTTPException(
+                status_code=422,
+                detail=f"Extraction failed closed: {err_msg}. Please ensure the carrier is the original lossless PNG.",
+            )
+        except (ECCDecodeError, AuthenticationError) as e:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Extraction failed closed: {sanitize_error_message(e)}. Please ensure the carrier is the original lossless PNG.",
+            )
+        except Exception as e:
+            logger.error("Extraction execution failure: %s", sanitize_error_message(e))
+            raise HTTPException(status_code=500, detail=f"Extraction failure: {sanitize_error_message(e)}")
 
     rec_session_id = session_store.store(
         data=recovery.recovered_payload.data,
@@ -912,14 +1619,19 @@ async def extract_media(
         media_type="application/octet-stream",
     )
 
-    return {
+    resp: Dict[str, Any] = {
         "status": "success",
         "recovered_session_id": rec_session_id,
         "recovered_bytes": len(recovery.recovered_payload.data),
         "media_type": recovery.recovered_payload.media_type.name,
         "session_counter": recovery.header.session_counter,
         "ecc_parity": recovery.header.ecc_parity,
+        "protocol_version": recovery.header.version,
+        "wire_protocol_version": recovery.header.version,
     }
+    if recovery.authenticated_sender_id:
+        resp["pqc_authenticated_sender_id"] = recovery.authenticated_sender_id
+    return resp
 
 
 class StreamPipelineRequest(BaseModel):
@@ -927,8 +1639,10 @@ class StreamPipelineRequest(BaseModel):
     cover_session_id: Optional[str] = None
     key_hex: Optional[str] = Field(None, description="64-character hex string representing a 32-byte key")
     model_name: Optional[str] = Field("neural_spatial_onnx", description="Modulation engine selector")
+    precision: Optional[str] = Field("fp32", description="Model precision ('fp32' or 'int8')")
     session_counter: Optional[int] = Field(101, description="Session counter for mask PRNG")
-    version: Optional[int] = Field(2, description="Wire protocol version (2 or 3)")
+    protocol: Optional[str] = Field(None, description="Wire protocol selector ('v2' or 'v3_mr')")
+    version: Optional[int] = Field(None, description="Wire protocol version (2 or 3)")
 
 
 @api_router.post("/api/stream")
@@ -942,12 +1656,37 @@ async def stream_media_pipeline(
     if not is_ready:
         raise HTTPException(status_code=503, detail=f"Steganography runtime is unavailable: {reason}")
 
-    if req.version not in (1, 2):
+    target_version = 2
+    if req.protocol is not None:
+        p_clean = req.protocol.strip().lower()
+        if p_clean in ("v3_mr", "v3-mr", "v3_maximum_resilience"):
+            target_version = 3
+        elif p_clean in ("v2", "wire_protocol_v2", "2"):
+            target_version = 2
+        elif p_clean in ("v1", "wire_protocol_v1", "1"):
+            target_version = 1
+        elif p_clean in ("v3_standard", "v3", "3"):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported wire protocol '{req.protocol}'. Wire Protocol v3 Standard is an unpromoted experimental protocol. Only v3-MR is supported.",
+            )
+        else:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported wire protocol '{req.protocol}'. Supported options are 'v2' or 'v3_mr'.",
+            )
+    elif req.version is not None:
+        if req.version not in (1, 2, 3):
+            raise HTTPException(
+                status_code=422,
+                detail=f"Unsupported wire protocol version: {req.version}. Supported versions are 2 (default) or 3 (v3-MR).",
+            )
+        target_version = req.version
+
+    if target_version == 3 and not settings.enable_v3_mr:
         raise HTTPException(
-            status_code=422,
-            detail=f"Unsupported wire protocol version: {req.version}. "
-                   "Only Wire Protocol v2 (qualified) is supported for production deployment. "
-                   "Wire Protocol v3 is an offline research prototype."
+            status_code=403,
+            detail="Wire Protocol v3-MR is disabled on this server. Contact administrator or set PALADIN_ENABLE_V3_MR=true.",
         )
 
     key = validate_key_hex(req.key_hex, is_remote=settings.is_remote())
@@ -964,23 +1703,26 @@ async def stream_media_pipeline(
         metadata={"filename": "secret_upload.png", "source": "ui_upload"},
     )
 
+    precision_val = (req.precision or "fp32").lower()
     assert qualified_pipeline is not None
     adapter = MediaEventAdapter(pipeline=qualified_pipeline, session_store=session_store)
 
     async def event_generator():
         last_run_id = None
         try:
-            async for event in adapter.run_media_pipeline(
-                secret_payload=secret_payload,
-                cover_image=cover_img,
-                key=key,
-                session_counter=req.session_counter or 101,
-                model_name=req.model_name or "neural_spatial_onnx",
-                version=req.version or 2,
-            ):
-                if isinstance(event, dict) and event.get("metadata", {}).get("run_id"):
-                    last_run_id = event["metadata"]["run_id"]
-                yield serialize_sse_event(event)
+            async with engine_admission_gate():
+                async for event in adapter.run_media_pipeline(
+                    secret_payload=secret_payload,
+                    cover_image=cover_img,
+                    key=key,
+                    session_counter=req.session_counter or 101,
+                    model_name=req.model_name or "neural_spatial_onnx",
+                    version=target_version,
+                    precision=precision_val,
+                ):
+                    if isinstance(event, dict) and event.get("metadata", {}).get("run_id"):
+                        last_run_id = event["metadata"]["run_id"]
+                    yield serialize_sse_event(event)
         except (asyncio.CancelledError, GeneratorExit):
             logger.info("Streaming client disconnected or stream cancelled for run_id=%s", last_run_id)
             if last_run_id:
@@ -1080,6 +1822,81 @@ async def get_run_subbands(
     }
 
 
+class PQCIdentityRegistrationRequest(BaseModel):
+    identity_id: str
+    name: str
+    kem_public_key_hex: str
+    dsa_public_key_hex: str
+
+
+@api_router.get("/api/pqc/identities")
+async def list_pqc_identities(
+    token: Optional[str] = Depends(verify_auth),
+) -> Dict[str, Any]:
+    """Lists registered PQC identities (without private keys)."""
+    settings = get_api_settings()
+    if not settings.enable_pqc:
+        raise HTTPException(
+            status_code=403,
+            detail="Post-Quantum Cryptography is disabled on this server. Contact administrator or set PALADIN_ENABLE_PQC=true.",
+        )
+    from src.security.pqc.trust import default_trust_store
+
+    with default_trust_store._lock:
+        identities = [
+            {
+                "identity_id": ident.identity_id,
+                "name": ident.name,
+                "kem_fingerprint_hex": ident.kem_fingerprint.hex(),
+                "dsa_fingerprint_hex": ident.dsa_fingerprint.hex(),
+                "created_at": ident.created_at,
+                "expires_at": ident.expires_at,
+                "is_revoked": ident.is_revoked,
+            }
+            for ident in default_trust_store._identities_by_id.values()
+        ]
+    return {"identities": identities, "count": len(identities)}
+
+
+@api_router.post("/api/pqc/identities")
+async def register_pqc_identity(
+    req: PQCIdentityRegistrationRequest,
+    token: Optional[str] = Depends(verify_auth),
+) -> Dict[str, Any]:
+    """Registers a new validated PQC identity into the trust store."""
+    settings = get_api_settings()
+    if not settings.enable_pqc:
+        raise HTTPException(
+            status_code=403,
+            detail="Post-Quantum Cryptography is disabled on this server. Contact administrator or set PALADIN_ENABLE_PQC=true.",
+        )
+    from src.security.pqc.models import PQCIdentity
+    from src.security.pqc.trust import default_trust_store
+
+    try:
+        kem_pk = bytes.fromhex(req.kem_public_key_hex)
+        dsa_pk = bytes.fromhex(req.dsa_public_key_hex)
+        ident = PQCIdentity(
+            identity_id=req.identity_id,
+            name=req.name,
+            kem_public_key=kem_pk,
+            dsa_public_key=dsa_pk,
+        )
+        default_trust_store.register_identity(ident)
+        return {
+            "status": "registered",
+            "identity_id": ident.identity_id,
+            "name": ident.name,
+            "kem_fingerprint_hex": ident.kem_fingerprint.hex(),
+            "dsa_fingerprint_hex": ident.dsa_fingerprint.hex(),
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Identity registration failed: {sanitize_error_message(e)}",
+        )
+
+
 def create_app(settings: Optional[APISettings] = None) -> FastAPI:
     """Factory creating and configuring the FastAPI application.
 
@@ -1125,7 +1942,14 @@ def create_app(settings: Optional[APISettings] = None) -> FastAPI:
         allow_origin_regex=r"^https://paladinmedia(-[a-z0-9]+)?\.vercel\.app$" if active_settings.mode == "demo" else None,
         allow_credentials=allow_creds,
         allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "X-Requested-With",
+            "X-CSRF-Token",
+            "x-csrf-token",
+        ],
     )
 
     # Security response headers & cache prevention

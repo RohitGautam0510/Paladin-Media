@@ -23,7 +23,10 @@ import {
   AlertTriangle,
   Loader2,
   Cpu,
-  Layers
+  Layers,
+  Unlock,
+  Key,
+  FileText
 } from 'lucide-react';
 import { StegoInspectorModal, type DiagnosticsMetadata, type PixelDiffMetrics } from './components/StegoInspectorModal';
 import { DwtSubbandInspector } from './components/DwtSubbandInspector';
@@ -100,11 +103,16 @@ export default function App() {
     max_protected_bytes: number;
     subband_width: number;
     subband_height: number;
+    reference_metadata_capacity_bytes?: number;
+    header_wire_bytes?: number;
+    ecc_profile?: string;
   }>({
-    raw_secret_capacity_bytes: 8192,
-    max_protected_bytes: 8176,
+    raw_secret_capacity_bytes: 6578,
+    max_protected_bytes: 8168,
     subband_width: 256,
     subband_height: 256,
+    reference_metadata_capacity_bytes: 6576,
+    header_wire_bytes: 24,
   });
 
   // Output artifacts
@@ -134,8 +142,35 @@ export default function App() {
   // Runtime Capabilities, Model Selection & Telemetry
   const [capabilities, setCapabilities] = useState<BackendCapabilities | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("neural_spatial_onnx");
+  const [selectedPrecision, setSelectedPrecision] = useState<string>("fp32");
   const [selectedProtocolVersion, setSelectedProtocolVersion] = useState<number>(2);
   const [telemetry, setTelemetry] = useState<SustainabilityMetrics | null>(null);
+  const [activeTab, setActiveTab] = useState<"EXPERIMENT" | "STANDALONE_EXTRACT">("EXPERIMENT");
+
+  // Standalone Extraction state
+  const [extractFile, setExtractFile] = useState<File | null>(null);
+  const [extractPreview, setExtractPreview] = useState<string | null>(null);
+  const [extractFilename, setExtractFilename] = useState<string>("No file chosen");
+  const [extractFileSize, setExtractFileSize] = useState<number>(0);
+  const [extractDims, setExtractDims] = useState<{ width: number; height: number } | null>(null);
+  const [extractKeyHex, setExtractKeyHex] = useState<string>("");
+  const [extracting, setExtracting] = useState<boolean>(false);
+  const [extractResult, setExtractResult] = useState<any>(null);
+  const [extractError, setExtractError] = useState<string | null>(null);
+  const [extractedMediaUrl, setExtractedMediaUrl] = useState<string | null>(null);
+
+  // Authentication & BFF Session state
+  const [authSession, setAuthSession] = useState<{
+    authenticated: boolean;
+    requires_auth?: boolean;
+    user?: string | null;
+    roles?: string[];
+    oidc_configured?: boolean;
+    oidc_issuer?: string | null;
+    idp_gate_status?: string;
+  }>({ authenticated: false });
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+  const [loginError] = useState<string | null>(null);
 
   const logRef = useRef<HTMLDivElement>(null);
 
@@ -153,6 +188,9 @@ export default function App() {
         }
         if (caps.default_protocol_version) {
           setSelectedProtocolVersion(caps.default_protocol_version);
+        }
+        if (caps.default_precision) {
+          setSelectedPrecision(caps.default_precision);
         }
         addLog(`Loaded backend capabilities: Model=${caps.active_engine}, Telemetry=${caps.telemetry.source} (${caps.telemetry.is_estimated ? "Estimated" : "Direct"})`);
       })
@@ -188,7 +226,7 @@ export default function App() {
             mode: fixtures.cover.mode || "RGB",
           });
           setIsDatasetCustom(false);
-          backend.fetchCarrierCapacity(cW, cH)
+          backend.fetchCarrierCapacity(cW, cH, selectedProtocolVersion)
             .then(cap => setCapacityLimits(cap))
             .catch(() => {});
         }
@@ -199,9 +237,41 @@ export default function App() {
       });
   };
 
+  const checkAuthAndInit = async () => {
+    try {
+      const session = await backend.checkSession();
+      setAuthSession(session);
+      if (session.authenticated || !session.requires_auth) {
+        setLoginModalOpen(false);
+        loadCapabilities();
+        loadBaselineFixtures();
+      } else {
+        setLoginModalOpen(true);
+      }
+    } catch (err) {
+      console.warn("Session check fallback:", err);
+      loadCapabilities();
+      loadBaselineFixtures();
+    }
+  };
+
+  const handleOidcLogin = () => {
+    window.location.href = backend.getOidcLoginUrl();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await backend.logout();
+      setAuthSession({ authenticated: false, requires_auth: true });
+      addLog("Operator session terminated. Logged out.");
+      setLoginModalOpen(true);
+    } catch (err) {
+      console.warn("Logout error:", err);
+    }
+  };
+
   useEffect(() => {
-    loadCapabilities();
-    loadBaselineFixtures();
+    checkAuthAndInit();
   }, []);
 
   useEffect(() => {
@@ -277,10 +347,10 @@ export default function App() {
         } else if (w % 2 !== 0 || h % 2 !== 0) {
           addLog(`WARNING: Carrier dimensions ${w}×${h} are odd. DWT decomposition requires even dimensions.`);
         } else {
-          backend.fetchCarrierCapacity(w, h)
+          backend.fetchCarrierCapacity(w, h, selectedProtocolVersion)
             .then(cap => {
               setCapacityLimits(cap);
-              addLog(`Carrier capacity: ${cap.raw_secret_capacity_bytes.toLocaleString()} B raw, ${cap.max_protected_bytes.toLocaleString()} B max protected.`);
+              addLog(`Carrier capacity: ${cap.raw_secret_capacity_bytes.toLocaleString()} B raw secret, ${cap.max_protected_bytes.toLocaleString()} B max protected.`);
             })
             .catch(err => {
               addLog(`Capacity calculation error: ${err.message}`);
@@ -445,8 +515,64 @@ export default function App() {
       },
       undefined,
       selectedModel,
-      selectedProtocolVersion
+      selectedProtocolVersion,
+      selectedPrecision
     );
+  };
+
+  const handleExtractCarrierUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setExtractFile(file);
+      setExtractFilename(file.name);
+      setExtractFileSize(file.size);
+      const url = URL.createObjectURL(file);
+      setExtractPreview(url);
+      setExtractResult(null);
+      setExtractError(null);
+      setExtractedMediaUrl(null);
+      const img = new Image();
+      img.onload = () => {
+        setExtractDims({ width: img.naturalWidth, height: img.naturalHeight });
+        addLog(`Carrier for extraction loaded: ${img.naturalWidth}×${img.naturalHeight} (${file.size} bytes)`);
+      };
+      img.src = url;
+    }
+  };
+
+  const handleStandaloneExtract = async () => {
+    if (!extractFile) {
+      addLog("ERROR: Please select or upload a stego carrier PNG first.");
+      return;
+    }
+    setExtracting(true);
+    setExtractError(null);
+    setExtractResult(null);
+    setExtractedMediaUrl(null);
+    addLog(`--- STANDALONE EXTRACTION TRIGGERED: File=${extractFilename}, Model=${selectedModel}, Precision=${selectedPrecision} ---`);
+
+    try {
+      const res = await backend.extractMedia(
+        extractFile,
+        extractKeyHex.trim() || undefined,
+        selectedModel,
+        selectedPrecision
+      );
+      setExtractResult(res);
+      addLog(`Extraction succeeded! Protocol v${res.wire_protocol_version}, Parity=${res.ecc_parity}, Recovered=${res.recovered_bytes} B`);
+      if (res.recovered_session_id) {
+        const mediaUrl = await backend.fetchSessionMedia(res.recovered_session_id);
+        setExtractedMediaUrl(mediaUrl);
+        setRecoveredImage(mediaUrl);
+        setRecoveredBytes(res.recovered_bytes);
+      }
+    } catch (err: any) {
+      const errMsg = err.message || "Extraction failed";
+      setExtractError(errMsg);
+      addLog(`EXTRACTION FAILED: ${errMsg}`);
+    } finally {
+      setExtracting(false);
+    }
   };
 
   const handleCancel = () => {
@@ -504,16 +630,44 @@ export default function App() {
             </span>
             <select
               value={selectedProtocolVersion}
-              onChange={(e) => setSelectedProtocolVersion(Number(e.target.value))}
+              onChange={(e) => {
+                const newVer = Number(e.target.value);
+                setSelectedProtocolVersion(newVer);
+                if (coverDims) {
+                  backend.fetchCarrierCapacity(coverDims.width, coverDims.height, newVer)
+                    .then(cap => {
+                      setCapacityLimits(cap);
+                      addLog(`Protocol changed to v${newVer}: Capacity updated to ${cap.raw_secret_capacity_bytes.toLocaleString()} B raw, ${cap.max_protected_bytes.toLocaleString()} B max protected.`);
+                    })
+                    .catch(err => addLog(`Capacity calculation error: ${err.message}`));
+                }
+              }}
               disabled={running || (capabilities?.supported_protocol_versions?.length ?? 1) <= 1}
               aria-label="Wire Protocol"
               className="bg-[#1a1a1a] border border-[#333] text-[#ededed] px-2 py-1 rounded text-xs font-mono focus:border-cyan-400 focus:outline-none"
             >
               {(capabilities?.supported_protocol_versions || [2]).map((v) => (
                 <option key={v} value={v}>
-                  Protocol v{v} {v === 2 ? "(RS(24,16) Qualified)" : "(Legacy)"}
+                  Protocol v{v} {v === 3 ? "(v3-MR RS(255,191))" : v === 2 ? "(RS(24,16) Production Default)" : "(Legacy)"}
                 </option>
               ))}
+            </select>
+          </div>
+
+          {/* Precision Selector */}
+          <div className="flex flex-col">
+            <span className="text-muted text-[10px] uppercase flex items-center">
+              <Cpu className="w-3 h-3 mr-1 text-emerald-400" /> Precision
+            </span>
+            <select
+              value={selectedPrecision}
+              onChange={(e) => setSelectedPrecision(e.target.value)}
+              disabled={running || extracting}
+              aria-label="Model Precision"
+              className="bg-[#1a1a1a] border border-[#333] text-[#ededed] px-2 py-1 rounded text-xs font-mono focus:border-emerald-400 focus:outline-none"
+            >
+              <option value="fp32">FP32 (Reference Precision)</option>
+              <option value="int8">INT8 QDQ (Static Quantized)</option>
             </select>
           </div>
 
@@ -553,16 +707,78 @@ export default function App() {
               {runStatus}
             </span>
           </div>
+
+          {/* Operator Auth / BFF Session Status */}
+          <div className="flex flex-col">
+            <span className="text-muted text-[10px] uppercase">Session Auth</span>
+            {authSession.requires_auth ? (
+              authSession.authenticated ? (
+                <div className="flex items-center space-x-2">
+                  <span className="text-cyan-400 font-medium flex items-center text-xs">
+                    <Lock className="w-3 h-3 mr-1 text-cyan-400" />
+                    Operator
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/40 border border-red-800/40 text-red-400 hover:bg-red-900/60 transition-colors"
+                    title="Terminate active session"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setLoginModalOpen(true)}
+                  className="text-xs text-amber-400 font-medium flex items-center hover:underline"
+                >
+                  <Key className="w-3 h-3 mr-1 text-amber-400" />
+                  Sign In
+                </button>
+              )
+            ) : (
+              <span className="text-muted font-medium text-xs flex items-center">
+                <Shield className="w-3 h-3 mr-1 text-muted" />
+                Local Dev
+              </span>
+            )}
+          </div>
         </div>
       </header>
+
+      {/* NAVIGATION TABS */}
+      <div className="bg-[#0e0e0e] border-b border-[#262626] px-6 py-2.5 flex items-center space-x-3 text-xs font-mono">
+        <button
+          onClick={() => setActiveTab("EXPERIMENT")}
+          className={`px-3.5 py-1.5 rounded transition-all font-semibold flex items-center ${
+            activeTab === "EXPERIMENT"
+              ? "bg-primary/20 text-primary border border-primary/40 shadow-sm"
+              : "text-muted hover:text-[#ededed] hover:bg-[#1a1a1a]"
+          }`}
+        >
+          <Play className="w-3.5 h-3.5 mr-1.5 fill-current" />
+          Live Steganography Experiment
+        </button>
+        <button
+          onClick={() => setActiveTab("STANDALONE_EXTRACT")}
+          className={`px-3.5 py-1.5 rounded transition-all font-semibold flex items-center ${
+            activeTab === "STANDALONE_EXTRACT"
+              ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm"
+              : "text-muted hover:text-[#ededed] hover:bg-[#1a1a1a]"
+          }`}
+        >
+          <Unlock className="w-3.5 h-3.5 mr-1.5" />
+          Standalone Carrier Extraction
+        </button>
+      </div>
 
       {/* MAIN CONTAINER */}
       <main className="flex-1 p-6 grid grid-cols-1 xl:grid-cols-3 gap-6 overflow-hidden">
         
         {/* LEFT / CENTER: MEDIA WORKSPACE & TRANSFORM INSPECTOR (2 COLUMNS) */}
         <div className="xl:col-span-2 flex flex-col space-y-6 overflow-y-auto pr-1">
-          
-          {/* MEDIA WORKSPACE */}
+          {activeTab === "EXPERIMENT" ? (
+            <>
+              {/* MEDIA WORKSPACE */}
           <div className="bg-[#121212] border border-[#262626] rounded-xl p-5 shadow-sm">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold tracking-wide flex items-center text-muted uppercase font-mono">
@@ -850,15 +1066,15 @@ export default function App() {
                   {capacityLimits.max_protected_bytes.toLocaleString()} B
                 </span>
                 <span className="text-[9px] text-muted block mt-0.5">
-                  {capacityLimits.raw_secret_capacity_bytes.toLocaleString()} B - 16B Carrier Header
+                  {capacityLimits.raw_secret_capacity_bytes.toLocaleString()} B raw - {capacityLimits.header_wire_bytes || 24}B Header
                 </span>
               </div>
               <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
                 <span className="text-[10px] text-muted block uppercase">Usable Plaintext</span>
                 <span className="text-sm font-bold text-primary">
-                  ~{Math.max(0, capacityLimits.max_protected_bytes - 48 - 28 - 100).toLocaleString()} B
+                  {capacityLimits.reference_metadata_capacity_bytes ? `${capacityLimits.reference_metadata_capacity_bytes.toLocaleString()} B` : `${capacityLimits.raw_secret_capacity_bytes.toLocaleString()} B`}
                 </span>
-                <span className="text-[9px] text-muted block mt-0.5">After RS parity + AES + Wire</span>
+                <span className="text-[9px] text-muted block mt-0.5">{capacityLimits.reference_metadata_capacity_bytes ? "With 2B reference metadata" : "Zero metadata payload"}</span>
               </div>
               <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
                 <span className="text-[10px] text-muted block uppercase">Protected Payload</span>
@@ -893,65 +1109,344 @@ export default function App() {
               />
             </div>
           </div>
+            </>
+          ) : (
+            <>
+              {/* STANDALONE EXTRACTION CONTROLLER */}
+              <div className="bg-[#121212] border border-[#262626] rounded-xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-semibold tracking-wide flex items-center text-cyan-400 uppercase font-mono">
+                    <Unlock className="w-4 h-4 mr-2" />
+                    Standalone Carrier Extraction & Verification
+                  </h2>
+                  <span className="text-[10px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 px-2 py-0.5 rounded font-mono font-semibold">
+                    FAIL-CLOSED VERIFICATION
+                  </span>
+                </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* DROPZONE: STEGO CARRIER */}
+                  <div className="border border-[#262626] rounded-lg p-3 bg-[#0d0d0d] flex flex-col relative group">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-mono font-semibold text-cyan-400">STEGO CARRIER (PNG)</span>
+                      <div className="flex items-center space-x-1.5">
+                        {extractDims && (
+                          <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-1.5 py-0.5 rounded">
+                            {extractDims.width}×{extractDims.height}
+                          </span>
+                        )}
+                        <span className="text-[10px] font-mono text-muted bg-[#1c1c1c] px-1.5 py-0.5 rounded">
+                          {extractFileSize > 0 ? `${extractFileSize} B` : "No file"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-48 border border-dashed border-[#2b2b2b] rounded flex flex-col items-center justify-center relative overflow-hidden bg-[#070707]">
+                      {extractPreview ? (
+                        <img src={extractPreview} alt="Stego Carrier" className="max-h-full max-w-full object-contain p-2" />
+                      ) : (
+                        <div className="text-center p-4">
+                          <Upload className="w-6 h-6 text-muted mx-auto mb-1 group-hover:text-cyan-400 transition-colors" />
+                          <span className="text-xs text-muted block">Click to upload stego carrier (PNG, 8-bit truecolor)</span>
+                        </div>
+                      )}
+                      <input
+                        type="file"
+                        onChange={handleExtractCarrierUpload}
+                        disabled={extracting}
+                        accept="image/png"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                    </div>
+                    <div className="mt-2 text-[11px] font-mono text-muted truncate">
+                      File: <span className="text-[#ededed]">{extractFilename}</span>
+                    </div>
+                  </div>
+
+                  {/* EXTRACTION CONFIGURATION & ACTION */}
+                  <div className="border border-[#262626] rounded-lg p-4 bg-[#0d0d0d] flex flex-col justify-between">
+                    <div>
+                      <span className="text-xs font-mono font-semibold text-[#ededed] block mb-3 flex items-center">
+                        <Key className="w-3.5 h-3.5 mr-1.5 text-primary" /> Cryptographic & Engine Settings
+                      </span>
+
+                      {/* AES-256 Key Input */}
+                      <div className="space-y-1.5 mb-4">
+                        <label className="text-[11px] font-mono text-muted block">
+                          AES-256 Key (Hex String, Optional):
+                        </label>
+                        <input
+                          type="text"
+                          value={extractKeyHex}
+                          onChange={(e) => setExtractKeyHex(e.target.value)}
+                          disabled={extracting}
+                          placeholder="Default standard 32-byte key if empty (64 hex chars)"
+                          className="w-full bg-[#141414] border border-[#333] text-[#ededed] px-3 py-1.5 rounded text-xs font-mono focus:border-cyan-400 focus:outline-none placeholder:text-muted/40"
+                        />
+                        <span className="text-[10px] text-muted block font-mono">
+                          Leave blank to use the standard Phase 10-13 symmetric key.
+                        </span>
+                      </div>
+
+                      {/* Engine & Precision Summary */}
+                      <div className="p-2.5 bg-[#141414] border border-[#262626] rounded font-mono text-xs space-y-1.5 mb-4">
+                        <div className="flex justify-between">
+                          <span className="text-muted">Modulation Engine:</span>
+                          <span className="text-[#ededed] font-semibold">{selectedModel}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted">Model Precision:</span>
+                          <span className="text-emerald-400 font-semibold uppercase">{selectedPrecision}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted">Security Policy:</span>
+                          <span className="text-cyan-400">Fail-Closed Authentication</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Extraction Action Button */}
+                    <div className="pt-3 border-t border-[#262626]">
+                      <button
+                        onClick={handleStandaloneExtract}
+                        disabled={extracting || !extractFile}
+                        className="w-full py-2.5 px-4 text-xs font-mono font-semibold bg-cyan-600 hover:bg-cyan-500 text-white rounded disabled:opacity-40 flex items-center justify-center shadow-sm transition-all"
+                      >
+                        {extracting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            EXTRACTING SECRET...
+                          </>
+                        ) : (
+                          <>
+                            <Unlock className="w-4 h-4 mr-2" />
+                            EXTRACT HIDDEN SECRET PAYLOAD
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* EXTRACTION RESULT / RECOVERED PAYLOAD VIEW */}
+              <div className="bg-[#121212] border border-[#262626] rounded-xl p-5 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold tracking-wide flex items-center text-muted uppercase font-mono">
+                    <FileText className="w-4 h-4 mr-2 text-primary" />
+                    Extraction Result & Reconstructed Payload
+                  </h3>
+                  {extractResult && (
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-green-500/20 text-green-400 border border-green-500/30">
+                      STATUS: SUCCESSFUL
+                    </span>
+                  )}
+                  {extractError && (
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30">
+                      STATUS: FAILED CLOSED
+                    </span>
+                  )}
+                </div>
+
+                {extractResult ? (
+                  <div className="space-y-4 font-mono text-xs">
+                    <div className="p-3 bg-green-500/10 border border-green-500/30 rounded flex items-center space-x-2 text-green-400">
+                      <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                      <span>
+                        Payload successfully extracted, Reed-Solomon decoded, and AES-256-GCM authentication tag verified.
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
+                        <span className="text-[10px] text-muted block uppercase">Protocol Version</span>
+                        <span className="text-sm font-bold text-cyan-400">v{extractResult.wire_protocol_version}</span>
+                      </div>
+                      <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
+                        <span className="text-[10px] text-muted block uppercase">ECC Parity</span>
+                        <span className="text-sm font-bold text-[#ededed]">RS 2t={extractResult.ecc_parity}</span>
+                      </div>
+                      <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
+                        <span className="text-[10px] text-muted block uppercase">Session Counter</span>
+                        <span className="text-sm font-bold text-[#ededed]">{extractResult.session_counter}</span>
+                      </div>
+                      <div className="bg-[#0a0a0a] border border-[#262626] p-2.5 rounded">
+                        <span className="text-[10px] text-muted block uppercase">Recovered Bytes</span>
+                        <span className="text-sm font-bold text-green-400">{extractResult.recovered_bytes} B</span>
+                      </div>
+                    </div>
+
+                    {extractResult.pqc_authenticated_sender_id && (
+                      <div className="p-2.5 bg-[#0a0a0a] border border-primary/30 rounded text-xs text-primary flex items-center justify-between">
+                        <span>PQC Authenticated Sender Identity:</span>
+                        <span className="font-bold">{extractResult.pqc_authenticated_sender_id}</span>
+                      </div>
+                    )}
+
+                    {extractedMediaUrl && (
+                      <div className="p-4 bg-[#0a0a0a] border border-[#262626] rounded flex flex-col items-center">
+                        <span className="text-xs text-muted mb-2">Recovered Media Preview:</span>
+                        <img
+                          src={extractedMediaUrl}
+                          alt="Extracted Secret"
+                          className="max-h-56 max-w-full object-contain rounded border border-[#333] mb-3"
+                        />
+                        <button
+                          onClick={() => setIsSecretRecoveryOpen(true)}
+                          className="text-xs text-primary hover:text-primary/80 font-semibold underline flex items-center"
+                        >
+                          Open in Full Modal Inspector
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : extractError ? (
+                  <div className="p-4 bg-red-500/10 border border-red-500/30 rounded font-mono text-xs text-red-400 space-y-2">
+                    <div className="flex items-center space-x-2 font-bold text-red-300">
+                      <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                      <span>EXTRACTION FAILED CLOSED</span>
+                    </div>
+                    <p className="text-[#ededed]">{extractError}</p>
+                    <p className="text-[11px] text-muted">
+                      Security Invariant: When carrier headers are damaged, Reed-Solomon uncorrectable error thresholds are exceeded, or AES-GCM GHASH tags do not authenticate, PaladinMedia aborts cleanly without returning unverified plaintext.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-muted font-mono text-xs">
+                    <Unlock className="w-8 h-8 opacity-30 mx-auto mb-2" />
+                    <span>Upload a stego carrier PNG and click &quot;Extract Hidden Secret Payload&quot; to begin.</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* RIGHT COLUMN: REAL PIPELINE TIMELINE & EXECUTION LOG */}
         <div className="flex flex-col space-y-6 overflow-hidden">
           
-          {/* PIPELINE TIMELINE */}
+          {/* PIPELINE / EXTRACTION LIFECYCLE */}
           <div className="bg-[#121212] border border-[#262626] rounded-xl p-5 shadow-sm flex-1 overflow-y-auto">
             <h2 className="text-sm font-semibold tracking-wide text-muted uppercase font-mono mb-4 flex items-center">
               <Zap className="w-4 h-4 mr-2 text-primary" />
-              Transform-Domain Pipeline Stages
+              {activeTab === "EXPERIMENT" ? "Transform-Domain Pipeline Stages" : "Extraction Lifecycle Verification"}
             </h2>
-            <div className="space-y-2">
-              {STAGES.map((s, idx) => {
-                const state = stages[s];
-                let borderCol = "border-[#212121]";
-                let textCol = "text-muted";
-                let dotCol = "bg-[#333]";
+            {activeTab === "EXPERIMENT" ? (
+              <div className="space-y-2">
+                {STAGES.map((s, idx) => {
+                  const state = stages[s];
+                  let borderCol = "border-[#212121]";
+                  let textCol = "text-muted";
+                  let dotCol = "bg-[#333]";
 
-                if (state.status === "processing") {
-                  borderCol = "border-primary/50 bg-primary/5";
-                  textCol = "text-primary";
-                  dotCol = "bg-primary animate-pulse";
-                } else if (state.status === "complete") {
-                  borderCol = "border-green-500/30 bg-green-500/5";
-                  textCol = "text-green-400";
-                  dotCol = "bg-green-500";
-                } else if (state.status === "failed") {
-                  borderCol = "border-red-500/40 bg-red-500/10";
-                  textCol = "text-red-400";
-                  dotCol = "bg-red-500";
-                }
+                  if (state.status === "processing") {
+                    borderCol = "border-primary/50 bg-primary/5";
+                    textCol = "text-primary";
+                    dotCol = "bg-primary animate-pulse";
+                  } else if (state.status === "complete") {
+                    borderCol = "border-green-500/30 bg-green-500/5";
+                    textCol = "text-green-400";
+                    dotCol = "bg-green-500";
+                  } else if (state.status === "failed") {
+                    borderCol = "border-red-500/40 bg-red-500/10";
+                    textCol = "text-red-400";
+                    dotCol = "bg-red-500";
+                  }
 
-                return (
-                  <div key={s} className={`p-2.5 rounded border ${borderCol} transition-colors flex items-start text-xs font-mono`}>
-                    <div className="mt-1 mr-2.5 flex-shrink-0">
-                      <div className={`w-2.5 h-2.5 rounded-full ${dotCol}`} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center">
-                        <span className={`font-semibold ${textCol}`}>
-                          {idx + 1}. {
-                            s === "EMBED"
-                              ? (selectedModel === "parity_classical" ? "Deterministic Parity Embedding" : "ACS-Sub-INN Neural Modulation")
-                              : s === "EXTRACT"
-                              ? (selectedModel === "parity_classical" ? "Header & Payload Extraction" : "ACS-Sub-INN Neural Extraction")
-                              : STAGE_LABELS[s]
-                          }
-                        </span>
-                        <span className={`text-[10px] uppercase font-bold ${textCol}`}>{state.status}</span>
+                  return (
+                    <div key={s} className={`p-2.5 rounded border ${borderCol} transition-colors flex items-start text-xs font-mono`}>
+                      <div className="mt-1 mr-2.5 flex-shrink-0">
+                        <div className={`w-2.5 h-2.5 rounded-full ${dotCol}`} />
                       </div>
-                      {state.message && (
-                        <p className="text-[11px] text-muted mt-0.5 truncate">{state.message}</p>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center">
+                          <span className={`font-semibold ${textCol}`}>
+                            {idx + 1}. {
+                              s === "EMBED"
+                                ? (selectedModel === "parity_classical" ? "Deterministic Parity Embedding" : "ACS-Sub-INN Neural Modulation")
+                                : s === "EXTRACT"
+                                ? (selectedModel === "parity_classical" ? "Header & Payload Extraction" : "ACS-Sub-INN Neural Extraction")
+                                : STAGE_LABELS[s]
+                            }
+                          </span>
+                          <span className={`text-[10px] uppercase font-bold ${textCol}`}>{state.status}</span>
+                        </div>
+                        {state.message && (
+                          <p className="text-[11px] text-muted mt-0.5 truncate">{state.message}</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-2 font-mono text-xs">
+                {[
+                  {
+                    title: "1. Carrier Validation & PNG Signature",
+                    desc: "Lossless 8-bit truecolor RGB, even dimensions (>=32x32, <=2048x2048)",
+                    status: extractFile ? (extractError ? "failed" : extractResult ? "complete" : extracting ? "processing" : "waiting") : "waiting",
+                  },
+                  {
+                    title: "2. 1-Level 2D Haar DWT",
+                    desc: "Orthogonal decomposition into LL, LH, HL, and HH subbands",
+                    status: extracting ? "processing" : extractResult ? "complete" : extractError ? "failed" : "waiting",
+                  },
+                  {
+                    title: "3. Transform Demodulation",
+                    desc: selectedModel === "parity_classical" ? "Classical parity demodulation" : "ACS-Sub-INN neural subband demodulation",
+                    status: extracting ? "processing" : extractResult ? "complete" : extractError ? "failed" : "waiting",
+                  },
+                  {
+                    title: "4. Reed-Solomon Error Correction",
+                    desc: "GF(2^8) Reed-Solomon syndrome decode & bit error repair",
+                    status: extracting ? "processing" : extractResult ? "complete" : extractError ? "failed" : "waiting",
+                  },
+                  {
+                    title: "5. AES-256-GCM Tag Verification",
+                    desc: "GHASH authentication tag verification (fail-closed integrity gate)",
+                    status: extractResult ? "complete" : extractError ? "failed" : extracting ? "processing" : "waiting",
+                  },
+                  {
+                    title: "6. Secret Media Reconstruction",
+                    desc: "De-framing, CRC-32 integrity validation, and binary recovery",
+                    status: extractResult ? "complete" : extractError ? "failed" : extracting ? "processing" : "waiting",
+                  },
+                ].map((stg, i) => {
+                  let borderCol = "border-[#212121]";
+                  let textCol = "text-muted";
+                  let dotCol = "bg-[#333]";
+
+                  if (stg.status === "processing") {
+                    borderCol = "border-cyan-500/50 bg-cyan-500/5";
+                    textCol = "text-cyan-400";
+                    dotCol = "bg-cyan-400 animate-pulse";
+                  } else if (stg.status === "complete") {
+                    borderCol = "border-green-500/30 bg-green-500/5";
+                    textCol = "text-green-400";
+                    dotCol = "bg-green-500";
+                  } else if (stg.status === "failed") {
+                    borderCol = "border-red-500/40 bg-red-500/10";
+                    textCol = "text-red-400";
+                    dotCol = "bg-red-500";
+                  }
+
+                  return (
+                    <div key={i} className={`p-2.5 rounded border ${borderCol} transition-colors flex items-start`}>
+                      <div className="mt-1 mr-2.5 flex-shrink-0">
+                        <div className={`w-2.5 h-2.5 rounded-full ${dotCol}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center">
+                          <span className={`font-semibold ${textCol}`}>{stg.title}</span>
+                          <span className={`text-[10px] uppercase font-bold ${textCol}`}>{stg.status}</span>
+                        </div>
+                        <p className="text-[11px] text-muted mt-0.5">{stg.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* REAL TERMINAL LOG */}
@@ -998,6 +1493,56 @@ export default function App() {
         recoveredDims={recoveredDims}
         exactMatch={exactMatch}
       />
+
+      {/* OPERATOR AUTHENTICATION MODAL (BFF / OIDC) */}
+      {loginModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 font-mono">
+          <div className="bg-[#121212] border border-[#333] rounded-lg max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-2 bg-primary/20 rounded-md text-primary">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#ededed]">Enterprise Single Sign-On</h3>
+                <p className="text-[11px] text-muted">OpenID Connect / OAuth 2.0 (PKCE) BFF Gate</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted mb-4 leading-relaxed">
+              This PaladinMedia instance requires per-user authentication via corporate Identity Provider. Click below to sign in using OAuth 2.0 Authorization Code Flow with PKCE. A cryptographically secure, HttpOnly session cookie will be established.
+            </p>
+
+            <div className="bg-[#181818] border border-[#282828] rounded p-3 mb-4 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-muted">Identity Provider:</span>
+                <span className="text-[#ededed] font-semibold">{authSession.oidc_issuer || "Configured via PALADIN_OIDC_ISSUER"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted">IdP Gate Status:</span>
+                <span className="text-amber-400 font-semibold">{authSession.idp_gate_status || "OPEN_PENDING_EXTERNAL_IDP"}</span>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="p-2.5 bg-red-950/40 border border-red-800/60 rounded text-red-300 text-xs flex items-center space-x-2 mb-4">
+                <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={handleOidcLogin}
+                className="w-full px-4 py-2.5 bg-primary hover:bg-primary/90 text-black font-semibold rounded text-xs transition-colors flex items-center justify-center space-x-2 cursor-pointer shadow"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Sign In with Identity Provider (SSO)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

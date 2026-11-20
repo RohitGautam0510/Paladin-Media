@@ -1,10 +1,12 @@
 """Carrier capacity accounting and hard-gate verification for PaladinMedia.
 
-Implements explicit capacity accounting per Architecture §10.2 and Wire Protocol v2:
+Implements explicit capacity accounting per Architecture §10.2 and Wire Protocol v2/v3:
 - 512x512 RGB carrier with 1-level 2D Haar DWT has 256x256 HH subband per channel.
 - Allocation: 1 HH channel (Red channel) at 1 bit per coefficient position.
 - Raw capacity: 256 * 256 = 65,536 bits = 8,192 bytes.
-- Wire Protocol v2 Carrier Header: 24 bytes (16 data + 8 RS parity).
+- Wire Protocol v3 Carrier Header: 24 bytes (16 data + 8 RS parity, Row 32).
+- Maximum Protected Payload Capacity (v3): 8,192 - 24 = 8,168 bytes.
+- Wire Protocol v2 Carrier Header: 24 bytes (16 data + 8 RS parity, Row 0).
 - Maximum Protected Payload Capacity (v2): 8,192 - 24 = 8,168 bytes.
 - Legacy Wire Protocol v1 Carrier Header: 16 bytes.
 - Maximum Protected Payload Capacity (v1): 8,192 - 16 = 8,176 bytes.
@@ -40,8 +42,8 @@ class CapacityReport:
 
     Attributes:
         raw_capacity_bytes: Total bit budget in bytes for 1 HH channel (8,192).
-        carrier_header_bytes: Steganographic carrier header size in bytes (24 for v2, 16 for v1).
-        max_protected_bytes: Maximum allowed Reed-Solomon protected payload (8,168 for v2, 8,176 for v1).
+        carrier_header_bytes: Steganographic carrier header size in bytes (24 for v2/v3, 16 for v1).
+        max_protected_bytes: Maximum allowed Reed-Solomon protected payload (8,168 for v2/v3, 8,176 for v1).
         protected_payload_bytes: Actual size of the protected payload to be embedded.
         usable_capacity_bytes: Maximum application secret plaintext data capacity with 0 metadata bytes.
         remaining_capacity_bytes: Remaining space in the carrier in bytes.
@@ -83,10 +85,12 @@ class CapacityCalculator:
     # Header sizing
     CARRIER_HEADER_BYTES_V1: int = 16  # 16 bytes = 128 bits
     CARRIER_HEADER_BYTES_V2: int = 24  # 24 bytes = 192 bits (16 data + 8 RS parity)
+    CARRIER_HEADER_BYTES_V3: int = 24  # 24 bytes = 192 bits (16 data + 8 RS parity)
     CARRIER_HEADER_BYTES: int = 24     # Wire Protocol v2 default
 
     MAX_PROTECTED_BYTES_V1: int = RAW_CAPACITY_BYTES - CARRIER_HEADER_BYTES_V1  # 8,176 bytes
     MAX_PROTECTED_BYTES_V2: int = RAW_CAPACITY_BYTES - CARRIER_HEADER_BYTES_V2  # 8,168 bytes
+    MAX_PROTECTED_BYTES_V3: int = RAW_CAPACITY_BYTES - CARRIER_HEADER_BYTES_V3  # 8,168 bytes
     MAX_PROTECTED_BYTES: int = MAX_PROTECTED_BYTES_V2                          # 8,168 bytes
 
     # Baseline reference constants for 1 HH channel
@@ -100,7 +104,7 @@ class CapacityCalculator:
     @classmethod
     def get_header_bytes(cls, version: int = 2) -> int:
         """Returns header wire byte allocation for the requested wire version."""
-        return cls.CARRIER_HEADER_BYTES_V2 if version == 2 else cls.CARRIER_HEADER_BYTES_V1
+        return cls.CARRIER_HEADER_BYTES_V1 if version == 1 else cls.CARRIER_HEADER_BYTES_V2
 
     @classmethod
     def calculate_usable_secret_capacity(
@@ -121,7 +125,7 @@ class CapacityCalculator:
             include_shortened_blocks: If True (default), accounts for shortened RS blocks fitting in
                                       the carrier remainder. If False, counts full blocks only.
             rs_parity: Reed-Solomon parity symbol count per block (2t; default 32).
-            version: Wire protocol version (2 for v2; 1 for v1).
+            version: Wire protocol version (3 for v3; 2 for v2; 1 for v1).
             header_bytes: Optional explicit header byte size override.
         """
         meta_len = 2 if metadata_len is None else metadata_len
@@ -158,7 +162,7 @@ class CapacityCalculator:
             protected_payload_bytes: Total byte length of the Reed-Solomon protected stream.
             subband_dim: Subband dimension (int for square or (sub_h, sub_w) tuple).
             rs_parity: RS parity symbols per block (2t; default 32).
-            version: Wire protocol version (2 for v2; 1 for v1).
+            version: Wire protocol version (3 for v3; 2 for v2; 1 for v1).
             header_bytes: Optional explicit header byte size override.
 
         Returns:
@@ -216,7 +220,7 @@ class CapacityCalculator:
             protected_payload_bytes: Total byte length of the Reed-Solomon protected stream.
             subband_dim: Subband dimension (int for square or (sub_h, sub_w) tuple).
             rs_parity: RS parity symbols per block (2t; default 32).
-            version: Wire protocol version (2 for v2; 1 for v1).
+            version: Wire protocol version (3 for v3; 2 for v2; 1 for v1).
             header_bytes: Optional explicit header byte size override.
 
         Returns:

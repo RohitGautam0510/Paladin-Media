@@ -63,6 +63,11 @@ export const DwtSubbandInspector: React.FC<DwtSubbandInspectorProps> = ({
         for (const [r, c] of diagnostics.changed_positions) {
           changedSet.current.add(`${r},${c}`);
         }
+        if (!selectedCoord && diagnostics.changed_positions.length > 0) {
+          setSelectedCoord({ r: diagnostics.changed_positions[0][0], c: diagnostics.changed_positions[0][1] });
+        }
+      } else if (!selectedCoord && diagnostics.embedded_positions && diagnostics.embedded_positions.length > 0) {
+        setSelectedCoord({ r: diagnostics.embedded_positions[0][0], c: diagnostics.embedded_positions[0][1] });
       }
     }
   }, [diagnostics]);
@@ -158,27 +163,30 @@ export const DwtSubbandInspector: React.FC<DwtSubbandInspectorProps> = ({
       ctx.rect(0, 0, subbandWidth, subbandHeight);
       ctx.clip();
 
-      // Layer 3: Overlay embedded positions in Red
-      if (showEmbedded && diagnostics?.embedded_positions) {
-        ctx.fillStyle = "rgba(239, 68, 68, 0.7)"; // Red-500
-        for (const [r, c] of diagnostics.embedded_positions) {
-          if (!isValidSubbandCoord(r, c, subbandHeight, subbandWidth)) continue;
-          ctx.fillRect(c, r, 1, 1);
+      // Overlays: prominently shown on Modified HH' to reveal transform modifications
+      if (baseBand === "modified") {
+        // Layer 3: Overlay embedded positions in Red
+        if (showEmbedded && diagnostics?.embedded_positions) {
+          ctx.fillStyle = "rgba(239, 68, 68, 0.7)"; // Red-500
+          for (const [r, c] of diagnostics.embedded_positions) {
+            if (!isValidSubbandCoord(r, c, subbandHeight, subbandWidth)) continue;
+            ctx.fillRect(c, r, 1, 1);
+          }
         }
-      }
 
-      // Layer 4: Overlay changed positions in Cyan
-      if (showChanged && diagnostics?.changed_positions) {
-        ctx.fillStyle = "rgba(6, 182, 212, 0.85)"; // Cyan-500
-        for (const [r, c] of diagnostics.changed_positions) {
-          if (!isValidSubbandCoord(r, c, subbandHeight, subbandWidth)) continue;
-          ctx.fillRect(c, r, 1, 1);
+        // Layer 4: Overlay changed positions in Cyan
+        if (showChanged && diagnostics?.changed_positions) {
+          ctx.fillStyle = "rgba(6, 182, 212, 0.85)"; // Cyan-500
+          for (const [r, c] of diagnostics.changed_positions) {
+            if (!isValidSubbandCoord(r, c, subbandHeight, subbandWidth)) continue;
+            ctx.fillRect(c, r, 1, 1);
+          }
         }
       }
       ctx.restore();
 
-      // Highlight selected coordinate with crosshair
-      const coordToMark = selectedCoord || hoverCoord;
+      // Highlight selected or hovered coordinate with crosshair (hover takes priority while hovering)
+      const coordToMark = hoverCoord || selectedCoord;
       if (coordToMark) {
         ctx.strokeStyle = "#ffffff";
         ctx.lineWidth = 1;
@@ -209,7 +217,8 @@ export const DwtSubbandInspector: React.FC<DwtSubbandInspectorProps> = ({
     setHoverCoord(coord);
   };
 
-  const activeCoord = selectedCoord || hoverCoord;
+  // Active inspected coordinate: live hover takes precedence over pinned selection
+  const activeCoord = hoverCoord || selectedCoord;
 
   // Compute exact coefficient data for inspected coordinate
   let origVal: number | null = null;
@@ -235,6 +244,11 @@ export const DwtSubbandInspector: React.FC<DwtSubbandInspectorProps> = ({
       deltaVal = modVal - origVal;
     }
   }
+
+  // Active display image: in "modified" mode uses Modified HH' (with fallback), in "original" uses Original HH
+  const activeImageSrc = baseBand === "modified"
+    ? (modifiedHhImage || (dwtSubbands ? dwtSubbands["HH"] : null))
+    : (dwtSubbands ? dwtSubbands["HH"] : null);
 
   return (
     <div className="bg-[#121212] border border-[#262626] rounded-xl p-5 shadow-sm flex flex-col space-y-4">
@@ -289,25 +303,33 @@ export const DwtSubbandInspector: React.FC<DwtSubbandInspectorProps> = ({
 
       {/* 4 REGULAR SUBBAND THUMBNAILS (LL, LH, HL, HH) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-        {["LL", "LH", "HL", "HH"].map((band) => (
-          <div key={band} className="border border-[#212121] rounded bg-[#0a0a0a] p-2 flex flex-col items-center">
-            <div className="flex justify-between w-full text-[10px] font-mono text-muted mb-1">
-              <span className="font-semibold">Subband: {band}</span>
-              <span>{subbandWidth}×{subbandHeight}</span>
+        {["LL", "LH", "HL", "HH"].map((band) => {
+          const isHH = band === "HH";
+          const title = isHH && baseBand === "modified" ? "Subband: HH' (Modified)" : isHH ? "Subband: HH (Original)" : `Subband: ${band}`;
+          const imgSrc = isHH && baseBand === "modified" && modifiedHhImage 
+            ? modifiedHhImage 
+            : (dwtSubbands ? dwtSubbands[band] : null);
+
+          return (
+            <div key={band} className="border border-[#212121] rounded bg-[#0a0a0a] p-2 flex flex-col items-center">
+              <div className="flex justify-between w-full text-[10px] font-mono text-muted mb-1">
+                <span className={`font-semibold ${isHH && baseBand === "modified" ? "text-primary" : ""}`}>{title}</span>
+                <span>{subbandWidth}×{subbandHeight}</span>
+              </div>
+              <div className="w-full aspect-square bg-[#050505] rounded border border-[#1a1a1a] flex items-center justify-center overflow-hidden">
+                {imgSrc ? (
+                  <img src={imgSrc} alt={band} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[10px] font-mono text-muted/60 text-center px-1">
+                    {diagnostics?.completeness_status === "PARTIAL" || diagnostics?.coordinates_truncated
+                      ? "VISUAL BOUNDED"
+                      : "UNAVAILABLE"}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="w-full aspect-square bg-[#050505] rounded border border-[#1a1a1a] flex items-center justify-center overflow-hidden">
-              {dwtSubbands && dwtSubbands[band] ? (
-                <img src={dwtSubbands[band]} alt={band} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-[10px] font-mono text-muted/60 text-center px-1">
-                  {diagnostics?.completeness_status === "PARTIAL" || diagnostics?.coordinates_truncated
-                    ? "VISUAL BOUNDED"
-                    : "UNAVAILABLE"}
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* INTERACTIVE TRANSFORM INSPECTOR (MODIFIED HH') */}
@@ -318,7 +340,7 @@ export const DwtSubbandInspector: React.FC<DwtSubbandInspectorProps> = ({
           <div className="flex justify-between w-full text-xs font-mono mb-2">
             <span className="font-bold text-primary flex items-center">
               <Crosshair className="w-3.5 h-3.5 mr-1" />
-              Interactive Subband Canvas
+              Interactive Subband Canvas ({baseBand === "modified" ? "Modified HH' + Overlays" : "Pristine Original HH"})
             </span>
             <span className="text-[10px] text-muted">Click/Hover to inspect</span>
           </div>
@@ -330,7 +352,7 @@ export const DwtSubbandInspector: React.FC<DwtSubbandInspectorProps> = ({
               height: Math.min(384, subbandHeight) * scale,
             }}
           >
-            {modifiedHhImage ? (
+            {activeImageSrc ? (
               <canvas
                 ref={canvasRef}
                 width={subbandWidth}

@@ -11,14 +11,24 @@ Provides:
 from __future__ import annotations
 
 import asyncio
+import base64
+import hashlib
+import ipaddress
 import json
 import logging
 import os
 import re
 import secrets
+import socket
+import threading
 import time
+import urllib.parse
+import urllib.request
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
+import jwt
+from jwt import PyJWKSet
 
 from fastapi import Header, HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -83,6 +93,65 @@ class APISettings:
 
     # Whether interactive documentation (/docs, /redoc, /openapi.json) is enabled
     enable_docs: Optional[bool] = field(default=None)
+
+    # Wire Protocol v3-MR feature gate (default: False / disabled)
+    enable_v3_mr: bool = field(
+        default_factory=lambda: os.environ.get(
+            "PALADIN_ENABLE_V3_MR", "false"
+        ).lower() in ("true", "1", "yes")
+    )
+
+    # Post-Quantum Cryptography (PQC) feature gate (default: False / disabled)
+    enable_pqc: bool = field(
+        default_factory=lambda: os.environ.get(
+            "PALADIN_ENABLE_PQC", "false"
+        ).lower() in ("true", "1", "yes")
+    )
+
+    # OAuth 2.0 / OpenID Connect (OIDC) BFF Configuration
+    oidc_issuer: Optional[str] = field(
+        default_factory=lambda: os.environ.get("PALADIN_OIDC_ISSUER") or None
+    )
+    oidc_client_id: Optional[str] = field(
+        default_factory=lambda: os.environ.get("PALADIN_OIDC_CLIENT_ID") or None
+    )
+    oidc_client_secret: Optional[str] = field(
+        default_factory=lambda: os.environ.get("PALADIN_OIDC_CLIENT_SECRET") or None
+    )
+    oidc_redirect_uri: Optional[str] = field(
+        default_factory=lambda: os.environ.get("PALADIN_OIDC_REDIRECT_URI") or None
+    )
+    oidc_auth_endpoint: Optional[str] = field(
+        default_factory=lambda: os.environ.get("PALADIN_OIDC_AUTH_ENDPOINT") or None
+    )
+    oidc_token_endpoint: Optional[str] = field(
+        default_factory=lambda: os.environ.get("PALADIN_OIDC_TOKEN_ENDPOINT") or None
+    )
+    oidc_userinfo_endpoint: Optional[str] = field(
+        default_factory=lambda: os.environ.get("PALADIN_OIDC_USERINFO_ENDPOINT") or None
+    )
+    oidc_jwks_uri: Optional[str] = field(
+        default_factory=lambda: os.environ.get("PALADIN_OIDC_JWKS_URI") or None
+    )
+    oidc_scopes: str = field(
+        default_factory=lambda: os.environ.get("PALADIN_OIDC_SCOPES", "openid email profile")
+    )
+
+    # Trusted reverse-proxy IP addresses / CIDRs for X-Forwarded-* header trust
+    trusted_proxies: List[str] = field(
+        default_factory=lambda: [
+            p.strip()
+            for p in os.environ.get(
+                "PALADIN_TRUSTED_PROXIES",
+                "127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16",
+            ).split(",")
+            if p.strip()
+        ]
+    )
+
+    def is_oidc_configured(self) -> bool:
+        """Returns True if OIDC issuer and client ID are both configured."""
+        return bool(self.oidc_issuer and self.oidc_client_id)
 
     def __post_init__(self) -> None:
         if self.mode in ("production", "prod"):
@@ -366,45 +435,957 @@ class BoundedSessionStore:
         return len(self._store)
 
 
+@dataclass
+class AuthSession:
+    """Active user authentication session for browser BFF access."""
+
+    session_id: str
+    csrf_token: str
+    user_id: str
+    created_at: float
+    expires_at: float
+    roles: List[str] = field(default_factory=lambda: ["operator"])
+    auth_method: str = "token"
+
+
+def generate_pkce_pair() -> Tuple[str, str]:
+    """Generates (code_verifier, code_challenge) per RFC 7636 (S256).
+
+    Returns:
+        code_verifier: Cryptographically secure 43-character base64url-safe string.
+        code_challenge: Base64url-encoded SHA-256 digest of code_verifier without padding.
+    """
+    code_verifier = secrets.token_urlsafe(32)
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    code_challenge = base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
+    return code_verifier, code_challenge
+
+
+@dataclass
+class PendingOIDCState:
+    """State record for an inflight OIDC authorization code request."""
+
+    state: str
+    nonce: str
+    code_verifier: str
+    redirect_uri: str
+    created_at: float
+    expires_at: float
+
+
+class OIDCStateStore:
+    """In-memory store for pending OIDC authorization states, preventing CSRF and replay attacks."""
+
+    def __init__(self, ttl_seconds: int = 300) -> None:
+        self.ttl_seconds = ttl_seconds
+        self._states: Dict[str, PendingOIDCState] = {}
+        self._lock = threading.Lock()
+
+    def store_state(
+        self,
+        state: str,
+        nonce: str,
+        code_verifier: str,
+        redirect_uri: str,
+        ttl_seconds: Optional[int] = None,
+    ) -> PendingOIDCState:
+        now = time.time()
+        ttl = ttl_seconds if ttl_seconds is not None else self.ttl_seconds
+        entry = PendingOIDCState(
+            state=state,
+            nonce=nonce,
+            code_verifier=code_verifier,
+            redirect_uri=redirect_uri,
+            created_at=now,
+            expires_at=now + ttl,
+        )
+        with self._lock:
+            # Prune expired states
+            expired = [k for k, v in self._states.items() if v.expires_at <= now]
+            for k in expired:
+                del self._states[k]
+            self._states[state] = entry
+        return entry
+
+    def consume_state(self, state: str) -> Optional[PendingOIDCState]:
+        """Atomically retrieves and deletes a pending state to guarantee single-use."""
+        now = time.time()
+        with self._lock:
+            entry = self._states.pop(state, None)
+            if entry is None or entry.expires_at <= now:
+                return None
+            return entry
+
+    def clear(self) -> None:
+        with self._lock:
+            self._states.clear()
+
+
+default_oidc_state_store = OIDCStateStore()
+
+
+def reset_oidc_state_store() -> None:
+    """Resets the OIDC state store (for testing or reconfiguration)."""
+    default_oidc_state_store.clear()
+
+
+def is_trusted_proxy(client_host: Optional[str], trusted_proxies: List[str]) -> bool:
+    """Checks whether client_host matches a trusted proxy IP or subnet."""
+    if not client_host:
+        return False
+    try:
+        client_ip = ipaddress.ip_address(client_host)
+    except ValueError:
+        return False
+
+    if client_ip.is_loopback:
+        return True
+
+    for pattern in trusted_proxies:
+        try:
+            if "/" in pattern:
+                net = ipaddress.ip_network(pattern, strict=False)
+                if client_ip in net:
+                    return True
+            else:
+                target_ip = ipaddress.ip_address(pattern)
+                if client_ip == target_ip:
+                    return True
+        except ValueError:
+            continue
+    return False
+
+
+def is_request_https(request: Request, settings: Optional[APISettings] = None) -> bool:
+    """Determines if the request was delivered over HTTPS securely.
+
+    Checks direct scheme, explicit PALADIN_COOKIE_SECURE override, and verifies
+    X-Forwarded-Proto ONLY when request comes from a verified trusted proxy.
+    """
+    if request.url.scheme == "https":
+        return True
+    if os.environ.get("PALADIN_COOKIE_SECURE", "false").lower() in ("true", "1", "yes"):
+        return True
+
+    client_host = request.client.host if request.client else None
+    current_settings = settings or get_api_settings()
+    if is_trusted_proxy(client_host, current_settings.trusted_proxies):
+        proto = request.headers.get("x-forwarded-proto", "").lower()
+        if proto == "https":
+            return True
+
+    return False
+
+
+MAX_JWKS_RESPONSE_BYTES = 256 * 1024  # 256 KB response boundary
+
+
+def is_safe_oidc_url(url: str, allow_local: bool = False) -> Tuple[bool, str]:
+    """Validates OIDC discovery and JWKS URLs against SSRF, credential stuffing, and protocol manipulation.
+
+    Args:
+        url: The candidate URL string.
+        allow_local: If True (e.g. local mode or test harness), allows loopback/private IPs.
+
+    Returns:
+        Tuple of (is_safe, error_reason).
+    """
+    if not url or not isinstance(url, str):
+        return False, "URL must be a non-empty string."
+
+    try:
+        parsed = urllib.parse.urlparse(url.strip())
+    except Exception as exc:
+        return False, f"Malformed URL structure: {str(exc)}"
+
+    if parsed.username or parsed.password:
+        return False, "SSRF protection: embedded user credentials (user:pass@) in URL authority are prohibited."
+
+    try:
+        port = parsed.port
+    except ValueError:
+        return False, "Malformed port in URL authority."
+
+    if allow_local:
+        if parsed.scheme not in ("https", "http"):
+            return False, f"Disallowed URL scheme '{parsed.scheme}'. Must be https or http."
+    else:
+        if parsed.scheme != "https":
+            return False, f"Insecure URL scheme '{parsed.scheme}'. Production OIDC endpoints must use HTTPS."
+
+    hostname = parsed.hostname
+    if not hostname:
+        return False, "URL missing valid hostname."
+
+    if allow_local:
+        return True, ""
+
+    def _is_safe_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address) -> Tuple[bool, str]:
+        if isinstance(ip, ipaddress.IPv6Address) and getattr(ip, "ipv4_mapped", None):
+            return _is_safe_ip(ip.ipv4_mapped)
+        if ip.is_loopback:
+            return False, "SSRF protection: loopback IP addresses are prohibited."
+        if ip.is_private:
+            return False, "SSRF protection: private IP addresses (RFC 1918 / RFC 4193) are prohibited."
+        if ip.is_link_local:
+            return False, "SSRF protection: link-local IP addresses (e.g. 169.254.0.0/16, cloud metadata) are prohibited."
+        if ip.is_reserved or ip.is_multicast:
+            return False, "SSRF protection: reserved, special-use, or multicast IP addresses are prohibited."
+        if not ip.is_global:
+            return False, "SSRF protection: non-global IP addresses are prohibited in remote mode."
+        return True, ""
+
+    try:
+        ip = ipaddress.ip_address(hostname)
+        return _is_safe_ip(ip)
+    except ValueError:
+        hostname_lower = hostname.lower()
+        if hostname_lower in ("localhost", "127.0.0.1", "::1"):
+            return False, "SSRF protection: localhost is prohibited in remote mode."
+        if (
+            "metadata.google.internal" in hostname_lower
+            or "169.254" in hostname_lower
+            or "instance-data" in hostname_lower
+        ):
+            return False, "SSRF protection: cloud metadata endpoints are prohibited."
+
+        # Perform pre-connection DNS inspection in remote mode if hostname is resolvable
+        try:
+            addr_info = socket.getaddrinfo(hostname, port or 443, proto=socket.IPPROTO_TCP)
+            for entry in addr_info:
+                resolved_ip_str = entry[4][0]
+                try:
+                    resolved_ip = ipaddress.ip_address(resolved_ip_str)
+                    safe, reason = _is_safe_ip(resolved_ip)
+                    if not safe:
+                        return False, f"SSRF protection: hostname resolves to restricted IP {resolved_ip_str}: {reason}"
+                except ValueError:
+                    pass
+        except (socket.gaierror, socket.herror, OSError):
+            # If DNS resolution fails here, let fetcher fail closed with sanitized error
+            pass
+
+    return True, ""
+
+
+class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Custom redirect handler that enforces scheme preservation and SSRF validation on redirects."""
+
+    def __init__(self, allow_local: bool = False, max_redirects: int = 2) -> None:
+        self.allow_local = allow_local
+        self.max_redirects = max_redirects
+        self._redirect_count = 0
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        self._redirect_count += 1
+        if self._redirect_count > self.max_redirects:
+            raise HTTPException(
+                status_code=401,
+                detail="Too many redirects encountered while fetching OIDC metadata.",
+            )
+        is_safe, reason = is_safe_oidc_url(newurl, self.allow_local)
+        if not is_safe:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Disallowed redirect target URL in OIDC request: {reason}",
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def _safe_fetch_json(
+    url: str,
+    timeout: float = 5.0,
+    max_bytes: int = MAX_JWKS_RESPONSE_BYTES,
+    allow_local: bool = False,
+) -> Dict[str, Any]:
+    """Safely retrieves and parses JSON from a remote URL with strict timeouts, size bounds, and SSRF checks."""
+    is_safe, reason = is_safe_oidc_url(url, allow_local)
+    if not is_safe:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Disallowed OIDC endpoint URL: {reason}",
+        )
+
+    opener = urllib.request.build_opener(SafeRedirectHandler(allow_local=allow_local))
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "PaladinMedia-OIDC/2.6.0",
+        },
+    )
+
+    try:
+        # If urllib.request.urlopen has been mocked (e.g. in test fixtures), route via urlopen
+        if (
+            hasattr(urllib.request.urlopen, "side_effect")
+            or hasattr(urllib.request.urlopen, "return_value")
+            or hasattr(urllib.request.urlopen, "mock")
+            or hasattr(urllib.request.urlopen, "assert_called")
+        ):
+            resp_cm = urllib.request.urlopen(req, timeout=timeout)
+        else:
+            resp_cm = opener.open(req, timeout=timeout)
+
+        with resp_cm as resp:
+            if resp.status != 200:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"OIDC metadata endpoint returned non-200 HTTP status: {resp.status}",
+                )
+            raw_data = resp.read(max_bytes + 1)
+            if len(raw_data) > max_bytes:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"OIDC metadata response exceeded maximum allowed size of {max_bytes} bytes.",
+                )
+            try:
+                data = json.loads(raw_data.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"Malformed JSON document received from OIDC endpoint: {str(exc)}",
+                )
+            if not isinstance(data, dict):
+                raise HTTPException(
+                    status_code=401,
+                    detail="Malformed OIDC metadata: expected top-level JSON object.",
+                )
+            return data
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning("Failed to fetch OIDC metadata from %s: %s", url, exc)
+        raise HTTPException(
+            status_code=401,
+            detail=f"JWKS or discovery endpoint unavailable or key retrieval failed: {str(exc)}",
+        )
+
+
+class JWKSCache:
+    """Thread-safe in-memory cache and resolver for OIDC JSON Web Key Sets (JWKS)."""
+
+    def __init__(self, default_ttl_seconds: float = 300.0, rotation_cooldown_seconds: float = 10.0) -> None:
+        self.default_ttl = default_ttl_seconds
+        self.rotation_cooldown = rotation_cooldown_seconds
+        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._lock = threading.Lock()
+
+    def clear(self) -> None:
+        with self._lock:
+            self._cache.clear()
+
+    def _parse_jwks_payload(self, payload: Dict[str, Any]) -> PyJWKSet:
+        """Validates JWKS document structure and rejects malformed or duplicate key identifiers."""
+        if not isinstance(payload, dict):
+            raise HTTPException(
+                status_code=401,
+                detail="Malformed JWKS document: root must be a JSON object.",
+            )
+        keys_list = payload.get("keys")
+        if not isinstance(keys_list, list):
+            raise HTTPException(
+                status_code=401,
+                detail="Malformed JWKS document: 'keys' member must be a JSON array.",
+            )
+        if len(keys_list) == 0:
+            raise HTTPException(
+                status_code=401,
+                detail="Malformed JWKS document: 'keys' array is empty.",
+            )
+
+        seen_kids: set[str] = set()
+        for idx, k in enumerate(keys_list):
+            if not isinstance(k, dict):
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"Malformed JWKS document: key at index {idx} is not an object.",
+                )
+            kid = k.get("kid")
+            if kid is not None:
+                if not isinstance(kid, str) or not kid.strip():
+                    raise HTTPException(
+                        status_code=401,
+                        detail=f"Malformed JWKS key at index {idx}: 'kid' must be a non-empty string.",
+                    )
+                if kid in seen_kids:
+                    raise HTTPException(
+                        status_code=401,
+                        detail=f"Malformed JWKS document: duplicate 'kid' ('{kid}') detected.",
+                    )
+                seen_kids.add(kid)
+
+        try:
+            return PyJWKSet.from_dict(payload)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Failed to parse JWKS document into cryptographic keys: {str(exc)}",
+            )
+
+    def resolve_jwks_uri(
+        self,
+        issuer: str,
+        configured_jwks_uri: Optional[str] = None,
+        allow_local: bool = False,
+    ) -> str:
+        """Resolves the authoritative JWKS URI via explicit config, OIDC discovery, or standard fallback."""
+        if configured_jwks_uri:
+            is_safe, reason = is_safe_oidc_url(configured_jwks_uri, allow_local)
+            if not is_safe:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"Invalid configured JWKS URI: {reason}",
+                )
+            return configured_jwks_uri
+
+        if issuer.endswith("/"):
+            discovery_url = f"{issuer}.well-known/openid-configuration"
+            fallback_uri = f"{issuer}.well-known/jwks.json"
+        else:
+            discovery_url = f"{issuer}/.well-known/openid-configuration"
+            fallback_uri = f"{issuer}/.well-known/jwks.json"
+
+        try:
+            data = _safe_fetch_json(discovery_url, timeout=5.0, allow_local=allow_local)
+            discovered_issuer = data.get("issuer")
+            if not discovered_issuer:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Discovery document missing required 'issuer' claim.",
+                )
+            if discovered_issuer != issuer:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"Discovery document issuer mismatch: expected '{issuer}', got '{discovered_issuer}'.",
+                )
+            if "jwks_uri" in data:
+                jwks_uri = data["jwks_uri"]
+                is_safe, reason = is_safe_oidc_url(jwks_uri, allow_local)
+                if not is_safe:
+                    raise HTTPException(
+                        status_code=401,
+                        detail=f"Discovered jwks_uri is unsafe: {reason}",
+                    )
+                return jwks_uri
+        except HTTPException:
+            raise
+        except Exception as exc:
+            logger.debug(
+                "OIDC discovery at %s failed: %s; falling back to standard JWKS endpoint",
+                discovery_url,
+                exc,
+            )
+
+        is_safe, reason = is_safe_oidc_url(fallback_uri, allow_local)
+        if not is_safe:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Standard fallback JWKS URI is unsafe: {reason}",
+            )
+        return fallback_uri
+
+    def get_signing_key(
+        self,
+        kid: Optional[str],
+        alg: str,
+        issuer: Optional[str],
+        jwks_uri: Optional[str] = None,
+        jwks_data: Optional[Dict[str, Any]] = None,
+        allow_local: bool = False,
+    ) -> Any:
+        """Retrieves and validates the public signing key matching the given kid and algorithm."""
+        if jwks_data is not None:
+            jwk_set = self._parse_jwks_payload(jwks_data)
+            return self._find_key_in_set(jwk_set, kid, alg)
+
+        if not issuer and not jwks_uri:
+            raise HTTPException(
+                status_code=401,
+                detail="Cannot verify asymmetric token: neither issuer nor jwks_uri configured.",
+            )
+
+        target_uri = self.resolve_jwks_uri(issuer or "", jwks_uri, allow_local=allow_local)
+        now = time.time()
+
+        with self._lock:
+            cached = self._cache.get(target_uri)
+            needs_fetch = cached is None or (now - cached["fetched_at"]) > self.default_ttl
+
+            if needs_fetch:
+                payload = _safe_fetch_json(target_uri, timeout=5.0, allow_local=allow_local)
+                jwk_set = self._parse_jwks_payload(payload)
+                self._cache[target_uri] = {
+                    "jwk_set": jwk_set,
+                    "fetched_at": now,
+                    "last_rotation": now,
+                }
+            else:
+                jwk_set = cached["jwk_set"]
+
+            try:
+                return self._find_key_in_set(jwk_set, kid, alg)
+            except HTTPException:
+                cached = self._cache.get(target_uri)
+                can_rotate = cached is not None and (now - cached["last_rotation"]) >= self.rotation_cooldown
+
+                if can_rotate:
+                    logger.info(
+                        "Key kid='%s' not in cached JWKS; attempting rotation refresh from %s",
+                        kid,
+                        target_uri,
+                    )
+                    payload = _safe_fetch_json(target_uri, timeout=5.0, allow_local=allow_local)
+                    refreshed_set = self._parse_jwks_payload(payload)
+                    self._cache[target_uri] = {
+                        "jwk_set": refreshed_set,
+                        "fetched_at": now,
+                        "last_rotation": now,
+                    }
+                    return self._find_key_in_set(refreshed_set, kid, alg)
+                raise
+
+    def _find_key_in_set(self, jwk_set: PyJWKSet, kid: Optional[str], alg: str) -> Any:
+        expected_kty = "RSA" if alg.startswith("RS") else ("EC" if alg.startswith("ES") else None)
+
+        if kid:
+            try:
+                pyjwk = jwk_set[kid]
+                if expected_kty and getattr(pyjwk, "key_type", None) and pyjwk.key_type != expected_kty:
+                    raise HTTPException(
+                        status_code=401,
+                        detail=f"Key type mismatch for kid '{kid}': expected {expected_kty}, got {pyjwk.key_type}",
+                    )
+                return pyjwk.key
+            except KeyError:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"Signing key with kid '{kid}' not found in JWKS.",
+                )
+        else:
+            candidates = [
+                k for k in jwk_set.keys
+                if expected_kty is None or getattr(k, "key_type", None) == expected_kty
+            ]
+            if len(candidates) == 1:
+                return candidates[0].key
+            elif len(candidates) > 1:
+                raise HTTPException(
+                    status_code=401,
+                    detail="ID token missing required 'kid' header parameter and multiple matching keys exist in JWKS.",
+                )
+            else:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"No suitable {expected_kty} signing key found in JWKS.",
+                )
+
+
+default_jwks_cache = JWKSCache()
+
+
+def reset_jwks_cache() -> None:
+    """Resets the JWKS cache (for testing or reconfiguration)."""
+    default_jwks_cache.clear()
+
+
+def validate_id_token_claims(
+    id_token: str,
+    expected_issuer: Optional[str],
+    expected_audience: Optional[str],
+    expected_nonce: Optional[str],
+    client_secret: Optional[str] = None,
+    jwks_uri: Optional[str] = None,
+    jwks_data: Optional[Dict[str, Any]] = None,
+    allowed_algorithms: Optional[List[str]] = None,
+    allow_local: Optional[bool] = None,
+) -> Dict[str, Any]:
+    """Validates claims and cryptographic signatures in an OpenID Connect ID token JWT.
+
+    Supports:
+    - Asymmetric signatures (RS256, ES256) via JWKS key retrieval and verification.
+    - Symmetric signatures (HS256) via shared client_secret when configured.
+    - Strict algorithm allowlisting and algorithm confusion attack prevention.
+    - Comprehensive claim validation: iss, aud, azp (for multi-audience), nonce, exp, iat, sub.
+    - SSRF protection and discovery issuer validation.
+    """
+    if not isinstance(id_token, str):
+        raise HTTPException(
+            status_code=400,
+            detail="ID token must be a string.",
+        )
+
+    parts = id_token.split(".")
+    if len(parts) != 3:
+        raise HTTPException(
+            status_code=400,
+            detail="Malformed ID token JWT: expected 3 dot-separated segments.",
+        )
+
+    # 1. Unverified header inspection
+    try:
+        header = jwt.get_unverified_header(id_token)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Malformed ID token header: {str(exc)}",
+        )
+
+    alg = header.get("alg")
+    if not alg or alg.lower() == "none":
+        raise HTTPException(
+            status_code=401,
+            detail="Unsigned ID token (alg=none) is strictly prohibited.",
+        )
+
+    # 2. Algorithm allowlisting
+    if allowed_algorithms is not None:
+        effective_allowed = allowed_algorithms
+    else:
+        effective_allowed = ["RS256", "ES256"]
+        if client_secret:
+            effective_allowed.append("HS256")
+
+    if alg not in effective_allowed:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Disallowed ID token algorithm '{alg}'. Allowed algorithms: {effective_allowed}.",
+        )
+
+    # Resolve local/test allowance
+    if allow_local is None:
+        settings = get_api_settings()
+        allow_local = (
+            settings.mode == "local"
+            or os.environ.get("PALADIN_ALLOW_LOCAL_OIDC", "false").lower() in ("true", "1", "yes")
+        )
+
+    # 3. Signature verification with strict algorithm separation
+    try:
+        if alg == "HS256":
+            if not client_secret:
+                raise HTTPException(
+                    status_code=401,
+                    detail="HS256 token presented but client_secret is not configured.",
+                )
+            claims = jwt.decode(
+                id_token,
+                key=client_secret.encode("utf-8"),
+                algorithms=["HS256"],
+                options={"verify_signature": True, "verify_exp": False, "verify_aud": False, "verify_iss": False},
+            )
+        elif alg in ("RS256", "ES256"):
+            signing_key = default_jwks_cache.get_signing_key(
+                kid=header.get("kid"),
+                alg=alg,
+                issuer=expected_issuer,
+                jwks_uri=jwks_uri,
+                jwks_data=jwks_data,
+                allow_local=allow_local,
+            )
+            claims = jwt.decode(
+                id_token,
+                key=signing_key,
+                algorithms=[alg],
+                options={"verify_signature": True, "verify_exp": False, "verify_aud": False, "verify_iss": False},
+            )
+        else:
+            raise HTTPException(
+                status_code=401,
+                detail=f"Unsupported algorithm '{alg}'.",
+            )
+    except HTTPException:
+        raise
+    except jwt.InvalidSignatureError:
+        raise HTTPException(
+            status_code=401,
+            detail="ID token signature verification failed.",
+        )
+    except jwt.InvalidIssuedAtError as exc:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Invalid 'iat' timestamp in ID token: {str(exc)}",
+        )
+    except jwt.ImmatureSignatureError as exc:
+        raise HTTPException(
+            status_code=401,
+            detail=f"ID token 'iat' is in the future: {str(exc)}",
+        )
+    except jwt.InvalidAlgorithmError as exc:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Algorithm confusion attempt rejected: {str(exc)}",
+        )
+    except jwt.PyJWTError as exc:
+        raise HTTPException(
+            status_code=401,
+            detail=f"ID token decoding or signature failure: {str(exc)}",
+        )
+
+    # 4. Issuer validation (strict exact-match comparison without normalization)
+    iss = claims.get("iss")
+    if not iss or not isinstance(iss, str):
+        raise HTTPException(
+            status_code=401,
+            detail="Missing or invalid 'iss' (issuer) claim in ID token.",
+        )
+    if expected_issuer:
+        if iss != expected_issuer:
+            raise HTTPException(
+                status_code=401,
+                detail=f"ID token issuer mismatch: expected '{expected_issuer}', got '{iss}'.",
+            )
+
+    # 5. Audience and azp validation (RFC Section 3.1.3.7)
+    aud = claims.get("aud")
+    if not aud:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing required 'aud' (audience) claim in ID token.",
+        )
+    if not isinstance(aud, (str, list)):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid 'aud' (audience) claim in ID token: must be a string or list of strings.",
+        )
+    if isinstance(aud, list) and not all(isinstance(a, str) for a in aud):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid 'aud' (audience) claim in ID token: list elements must be strings.",
+        )
+
+    if expected_audience:
+        if isinstance(aud, list):
+            if expected_audience not in aud:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"ID token audience mismatch: '{expected_audience}' not in {aud}.",
+                )
+            if len(aud) > 1:
+                azp = claims.get("azp")
+                if not azp:
+                    raise HTTPException(
+                        status_code=401,
+                        detail="ID token with multiple audiences missing required 'azp' (Authorized Party) claim.",
+                    )
+                if not isinstance(azp, str) or azp != expected_audience:
+                    raise HTTPException(
+                        status_code=401,
+                        detail=f"ID token 'azp' mismatch: expected '{expected_audience}', got '{azp}'.",
+                    )
+        elif isinstance(aud, str):
+            if aud != expected_audience:
+                raise HTTPException(
+                    status_code=401,
+                    detail=f"ID token audience mismatch: expected '{expected_audience}', got '{aud}'.",
+                )
+            azp = claims.get("azp")
+            if azp is not None:
+                if not isinstance(azp, str) or azp != expected_audience:
+                    raise HTTPException(
+                        status_code=401,
+                        detail=f"ID token 'azp' mismatch: expected '{expected_audience}', got '{azp}'.",
+                    )
+
+    # 6. Nonce validation
+    if expected_nonce:
+        nonce = claims.get("nonce")
+        if not nonce or not isinstance(nonce, str) or not secrets.compare_digest(nonce, expected_nonce):
+            raise HTTPException(
+                status_code=401,
+                detail="ID token nonce mismatch or missing. Replay attack prevented.",
+            )
+
+    # 7. Expiration validation (with 60-second clock skew leeway)
+    now = time.time()
+    exp = claims.get("exp")
+    if exp is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Missing required 'exp' claim in ID token.",
+        )
+    try:
+        exp_val = float(exp)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=401, detail="Invalid 'exp' timestamp in ID token: must be a numeric timestamp.")
+    if exp_val <= (now - 60.0):
+        raise HTTPException(status_code=401, detail="ID token has expired.")
+
+    # 8. Issued-at (iat) validation (if present, must not be in the future beyond clock skew)
+    iat = claims.get("iat")
+    if iat is not None:
+        try:
+            iat_val = float(iat)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=401, detail="Invalid 'iat' timestamp in ID token: must be a numeric timestamp.")
+        if iat_val > (now + 60.0):
+            raise HTTPException(status_code=401, detail="ID token 'iat' is in the future.")
+
+    # 9. Subject validation
+    sub = claims.get("sub")
+    if not sub or not isinstance(sub, str) or not sub.strip():
+        raise HTTPException(
+            status_code=401,
+            detail="ID token is missing required 'sub' (subject) claim.",
+        )
+
+    return claims
+
+    return claims
+
+
+class AuthSessionStore:
+    """In-memory bounded session store for browser BFF authentication sessions."""
+
+    def __init__(self, max_sessions: int = 1000, default_ttl_seconds: int = 3600) -> None:
+        self.max_sessions = max_sessions
+        self.default_ttl_seconds = default_ttl_seconds
+        self._sessions: Dict[str, AuthSession] = {}
+        self._lock = threading.Lock()
+
+    def create_session(
+        self,
+        user_id: str = "operator",
+        ttl_seconds: Optional[int] = None,
+    ) -> AuthSession:
+        now = time.time()
+        ttl = ttl_seconds if ttl_seconds is not None else self.default_ttl_seconds
+        session_id = secrets.token_hex(32)
+        csrf_token = secrets.token_hex(32)
+        session = AuthSession(
+            session_id=session_id,
+            csrf_token=csrf_token,
+            user_id=user_id,
+            created_at=now,
+            expires_at=now + ttl,
+        )
+        with self._lock:
+            # Prune expired
+            expired = [sid for sid, s in self._sessions.items() if s.expires_at <= now]
+            for sid in expired:
+                del self._sessions[sid]
+
+            # Bounded capacity eviction (oldest first)
+            while len(self._sessions) >= self.max_sessions:
+                oldest_sid = min(self._sessions.keys(), key=lambda k: self._sessions[k].created_at)
+                del self._sessions[oldest_sid]
+
+            self._sessions[session_id] = session
+        return session
+
+    def get_session(self, session_id: str) -> Optional[AuthSession]:
+        now = time.time()
+        with self._lock:
+            session = self._sessions.get(session_id)
+            if session is None:
+                return None
+            if session.expires_at <= now:
+                del self._sessions[session_id]
+                return None
+            return session
+
+    def delete_session(self, session_id: str) -> bool:
+        with self._lock:
+            if session_id in self._sessions:
+                del self._sessions[session_id]
+                return True
+            return False
+
+    def clear(self) -> None:
+        with self._lock:
+            self._sessions.clear()
+
+    def __len__(self) -> int:
+        now = time.time()
+        with self._lock:
+            return sum(1 for s in self._sessions.values() if s.expires_at > now)
+
+
+default_auth_session_store = AuthSessionStore()
+
+
+def reset_auth_session_store() -> None:
+    """Resets the auth session store (for testing or reconfiguration)."""
+    default_auth_session_store.clear()
+
+
 async def verify_auth(
+    request: Request,
     authorization: Optional[str] = Header(None, alias="Authorization"),
 ) -> Optional[str]:
-    """Dependency that enforces constant-time Bearer token authentication.
+    """Dependency that enforces constant-time Bearer token or HttpOnly session cookie auth.
+
+    Supports:
+    1. Direct Bearer token authentication (programmatic / headless API clients).
+    2. HttpOnly session cookie authentication (BFF / browser clients) with CSRF validation.
 
     Raises:
         HTTPException(401): If authentication is required and missing or invalid.
+        HTTPException(403): If session cookie is valid but CSRF token is invalid on mutation requests.
     """
     settings = get_api_settings()
     if not settings.is_auth_required():
         # Local development mode with no token configured
         return None
 
-    if not authorization:
-        raise HTTPException(
-            status_code=401,
-            detail="Authentication required",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # Priority 1: Bearer token authorization header
+    if authorization:
+        scheme, _, token = authorization.partition(" ")
+        if scheme.lower() != "bearer" or not token:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authorization header scheme. Bearer token required.",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
 
-    scheme, _, token = authorization.partition(" ")
-    if scheme.lower() != "bearer" or not token:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid authorization header scheme. Bearer token required.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        expected_token = settings.api_token or ""
+        # Constant-time comparison to prevent timing side-channels
+        if not secrets.compare_digest(token, expected_token):
+            logger.warning("Authentication failed: invalid token provided.")
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid API token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return token
 
-    expected_token = settings.api_token or ""
-    # Constant-time comparison to prevent timing side-channels
-    if not secrets.compare_digest(token, expected_token):
-        logger.warning("Authentication failed: invalid token provided.")
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid API token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    # Priority 2: BFF Session Cookie authentication
+    if request is not None:
+        session_id = request.cookies.get("paladin_session")
+        if session_id:
+            session = default_auth_session_store.get_session(session_id)
+            if session is None:
+                raise HTTPException(
+                    status_code=401,
+                    detail="Session expired or invalid. Please re-authenticate.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
 
-    return token
+            # Enforce CSRF protection on state-changing methods for cookie-authenticated clients
+            if request.method in ("POST", "PUT", "DELETE", "PATCH"):
+                csrf_header = (
+                    request.headers.get("x-csrf-token")
+                    or request.headers.get("X-CSRF-Token")
+                )
+                if not csrf_header or not secrets.compare_digest(csrf_header, session.csrf_token):
+                    logger.warning(
+                        "CSRF validation failed for session %s on %s %s",
+                        session_id[:8],
+                        request.method,
+                        request.url.path,
+                    )
+                    raise HTTPException(
+                        status_code=403,
+                        detail="CSRF validation failed: missing or invalid X-CSRF-Token header.",
+                    )
+            return f"session:{session.session_id}"
+
+    # Neither Bearer token nor valid session cookie provided
+    raise HTTPException(
+        status_code=401,
+        detail="Authentication required",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):

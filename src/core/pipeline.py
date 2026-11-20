@@ -1,56 +1,51 @@
-"""Security Pipeline for PaladinMedia MVP 0 Sprint 1.
+"""Integrated Cryptographic and Framing Pipeline for PaladinMedia MVP 0.
 
-Integrates:
-1. SecretSerializer: Serializes SecretPayload into canonical wire format with CRC-32 integrity.
-2. CryptoProvider (AES-256-GCM): Authenticated symmetric encryption with random 96-bit nonce
-   and 128-bit GHASH authentication tag, strictly fail-closed.
-3. ECCEncoder (ReedSolomonEncoder): Error correction coding operating over GF(2^8)
-   with systematic block chunking and length framing.
+Sequence:
+    Sender:   SecretPayload -> Serializer -> AES-256-GCM -> Reed-Solomon -> Protected Bytes
+    Receiver: Protected Bytes -> Reed-Solomon -> AES-256-GCM -> Serializer -> SecretPayload
 
-Enforces Architectural Invariants:
-- INV-01: Strict unidirectional sequence: Serialize -> Encrypt -> ECC Encode.
-- INV-02: ECC operates exclusively on protected representation (ciphertext), never on plaintext.
-- INV-03: Fail-closed security: Any tampering in ciphertext, tag, or AAD causes terminal
-  rejection and zero plaintext leakage.
+Guarantees:
+    - INV-01: Serializer output is always encrypted before channel modulation.
+    - INV-04: Fail-closed on any bit flip, truncation, or tampering in ciphertext or tag.
+    - Error correction: Repairs up to t symbol errors per 255-byte block.
 """
 
 from __future__ import annotations
 
 from typing import Optional
-# pyrefly: ignore [missing-import]
-from src.core.serialization import SecretPayload, SecretSerializer
-# pyrefly: ignore [missing-import]
+
+from src.core.serialization.serializer import SecretPayload, SecretSerializer
 from src.security.crypto.provider import AESGCMProvider, CryptoProvider
-# pyrefly: ignore [missing-import]
 from src.security.ecc.encoder import ECCEncoder, ReedSolomonEncoder
+
+__all__ = [
+    "SecurityPipeline",
+]
 
 
 class SecurityPipeline:
-    """End-to-end security pipeline for protect and unprotect operations."""
+    """Combines Serialization, Encryption, and ECC into a unified pipeline."""
 
     def __init__(
         self,
         crypto_provider: Optional[CryptoProvider] = None,
         ecc_encoder: Optional[ECCEncoder] = None,
     ) -> None:
-        """Initializes SecurityPipeline with cryptographic and ECC providers.
+        """Initializes the integrated security pipeline.
 
         Args:
-            crypto_provider: Cryptographic provider instance (defaults to AESGCMProvider()).
-            ecc_encoder: Error correction encoder instance (defaults to ReedSolomonEncoder()).
+            crypto_provider: Cryptographic provider instance (defaults to AESGCMProvider).
+            ecc_encoder: Error correction encoder instance (defaults to ReedSolomonEncoder).
         """
-        self.crypto_provider: CryptoProvider = (
-            crypto_provider if crypto_provider is not None else AESGCMProvider()
-        )
-        self.ecc_encoder: ECCEncoder = (
-            ecc_encoder if ecc_encoder is not None else ReedSolomonEncoder()
-        )
+        self.crypto_provider: CryptoProvider = crypto_provider or AESGCMProvider()
+        self.ecc_encoder: ECCEncoder = ecc_encoder or ReedSolomonEncoder()
 
     def protect(
         self,
         payload: SecretPayload,
         key: bytes,
         aad: Optional[bytes] = None,
+        ecc_encoder: Optional[ECCEncoder] = None,
     ) -> bytes:
         """Protects a SecretPayload through Serialization -> Encryption -> ECC Encoding.
 
@@ -63,6 +58,7 @@ class SecurityPipeline:
             payload: SecretPayload instance containing secret data, media type, and metadata.
             key: Exactly 32 bytes (256-bit symmetric key).
             aad: Optional Associated Authenticated Data for cryptographic binding.
+            ecc_encoder: Optional ECCEncoder instance to override default encoder.
 
         Returns:
             Protected bytes ready for steganographic carrier embedding.
@@ -74,7 +70,8 @@ class SecurityPipeline:
         encrypted = self.crypto_provider.encrypt(serialized, key, aad=aad)
 
         # Step 3: ECC Encode
-        protected = self.ecc_encoder.encode(encrypted)
+        encoder = ecc_encoder if ecc_encoder is not None else self.ecc_encoder
+        protected = encoder.encode(encrypted)
 
         return protected
 

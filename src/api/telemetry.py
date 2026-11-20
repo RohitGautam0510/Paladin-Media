@@ -20,7 +20,12 @@ import time
 from dataclasses import asdict, dataclass
 from typing import Any, Dict, Optional
 
-import psutil
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    psutil = None
+    PSUTIL_AVAILABLE = False
 
 logger = logging.getLogger("paladinmedia.telemetry")
 
@@ -66,9 +71,12 @@ class SustainabilityTelemetryTracker:
         self._active_runs: Dict[str, Dict[str, Any]] = {}
         self._history: Dict[str, SustainabilityMetrics] = {}
         self._max_records = max_records
-        try:
-            self._process = psutil.Process(os.getpid())
-        except Exception:
+        if PSUTIL_AVAILABLE and psutil is not None:
+            try:
+                self._process = psutil.Process(os.getpid())
+            except Exception:
+                self._process = None
+        else:
             self._process = None
 
     def start_tracking(self, run_id: str) -> None:
